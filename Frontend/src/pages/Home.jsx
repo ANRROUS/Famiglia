@@ -2,7 +2,6 @@ import { Box } from "@mui/material";
 import HeroSection from "../components/layout/Home/HeroSection";
 import MenuSection from "../components/layout/Home/MenuSection";
 import DeliverySection from "../components/layout/Home/DeliverySection";
-import FooterSection from "../components/layout/Footer";
 
 const Home = () => {
   // callbacks opcionales que ya tenías (si los usas dentro de HeroSection)
@@ -25,7 +24,6 @@ const Home = () => {
       />
       <MenuSection />
       <DeliverySection />
-      <FooterSection />
     </Box>
   );
 };

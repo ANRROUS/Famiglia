@@ -156,7 +156,7 @@ const HeroSection = ({
             RESERVA TU PEDIDO
           </button>
 
-          <Box className="flex items-center gap-3 justify-center md:justify-start mt-4 text-[#000]">
+          <Box className="flex items-center gap-3 justify-center mt-4 text-[#000]">
             <img
               src={imgPointMap}
               alt="Ubicación"
@@ -165,8 +165,10 @@ const HeroSection = ({
             <Typography
               variant="body1"
               sx={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontWeight: 200, // Extralight
                 fontSize: { xs: "0.9rem", sm: "1rem", md: "1.1rem" },
-                fontWeight: 300,
+                color: "#000",
               }}
             >
               Av. Gral. Antonio Álvarez de Arenales 458, Jesús María
