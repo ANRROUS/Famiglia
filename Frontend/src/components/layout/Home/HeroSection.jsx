@@ -31,20 +31,18 @@ const HeroSection = ({
       />
 
       {/* NAVBAR */}
-      <Box className="relative flex justify-between items-center px-6 sm:px-10 md:px-16 py-4 z-10 text-white">
+      {/* NAVBAR */}
+      <Box className="relative flex flex-row justify-between items-center px-6 sm:px-10 md:px-16 py-3 z-20 text-white">
         {/* Logo */}
         <img
           src={imgLogoFamigliawithourBorders}
           alt="Famiglia Logo"
-          className="w-36 sm:w-48 md:w-56 h-auto object-contain"
+          className="w-40 sm:w-56 md:w-64 h-auto object-contain z-20"
         />
 
-        {/* Menú principal (solo en escritorio) */}
-        <Box className="hidden md:flex items-center gap-8 text-base font-medium">
-          <div
-            className="cursor-pointer border-b-2 border-white pb-1"
-            onClick={onHomeTextClick}
-          >
+        {/* Menú en pantallas grandes */}
+        <Box className="hidden md:flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-10 text-base sm:text-lg md:text-base font-medium">
+          <div className="cursor-pointer border-b-2 border-white pb-1" onClick={onHomeTextClick}>
             Home
           </div>
           <div className="cursor-pointer hover:text-gray-200" onClick={onCartaTextClick}>
@@ -61,7 +59,7 @@ const HeroSection = ({
           </div>
         </Box>
 
-        {/* Botones (solo escritorio) */}
+        {/* Botones en escritorio */}
         <Box className="hidden md:flex gap-3">
           <button
             onClick={onGroupContainerClick1}
@@ -77,17 +75,24 @@ const HeroSection = ({
           </button>
         </Box>
 
-        {/* Ícono menú hamburguesa (solo móvil) */}
-        <IconButton
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="text-white md:hidden"
-        >
-          {menuOpen ? <CloseIcon /> : <MenuIcon />}
-        </IconButton>
+        {/* Botón menú hamburguesa (solo en móvil) */}
+        <Box className="flex md:hidden absolute right-6 top-4 z-30">
+          <IconButton
+            onClick={() => setMenuOpen(!menuOpen)}
+            sx={{
+              color: "white",
+              "&:hover": { color: "#f5f5f5" },
+            }}
+          >
+            {menuOpen ? <CloseIcon /> : <MenuIcon />}
+          </IconButton>
+        </Box>
 
-        {/* Menú desplegable móvil */}
+        {/* Menú móvil desplegable */}
         {menuOpen && (
-          <Box className="absolute top-[100%] left-0 w-full bg-[#8f3c3c] text-white flex flex-col items-center py-6 gap-4 text-lg font-semibold shadow-lg animate-fadeIn z-20">
+          <Box
+            className="fixed inset-0 bg-[#753b3bcc] backdrop-blur-sm flex flex-col justify-center items-center text-white text-2xl gap-6 z-20"
+          >
             <div onClick={onHomeTextClick} className="cursor-pointer hover:text-gray-200">
               Home
             </div>
@@ -103,21 +108,26 @@ const HeroSection = ({
             <div onClick={onContctanosTextClick} className="cursor-pointer hover:text-gray-200">
               Contáctanos
             </div>
-            <button
-              onClick={onGroupContainerClick1}
-              className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-5 py-2 w-4/5"
-            >
-              Registrarse
-            </button>
-            <button
-              onClick={onGroupContainerClick}
-              className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-5 py-2 w-4/5"
-            >
-              Iniciar Sesión
-            </button>
+
+            {/* Botones también visibles en móvil */}
+            <Box className="flex flex-col gap-4 mt-8">
+              <button
+                onClick={onGroupContainerClick1}
+                className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
+              >
+                Registrarse
+              </button>
+              <button
+                onClick={onGroupContainerClick}
+                className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
+              >
+                Iniciar Sesión
+              </button>
+            </Box>
           </Box>
         )}
       </Box>
+
 
       {/* HERO SECTION */}
       <Box className="relative flex flex-col md:flex-row justify-between items-center px-6 sm:px-10 md:px-16 pt-2 md:pt-0 pb-8 md:pb-12 z-10">
@@ -142,7 +152,7 @@ const HeroSection = ({
             <span style={{ color: "#da3644" }}>snack bar</span>
           </Typography>
 
-          <button className="bg-[#8f3c3c] text-white text-[1.2rem] sm:text-[1.5rem] md:text-[1.8rem] font-['Lilita_One'] rounded-lg px-6 py-3 shadow-md hover:bg-[#702828] transition self-center md:self-start">
+          <button className="bg-[#8f3c3c] text-white text-[1.3rem] sm:text-[1.7rem] md:text-[1.9rem] font-['Lilita_One'] rounded-xl px-10 sm:px-14 py-4 shadow-lg hover:bg-[#702828] transition self-center">
             RESERVA TU PEDIDO
           </button>
 
