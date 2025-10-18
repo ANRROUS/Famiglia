@@ -2,7 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import Footer from './components/layout/Footer'
-import './index.css'
+// styles are imported in src/main.jsx
 
 function App() {
   return (
