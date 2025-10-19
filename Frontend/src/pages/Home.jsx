@@ -7,9 +7,9 @@ import DeliverySection from "../components/layout/Home/DeliverySection";
 const Home = () => {
   const navigate = useNavigate();
   
-  const onCartaTextClick = () => {};
-  const onDeliveryTextClick = () => {};
-  const onTestTextClick = () => {};
+  const onCartaTextClick = () => navigate("/carta");
+  const onDeliveryTextClick = () => navigate("/delivery");
+  const onTestTextClick = () => navigate("/test");
   const onContactanosTextClick = () => navigate("/contact-us");
   const onGroupContainerClick = () => {};
   const onGroupContainerClick1 = () => {};
