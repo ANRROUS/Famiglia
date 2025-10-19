@@ -4,10 +4,14 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate, useLocation } from "react-router-dom";
 import imgLogoFamiglia from "../../assets/images/img_logoFamigliawithoutBorders.png";
+import RegisterForm from "../forms/RegisterForm"; 
+import LoginForm from "../forms/LoginForm";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [underlineStyle, setUnderlineStyle] = useState({});
+  const [showRegister, setShowRegister] = useState(false); // ✅ Modal abierto/cerrado
+  const [showLogin, setShowLogin] = useState(false); // ✅ Modal abierto/cerrado
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,8 +52,6 @@ const Header = () => {
   const handleGoDelivery = () => navigate("/delivery");
   const handleGoTest = () => navigate("/test");
   const handleGoContact = () => navigate("/contact-us");
-  const handleGoRegister = () => navigate("/register");
-  const handleGoLogin = () => navigate("/login");
 
   return (
     <Box className="w-full bg-white text-[#6b2c2c] font-[Montserrat] border-b-[1.5px] border-[#b17b6b] relative">
@@ -94,7 +96,7 @@ const Header = () => {
         {/* Botones en escritorio */}
         <Box className="hidden md:flex gap-3">
           <Button
-            onClick={handleGoRegister}
+            onClick={() => setShowRegister(true)} // ✅ Abrir modal
             variant="contained"
             sx={{
               backgroundColor: "#8b3e3e",
@@ -109,7 +111,7 @@ const Header = () => {
             Registrarse
           </Button>
           <Button
-            onClick={handleGoLogin}
+            onClick={() => setShowLogin(true)} // ✅ Abrir modal de login
             variant="outlined"
             sx={{
               borderColor: "#8b3e3e",
@@ -158,7 +160,7 @@ const Header = () => {
 
           <Box className="flex flex-col gap-3 mt-4 w-[60%]">
             <Button
-              onClick={handleGoRegister}
+              onClick={() => setShowRegister(true)} // ✅ Abrir modal móvil
               variant="contained"
               sx={{
                 backgroundColor: "#8b3e3e",
@@ -172,7 +174,7 @@ const Header = () => {
               Registrarse
             </Button>
             <Button
-              onClick={handleGoLogin}
+              onClick={() => navigate("/login")}
               variant="outlined"
               sx={{
                 borderColor: "#8b3e3e",
@@ -192,6 +194,10 @@ const Header = () => {
           </Box>
         </Box>
       )}
+
+      {/* ✅ Modal de registro */}
+      <RegisterForm isOpen={showRegister} onClose={() => setShowRegister(false)} />
+      <LoginForm isOpen={showLogin} onClose={() => setShowLogin(false)} />
     </Box>
   );
 };
