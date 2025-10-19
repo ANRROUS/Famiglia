@@ -6,11 +6,9 @@ import Header from './components/layout/Header'
 import ContactUs from './pages/ContactUs'
 import PreferencesTest from './pages/PreferencesTest'
 
-// 🔹 Componente interno para controlar la visibilidad del Header
 function Layout() {
   const location = useLocation()
 
-  // Si la ruta actual es "/" o "/home", NO mostrar el header
   const hideHeader = location.pathname === '/' || location.pathname === '/home'
 
   return (
