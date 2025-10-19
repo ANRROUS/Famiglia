@@ -105,7 +105,7 @@ const HeroSection = ({
             <div onClick={onTestTextClick} className="cursor-pointer hover:text-gray-200">
               Test
             </div>
-            <div onClick={onContctanosTextClick} className="cursor-pointer hover:text-gray-200">
+            <div onClick={onContactanosTextClick} className="cursor-pointer hover:text-gray-200">
               Contáctanos
             </div>
 

@@ -11,8 +11,9 @@ const ContactUs = () => {
         w-full 
         bg-white 
         flex flex-col md:flex-row 
-        justify-center items-start 
-        gap-20 py-16 px-8 md:px-16 
+        justify-center md:items-start items-center
+        gap-16 md:gap-20 
+        py-16 px-6 sm:px-10 md:px-16 
         font-[Montserrat] 
         text-[#753b3b]
       "
@@ -20,14 +21,12 @@ const ContactUs = () => {
         boxSizing: "border-box",
         maxWidth: "100vw",
         overflowX: "hidden",
-        margin: 0,
-        padding: 0,
         paddingTop: "90px", // 👈 margen superior para separar del navbar
       }}
     >
       {/* LEFT SIDE - CONTACT INFO */}
       <Box
-        className="flex-1 flex flex-col gap-10 max-w-md"
+        className="flex-1 flex flex-col gap-10 max-w-md w-full md:items-start items-center text-center md:text-left"
         sx={{ minWidth: 0 }}
       >
         <Typography
@@ -43,7 +42,7 @@ const ContactUs = () => {
         </Typography>
 
         {/* Phone */}
-        <Box className="flex items-center gap-4">
+        <Box className="flex items-center justify-center md:justify-start gap-4">
           <PhoneIcon sx={{ fontSize: 36, color: "#000" }} />
           <Box>
             <Typography sx={{ color: "#000", fontSize: "0.9rem", fontWeight: 600 }}>
@@ -56,7 +55,7 @@ const ContactUs = () => {
         </Box>
 
         {/* Email */}
-        <Box className="flex items-center gap-4">
+        <Box className="flex items-center justify-center md:justify-start gap-4">
           <EmailIcon sx={{ fontSize: 36, color: "#000" }} />
           <Box>
             <Typography sx={{ color: "#000", fontSize: "0.9rem", fontWeight: 600 }}>
@@ -69,7 +68,7 @@ const ContactUs = () => {
         </Box>
 
         {/* Location */}
-        <Box className="flex items-center gap-4">
+        <Box className="flex items-center justify-center md:justify-start gap-4">
           <RoomIcon sx={{ fontSize: 36, color: "#000" }} />
           <Box>
             <Typography sx={{ color: "#000", fontSize: "0.9rem", fontWeight: 600 }}>
@@ -93,6 +92,7 @@ const ContactUs = () => {
           padding: "2rem 2rem",
           backgroundColor: "#fff",
           minWidth: 0,
+          marginTop: { xs: "1.5rem", md: 0 },
         }}
       >
         <Typography sx={{ fontWeight: 700, color: "#753b3b", fontSize: "0.9rem", mb: 0.5 }}>
