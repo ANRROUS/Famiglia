@@ -1,14 +1,16 @@
 import { Box } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import HeroSection from "../components/layout/Home/HeroSection";
 import MenuSection from "../components/layout/Home/MenuSection";
 import DeliverySection from "../components/layout/Home/DeliverySection";
 
 const Home = () => {
-  // callbacks opcionales que ya tenías (si los usas dentro de HeroSection)
+  const navigate = useNavigate();
+  
   const onCartaTextClick = () => {};
   const onDeliveryTextClick = () => {};
   const onTestTextClick = () => {};
-  const onContctanosTextClick = () => {};
+  const onContactanosTextClick = () => navigate("/contact-us");
   const onGroupContainerClick = () => {};
   const onGroupContainerClick1 = () => {};
 
@@ -18,7 +20,7 @@ const Home = () => {
         onCartaTextClick={onCartaTextClick}
         onDeliveryTextClick={onDeliveryTextClick}
         onTestTextClick={onTestTextClick}
-        onContctanosTextClick={onContctanosTextClick}
+        onContactanosTextClick={onContactanosTextClick}
         onGroupContainerClick={onGroupContainerClick}
         onGroupContainerClick1={onGroupContainerClick1}
       />

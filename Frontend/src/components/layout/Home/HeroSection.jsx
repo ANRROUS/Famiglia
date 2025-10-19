@@ -15,7 +15,7 @@ const HeroSection = ({
   onCartaTextClick,
   onDeliveryTextClick,
   onTestTextClick,
-  onContctanosTextClick,
+  onContactanosTextClick,
   onGroupContainerClick,
   onGroupContainerClick1,
 }) => {
@@ -54,7 +54,7 @@ const HeroSection = ({
           <div className="cursor-pointer hover:text-gray-200" onClick={onTestTextClick}>
             Test
           </div>
-          <div className="cursor-pointer hover:text-gray-200" onClick={onContctanosTextClick}>
+          <div className="cursor-pointer hover:text-gray-200" onClick={onContactanosTextClick}>
             Contáctanos
           </div>
         </Box>

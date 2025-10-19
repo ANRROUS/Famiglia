@@ -1,19 +1,36 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import Footer from './components/layout/Footer'
-// styles are imported in src/main.jsx
+import Header from './components/layout/Header'
+import ContactUs from './pages/ContactUs'
 
-function App() {
+// 🔹 Componente interno para controlar la visibilidad del Header
+function Layout() {
+  const location = useLocation()
+
+  // Si la ruta actual es "/" o "/home", NO mostrar el header
+  const hideHeader = location.pathname === '/' || location.pathname === '/home'
+
   return (
-    <BrowserRouter>
+    <>
+      {!hideHeader && <Header />}
       <main className="min-h-screen">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
+          <Route path="/contact-us" element={<ContactUs />} />
         </Routes>
       </main>
       <Footer />
+    </>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Layout />
     </BrowserRouter>
   )
 }
