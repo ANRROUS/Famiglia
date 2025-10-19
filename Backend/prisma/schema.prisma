@@ -97,7 +97,7 @@ model tienda_usuario {
 model usuario {
   id_usuario     BigInt           @id @default(autoincrement())
   nombre         String           @db.VarChar
-  correo         String?          @db.VarChar
+  correo         String           @db.VarChar @unique
   contrase_a     String?          @map("contraseña") @db.VarChar
   url_imagen     String?
   pedido         pedido[]
