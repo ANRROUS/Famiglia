@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import Footer from './components/layout/Footer'
 import Header from './components/layout/Header'
 import ContactUs from './pages/ContactUs'
+import PreferencesTest from './pages/PreferencesTest'
 
 // 🔹 Componente interno para controlar la visibilidad del Header
 function Layout() {
@@ -20,6 +21,7 @@ function Layout() {
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/test" element={<PreferencesTest />} />
         </Routes>
       </main>
       <Footer />
