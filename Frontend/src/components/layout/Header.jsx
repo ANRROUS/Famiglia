@@ -1,15 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Box, Button, IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
-import { useNavigate } from "react-router-dom"; // ✅ Importa useNavigate
+import { useNavigate, useLocation } from "react-router-dom";
 import imgLogoFamiglia from "../../assets/images/img_logoFamigliawithoutBorders.png";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const navigate = useNavigate(); // ✅ Inicializa el hook de navegación
+  const [underlineStyle, setUnderlineStyle] = useState({});
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // ✅ Funciones de redirección claramente definidas
+  // Referencias a los elementos de navegación
+  const navRefs = {
+    home: useRef(null),
+    carta: useRef(null),
+    delivery: useRef(null),
+    test: useRef(null),
+    contact: useRef(null),
+  };
+
+  // Detecta la ruta actual y mueve la línea debajo del enlace activo
+  useEffect(() => {
+    const path = location.pathname;
+    let activeRef;
+
+    if (path === "/") activeRef = navRefs.home;
+    else if (path.startsWith("/carta")) activeRef = navRefs.carta;
+    else if (path.startsWith("/delivery")) activeRef = navRefs.delivery;
+    else if (path.startsWith("/test")) activeRef = navRefs.test;
+    else if (path.startsWith("/contact-us")) activeRef = navRefs.contact;
+
+    if (activeRef?.current) {
+      const rect = activeRef.current.getBoundingClientRect();
+      const parentRect = activeRef.current.parentNode.getBoundingClientRect();
+
+      setUnderlineStyle({
+        width: rect.width,
+        left: rect.left - parentRect.left,
+      });
+    }
+  }, [location.pathname]);
+
+  // Funciones de navegación
   const handleGoHome = () => navigate("/");
   const handleGoCarta = () => navigate("/carta");
   const handleGoDelivery = () => navigate("/delivery");
@@ -19,7 +52,7 @@ const Header = () => {
   const handleGoLogin = () => navigate("/login");
 
   return (
-    <Box className="w-full bg-white text-[#6b2c2c] font-[Montserrat] border-b-[1.5px] border-[#b17b6b]">
+    <Box className="w-full bg-white text-[#6b2c2c] font-[Montserrat] border-b-[1.5px] border-[#b17b6b] relative">
       {/* Contenedor principal */}
       <Box className="max-w-7xl mx-auto flex items-center justify-between px-8 py-4">
         {/* Logo */}
@@ -31,25 +64,31 @@ const Header = () => {
         />
 
         {/* Links en escritorio */}
-        <Box className="hidden md:flex items-center gap-10 text-sm font-medium">
-          <span onClick={handleGoHome} className="cursor-pointer hover:text-[#9c4c4c]">
+        <Box className="hidden md:flex items-center gap-10 text-sm font-medium relative">
+          <span ref={navRefs.home} onClick={handleGoHome} className="cursor-pointer hover:text-[#9c4c4c]">
             Home
           </span>
-          <span
-            onClick={handleGoCarta}
-            className="cursor-pointer border-b-[2px] border-[#6b2c2c] pb-0.5"
-          >
+          <span ref={navRefs.carta} onClick={handleGoCarta} className="cursor-pointer hover:text-[#9c4c4c]">
             Carta
           </span>
-          <span onClick={handleGoDelivery} className="cursor-pointer hover:text-[#9c4c4c]">
+          <span ref={navRefs.delivery} onClick={handleGoDelivery} className="cursor-pointer hover:text-[#9c4c4c]">
             Delivery
           </span>
-          <span onClick={handleGoTest} className="cursor-pointer hover:text-[#9c4c4c]">
+          <span ref={navRefs.test} onClick={handleGoTest} className="cursor-pointer hover:text-[#9c4c4c]">
             Test
           </span>
-          <span onClick={handleGoContact} className="cursor-pointer hover:text-[#9c4c4c]">
+          <span ref={navRefs.contact} onClick={handleGoContact} className="cursor-pointer hover:text-[#9c4c4c]">
             Contáctanos
           </span>
+
+          {/* Línea animada */}
+          <Box
+            className="absolute bottom-[-4px] h-[2px] bg-[#6b2c2c] transition-all duration-300 ease-in-out"
+            style={{
+              width: underlineStyle.width,
+              left: underlineStyle.left,
+            }}
+          />
         </Box>
 
         {/* Botones en escritorio */}
@@ -98,16 +137,13 @@ const Header = () => {
         </Box>
       </Box>
 
-      {/* Menú desplegable móvil */}
+      {/* Menú móvil */}
       {menuOpen && (
         <Box className="md:hidden flex flex-col items-center bg-white text-[#6b2c2c] py-6 gap-5 border-t border-[#c9a6a6]">
           <span onClick={handleGoHome} className="cursor-pointer hover:text-[#9c4c4c]">
             Home
           </span>
-          <span
-            onClick={handleGoCarta}
-            className="cursor-pointer border-b-[2px] border-[#6b2c2c] pb-0.5"
-          >
+          <span onClick={handleGoCarta} className="cursor-pointer hover:text-[#9c4c4c]">
             Carta
           </span>
           <span onClick={handleGoDelivery} className="cursor-pointer hover:text-[#9c4c4c]">
