@@ -2,7 +2,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import imgLogoFamiglia from "../../assets/images/img_logoFamigliawithoutBorders.png";
 
 export default function RegisterForm({ isOpen, onClose }) {
-  if (!isOpen) return null; // ✅ esto hace que desaparezca el modal cuando se cierre
+  if (!isOpen) return null; 
 
   return (
     <div
