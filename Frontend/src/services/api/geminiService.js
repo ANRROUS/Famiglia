@@ -43,7 +43,7 @@ Las preguntas deben cubrir:
 Cada pregunta debe tener 4 opciones. IMPORTANTE: Responde SOLO con el JSON, sin texto adicional.
 `;
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
       const result = await model.generateContent(systemPrompt);
       const response = await result.response;
       let text = response.text();

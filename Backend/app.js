@@ -5,6 +5,7 @@ import cors from 'cors';
 import productoRoutes from './routes/productos/productoRoutes.js';
 import categoriaRoutes from './routes/productos/categoriaRoutes.js';
 import authRoutes from './routes/usuario/auth.route.js';
+import contactRoutes from './routes/contactRoutes.js';
 
 const app = express();
 app.use(morgan('dev'));
@@ -16,5 +17,6 @@ app.use(express.json());
 app.use('/productos', productoRoutes);
 app.use('/categorias', categoriaRoutes);
 app.use('/auth', authRoutes);
+app.use('/contact', contactRoutes);
 
 export default app;
