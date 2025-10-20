@@ -105,7 +105,7 @@ const Cart = () => {
   };
 
   const handleAddProduct = () => {
-    navigate("/catalog");
+    navigate("/carta");
   };
 
   const cartTotal = products.reduce(
