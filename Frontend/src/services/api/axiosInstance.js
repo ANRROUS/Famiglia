@@ -1,40 +1,32 @@
 import axios from 'axios';
 
-// Instancia Axios
+// Instancia Axios con soporte para cookies HTTPOnly
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
   timeout: 30000, // 30seg
+  withCredentials: true, // ✅ Habilitar cookies (HTTPOnly)
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
+// Interceptor de respuesta para manejar errores de autenticación
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
     if (error.response) {
+      // Solo redirigir si NO es la petición de verificación de perfil
+      const isProfileCheck = error.config?.url?.includes('/auth/perfil');
+      
       switch (error.response.status) {
         case 401:
-          localStorage.removeItem('authToken');
-          window.location.href = '/login';
-          break;
         case 403:
-          console.error('No tienes permisos para realizar esta acción');
+          // Solo redirigir si NO es el chequeo inicial de autenticación
+          if (!isProfileCheck) {
+            console.error('No autenticado');
+          }
           break;
         case 500:
           console.error('Error del servidor');

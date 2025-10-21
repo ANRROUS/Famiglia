@@ -24,7 +24,7 @@ export const register = async (req, res) => {
     res.status(201).json({
       message: "Usuario registrado correctamente",
       usuario: {
-        id: nuevoUsuario.id_usuario,
+        id: Number(nuevoUsuario.id_usuario),
         nombre: nuevoUsuario.nombre,
         correo: nuevoUsuario.correo,
       },
@@ -38,6 +38,10 @@ export const login = async (req, res) => {
   try {
     const { correo, contraseña } = req.body;
 
+    if (!correo || !contraseña) {
+      return res.status(400).json({ message: "Todos los campos son obligatorios" });
+    }
+
     const usuario = await prisma.usuario.findUnique({ where: { correo } });
     if (!usuario) return res.status(400).json({ message: "Usuario no encontrado" });
 
@@ -45,18 +49,26 @@ export const login = async (req, res) => {
     if (!isMatch) return res.status(401).json({ message: "Contraseña incorrecta" });
 
     const token = jwt.sign(
-      { id: usuario.id_usuario, correo: usuario.correo },
-      process.env.JWT_SECRET,
+      { id: Number(usuario.id_usuario), correo: usuario.correo },
+      process.env.JWT_SECRET || "famiglia-secret",
       { expiresIn: "1d" }
     );
 
+    // Configurar cookie HTTPOnly
+    res.cookie("authToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 24 * 60 * 60 * 1000, // 1 día
+    });
+
     res.json({
       message: "Login exitoso",
-      token,
       usuario: {
-        id: usuario.id_usuario,
+        id: Number(usuario.id_usuario),
         nombre: usuario.nombre,
         correo: usuario.correo,
+        url_imagen: usuario.url_imagen,
       },
     });
   } catch (error) {
@@ -66,8 +78,10 @@ export const login = async (req, res) => {
 
 export const getPerfil = async (req, res) => {
   try {
+    const userId = BigInt(req.user.id);
+    
     const user = await prisma.usuario.findUnique({
-      where: { id_usuario: req.user.id },
+      where: { id_usuario: userId },
       select: { id_usuario: true, nombre: true, correo: true, url_imagen: true },
     });
 
@@ -75,10 +89,29 @@ export const getPerfil = async (req, res) => {
 
     res.json({
       message: "Perfil obtenido correctamente",
-      usuario: user,
+      usuario: {
+        id: Number(user.id_usuario),
+        nombre: user.nombre,
+        correo: user.correo,
+        url_imagen: user.url_imagen,
+      },
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error al obtener el perfil", error: error.message });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    res.clearCookie("authToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    res.json({ message: "Logout exitoso" });
+  } catch (error) {
+    res.status(500).json({ message: "Error al cerrar sesión", error: error.message });
   }
 };

@@ -11,5 +11,12 @@ export const categoriaAPI = {
     getById: (id) => API.get(`/categorias/${id}`)
 }
 
+export const authAPI = {
+    register: (userData) => API.post('/auth/register', userData),
+    login: (credentials) => API.post('/auth/login', credentials),
+    logout: () => API.post('/auth/logout'),
+    getPerfil: () => API.get('/auth/perfil')
+}
+
 
 
