@@ -138,7 +138,7 @@ const Cart = () => {
           gap: "2rem",
         }}
       >
-        {/* TABLA DE PRODUCTOS (LADO IZQUIERDO) */}
+        {/* TABLA DE PRODUCTOS*/}
         <Box sx={{ flex: "1 1 65%", position: "relative" }}>
           {/* ENCABEZADO PERMANENTE */}
           <Box
@@ -310,7 +310,7 @@ const Cart = () => {
             minWidth: "280px",
             border: "1px solid #ff9c9c",
             borderRadius: "10px",
-            padding: "2.5rem 2.5rem",
+            padding: "2rem 2.5rem",
             backgroundColor: "#fff",
             mt: "-50px",
             mb: "-80px",
