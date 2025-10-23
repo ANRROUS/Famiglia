@@ -41,7 +41,7 @@ const Header = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // 🔹 Subrayado dinámico
+  // 🔹 Subrayado dinámico (mejorado)
   useEffect(() => {
     const path = location.pathname;
     const mapping = {
@@ -52,14 +52,11 @@ const Header = () => {
       "/contact-us": navRefs.contact,
     };
 
-    const activeRef = Object.entries(mapping).find(([key]) =>
-      path.startsWith(key)
-    )?.[1];
+    const activeRef = Object.entries(mapping).find(([key]) => path === key)?.[1];
 
     if (activeRef?.current) {
       const rect = activeRef.current.getBoundingClientRect();
       const parentRect = activeRef.current.parentNode.getBoundingClientRect();
-
       setUnderlineStyle({
         width: rect.width,
         left: rect.left - parentRect.left,
@@ -67,7 +64,34 @@ const Header = () => {
     }
   }, [location.pathname]);
 
-  // 🔹 Función genérica de navegación
+  // 🔹 Recalcula al redimensionar ventana
+  useEffect(() => {
+    const updateUnderline = () => {
+      const path = location.pathname;
+      const mapping = {
+        "/": navRefs.home,
+        "/carta": navRefs.carta,
+        "/delivery": navRefs.delivery,
+        "/test": navRefs.test,
+        "/contact-us": navRefs.contact,
+      };
+
+      const activeRef = Object.entries(mapping).find(([key]) => path === key)?.[1];
+      if (activeRef?.current) {
+        const rect = activeRef.current.getBoundingClientRect();
+        const parentRect = activeRef.current.parentNode.getBoundingClientRect();
+        setUnderlineStyle({
+          width: rect.width,
+          left: rect.left - parentRect.left,
+        });
+      }
+    };
+
+    window.addEventListener("resize", updateUnderline);
+    return () => window.removeEventListener("resize", updateUnderline);
+  }, [location.pathname]);
+
+  // 🔹 Navegación
   const handleNavigation = (path) => {
     navigate(path);
     setMenuOpen(false);
@@ -85,7 +109,6 @@ const Header = () => {
     }
   };
 
-  // 🔹 Lista de enlaces principales
   const navLinks = [
     { label: "Home", path: "/", ref: navRefs.home },
     { label: "Carta", path: "/carta", ref: navRefs.carta },
@@ -94,7 +117,6 @@ const Header = () => {
     { label: "Contáctanos", path: "/contact-us", ref: navRefs.contact },
   ];
 
-  // 🔹 Estilos de botón reutilizable
   const buttonStyles = {
     contained: {
       backgroundColor: "#8b3e3e",
