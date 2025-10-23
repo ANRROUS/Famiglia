@@ -356,6 +356,9 @@ const HeroSection = ({
           </Typography>
 
           <button
+            onClick={() => {
+              navigate("/carta");
+            }}
             className="bg-[#8f3c3c] text-white text-[1.3rem] sm:text-[1.7rem] md:text-[1.9rem] font-['Lilita_One'] rounded-xl px-10 sm:px-14 py-4 shadow-lg hover:bg-[#702828] transition"
           >
             RESERVA TU PEDIDO
