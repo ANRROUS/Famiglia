@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { IconButton, Button } from '@mui/material';
+import { IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
 // Modal genérico reutilizable
@@ -50,86 +50,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         {title && <h2 className="text-2xl font-bold text-[#6b2c2c] mb-4">{title}</h2>}
 
         <div className="text-sm text-[#4a2b2b] leading-relaxed">{children}</div>
-
-        <div className="mt-6 flex justify-center">
-          <Button
-            variant="contained"
-            onClick={onClose}
-            sx={{
-              backgroundColor: '#8b3e3e',
-              color: '#fff',
-              fontWeight: 600,
-              textTransform: 'none',
-              borderRadius: '8px',
-              px: 4,
-              '&:hover': { backgroundColor: '#742f2f' },
-            }}
-          >
-            Aceptar
-          </Button>
-        </div>
       </div>
     </div>
   );
 };
-
-// ---- Modal de Términos y Condiciones ----
-export const ModalTerminos = ({ isOpen, onClose }) => (
-  <Modal isOpen={isOpen} onClose={onClose} title="Términos y Condiciones">
-    <p>
-      Bienvenido a <strong>Pastelería Famiglia</strong>. Al realizar una compra en
-      nuestro sitio web, usted acepta los siguientes términos:
-    </p>
-    <ul className="list-disc pl-5 mt-3 space-y-2">
-      <li>Todos los precios incluyen impuestos y pueden variar sin previo aviso.</li>
-      <li>Los pedidos deben realizarse con al menos 24 horas de anticipación para productos personalizados.</li>
-      <li>Los pagos se procesan de manera segura a través de nuestras pasarelas autorizadas.</li>
-      <li>No se aceptan devoluciones en productos alimenticios una vez entregados, salvo en casos de error comprobable por parte de la empresa.</li>
-      <li>Pastelería Famiglia se reserva el derecho de cancelar pedidos en caso de fraude o información incorrecta.</li>
-    </ul>
-    <p className="mt-4">
-      Gracias por confiar en nosotros. Nos esforzamos por ofrecerle siempre
-      productos frescos y de la más alta calidad.
-    </p>
-  </Modal>
-);
-
-// ---- Modal de Política de Privacidad ----
-export const ModalPrivacidad = ({ isOpen, onClose }) => (
-  <Modal isOpen={isOpen} onClose={onClose} title="Política de Privacidad">
-    <p>
-      En <strong>Pastelería Famiglia</strong>, respetamos su privacidad y protegemos su información personal de acuerdo con la normativa vigente.
-    </p>
-    <ul className="list-disc pl-5 mt-3 space-y-2">
-      <li>Recopilamos datos como nombre, correo electrónico, teléfono y dirección únicamente para procesar pedidos y mejorar nuestro servicio.</li>
-      <li>No compartimos su información con terceros, excepto con servicios necesarios para el procesamiento del pago o la entrega.</li>
-      <li>Puede solicitar la eliminación de sus datos personales en cualquier momento enviando un correo a <strong>soporte@famiglia.pe</strong>.</li>
-      <li>Utilizamos cookies para mejorar su experiencia de navegación y ofrecerle contenido personalizado.</li>
-      <li>Su información es almacenada de forma segura y cifrada.</li>
-    </ul>
-    <p className="mt-4">
-      Al usar nuestra tienda en línea, usted acepta esta política y nos autoriza a utilizar sus datos de acuerdo con ella.
-    </p>
-  </Modal>
-);
-
-// ---- Modal de Quiénes Somos ----
-export const ModalQuienesSomos = ({ isOpen, onClose }) => (
-  <Modal isOpen={isOpen} onClose={onClose} title="Quiénes Somos">
-    <p>
-      En <strong>Pastelería Famiglia</strong>, somos una empresa familiar apasionada por la
-      repostería artesanal. Desde nuestros inicios, nos hemos dedicado a elaborar
-      productos frescos, con ingredientes seleccionados y el auténtico sabor de casa.
-    </p>
-    <p className="mt-3">
-      Nuestra misión es crear momentos dulces e inolvidables para cada uno de
-      nuestros clientes, manteniendo siempre un compromiso con la calidad, el
-      detalle y el amor en cada preparación.
-    </p>
-    <p className="mt-3">
-      Gracias por permitirnos ser parte de sus celebraciones y de su día a día.
-    </p>
-  </Modal>
-);
 
 export default Modal;
