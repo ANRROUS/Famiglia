@@ -12,7 +12,6 @@ import {
   completeTest
 } from '../redux/slices/preferencesSlice';
 import Button from '../components/common/Button';
-import Modal from '../components/common/Modal';
 import ProductCard from '../components/common/ProductCard';
 
 const PreferencesTest = () => {
@@ -32,29 +31,14 @@ const PreferencesTest = () => {
     hasActiveTest
   } = useSelector((state) => state.preferences);
 
-  const [showStartModal, setShowStartModal] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
-  const [showRecommendation, setShowRecommendation] = useState(false);
 
   useEffect(() => {
     // Cargar test desde localStorage si existe
     dispatch(loadTestFromStorage());
-    
-    // Si no hay test activo, mostrar modal de inicio
-    if (!hasActiveTest && questions.length === 0) {
-      setShowStartModal(true);
-    }
   }, [dispatch]);
 
-  useEffect(() => {
-    // Cuando se completa el test y se obtiene recomendación
-    if (testCompleted && recommendation) {
-      setShowRecommendation(true);
-    }
-  }, [testCompleted, recommendation]);
-
   const handleStartTest = async () => {
-    setShowStartModal(false);
     await dispatch(generateTest(userPrompt));
   };
 
@@ -81,8 +65,6 @@ const PreferencesTest = () => {
 
   const handleRestart = () => {
     dispatch(clearTest());
-    setShowRecommendation(false);
-    setShowStartModal(true);
     setUserPrompt('');
   };
 
@@ -114,22 +96,56 @@ const PreferencesTest = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8 font-['Montserrat']">
+    <div className="min-h-screen bg-white py-6 sm:py-12 px-3 sm:px-6 lg:px-8 font-['Montserrat']">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#6b2c2c] mb-2">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#6b2c2c] mb-2">
             Test de Preferencias
           </h1>
-          <p className="text-[#6b2c2c] opacity-80">
+          <p className="text-sm sm:text-base text-[#6b2c2c] opacity-80 px-2">
             Responde las siguientes preguntas para recibir una recomendación personalizada
           </p>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 sm:mb-6 bg-[#f5e6d3] border border-[#b17b6b] text-[#6b2c2c] px-3 sm:px-4 py-3 rounded text-sm sm:text-base">
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Start Test Section */}
+        {questions.length === 0 && !isGeneratingTest && (
+          <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-4 sm:p-6 md:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#6b2c2c] mb-3 sm:mb-4">
+              Comenzar Test de Preferencias
+            </h2>
+            <div className="space-y-3 sm:space-y-4">
+              <p className="text-sm sm:text-base text-[#6b2c2c] opacity-80">
+                ¿Tienes alguna preferencia específica que quieras compartir?
+              </p>
+              <textarea
+                value={userPrompt}
+                onChange={(e) => setUserPrompt(e.target.value)}
+                placeholder="Por ejemplo: Me gustan los postres con chocolate, prefiero sabores dulces..."
+                className="resize-none w-full px-3 sm:px-4 py-2 border-2 border-[#b17b6b] rounded-lg focus:ring-2 focus:ring-[#6b2c2c] focus:border-[#6b2c2c] text-[#6b2c2c] text-sm sm:text-base box-border overflow-hidden"
+                rows="4"
+              />
+              <Button
+                onClick={handleStartTest}
+                className="w-full text-sm sm:text-base"
+              >
+                Comenzar Test
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Progress Bar */}
         {questions.length > 0 && !testCompleted && (
-          <div className="mb-8">
-            <div className="flex justify-between text-sm text-[#6b2c2c] mb-2">
+          <div className="mb-4 sm:mb-6 md:mb-8">
+            <div className="flex justify-between text-xs sm:text-sm text-[#6b2c2c] mb-2">
               <span>Pregunta {currentQuestion + 1} de {questions.length}</span>
               <span>{calculateProgress()}%</span>
             </div>
@@ -142,34 +158,27 @@ const PreferencesTest = () => {
           </div>
         )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-[#f5e6d3] border border-[#b17b6b] text-[#6b2c2c] px-4 py-3 rounded">
-            <p>{error}</p>
-          </div>
-        )}
-
         {/* Question and Answers */}
         {questions.length > 0 && !testCompleted && !isGettingRecommendation && (
-          <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-8">
-            <h2 className="text-xl font-semibold text-[#6b2c2c] mb-6">
+          <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-4 sm:p-6 md:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-[#6b2c2c] mb-4 sm:mb-6">
               {questions[currentQuestion]?.question}
             </h2>
 
-            <div className="space-y-4 mb-8">
+            <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
               {questions[currentQuestion]?.options.map((option, index) => (
                 <button
                   key={index}
                   onClick={() => handleAnswerSelect(option.value)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                  className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all ${
                     answers[currentQuestion] === option.value
                       ? 'border-[#6b2c2c] bg-[#f5e6d3]'
                       : 'border-[#b17b6b] hover:border-[#6b2c2c] hover:bg-[#fef9f3]'
                   }`}
                 >
-                  <div className="font-medium text-[#6b2c2c]">{option.label}</div>
+                  <div className="font-medium text-[#6b2c2c] text-sm sm:text-base">{option.label}</div>
                   {option.description && (
-                    <div className="text-sm text-[#6b2c2c] opacity-70 mt-1">
+                    <div className="text-xs sm:text-sm text-[#6b2c2c] opacity-70 mt-1">
                       {option.description}
                     </div>
                   )}
@@ -178,11 +187,12 @@ const PreferencesTest = () => {
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
               <Button
                 onClick={handlePrevious}
                 disabled={currentQuestion === 0}
                 variant="secondary"
+                className="w-full sm:w-auto text-sm sm:text-base order-2 sm:order-1"
               >
                 ← Regresar
               </Button>
@@ -190,6 +200,7 @@ const PreferencesTest = () => {
               <Button
                 onClick={handleNext}
                 disabled={!isAnswered()}
+                className="w-full sm:w-auto text-sm sm:text-base order-1 sm:order-2"
               >
                 {currentQuestion === questions.length - 1 ? 'Finalizar' : 'Siguiente →'}
               </Button>
@@ -199,54 +210,24 @@ const PreferencesTest = () => {
 
         {/* Loading Recommendation */}
         {isGettingRecommendation && (
-          <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-12 text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#6b2c2c] mx-auto mb-4"></div>
-            <p className="text-[#6b2c2c] text-lg">
+          <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-6 sm:p-10 md:p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-[#6b2c2c] mx-auto mb-4"></div>
+            <p className="text-[#6b2c2c] text-sm sm:text-base md:text-lg px-2">
               Analizando tus preferencias y preparando tu recomendación...
             </p>
           </div>
         )}
-      </div>
 
-      {/* Start Test Modal */}
-      <Modal
-        isOpen={showStartModal}
-        onClose={() => setShowStartModal(false)}
-        title="Comenzar Test de Preferencias"
-      >
-        <div className="space-y-4">
-          <p className="text-[#6b2c2c] opacity-80">
-            ¿Tienes alguna preferencia específica que quieras compartir? (Opcional)
-          </p>
-          <textarea
-            value={userPrompt}
-            onChange={(e) => setUserPrompt(e.target.value)}
-            placeholder="Por ejemplo: Me gustan los postres con chocolate, prefiero sabores dulces..."
-            className="resize-none w-[410px] px-4 py-2 border-2 border-[#b17b6b] rounded-lg focus:ring-2 focus:ring-[#6b2c2c] focus:border-[#6b2c2c] text-[#6b2c2c]"
-            rows="4"
-          />
-          <div className="flex gap-4">
-            <Button
-              onClick={handleStartTest}
-              className="flex-1"
-            >
-              Comenzar Test
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        {/* Recommendation Section */}
+        {testCompleted && recommendation && (
+          <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-4 sm:p-6 md:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#6b2c2c] mb-4 sm:mb-6 text-center">
+              Tu Recomendación Personalizada
+            </h2>
 
-      {/* Recommendation Modal */}
-      <Modal
-        isOpen={showRecommendation}
-        onClose={() => setShowRecommendation(false)}
-        title="Tu Recomendación Personalizada"
-      >
-        <div className="space-y-6">
-          {recommendation && (
-            <>
+            <div className="space-y-4 sm:space-y-6">
               <div className="text-center">
-                <p className="text-[#6b2c2c] mb-4">
+                <p className="text-sm sm:text-base text-[#6b2c2c] mb-4 px-2">
                   {recommendation.message || 'Basado en tus respuestas, te recomendamos:'}
                 </p>
               </div>
@@ -258,34 +239,34 @@ const PreferencesTest = () => {
               )}
 
               {recommendation.explanation && (
-                <div className="bg-[#f5e6d3] border border-[#b17b6b] p-4 rounded-lg">
-                  <h3 className="font-semibold text-[#6b2c2c] mb-2">
+                <div className="bg-[#f5e6d3] border border-[#b17b6b] p-3 sm:p-4 rounded-lg">
+                  <h3 className="font-semibold text-[#6b2c2c] mb-2 text-sm sm:text-base">
                     ¿Por qué esta recomendación?
                   </h3>
-                  <p className="text-[#6b2c2c] opacity-80">{recommendation.explanation}</p>
+                  <p className="text-[#6b2c2c] opacity-80 text-xs sm:text-sm">{recommendation.explanation}</p>
                 </div>
               )}
 
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Button
                   onClick={handleGoToCatalog}
                   variant="primary"
-                  className="flex-1"
+                  className="flex-1 text-sm sm:text-base"
                 >
                   Ver Catálogo Completo
                 </Button>
                 <Button
                   onClick={handleRestart}
                   variant="secondary"
-                  className="flex-1"
+                  className="flex-1 text-sm sm:text-base"
                 >
                   Hacer Nuevo Test
                 </Button>
               </div>
-            </>
-          )}
-        </div>
-      </Modal>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
