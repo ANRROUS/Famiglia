@@ -1,4 +1,6 @@
 import { Box, Typography } from "@mui/material";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import imgLogoFamiglia from "../../assets/images/img_logoFamigliawithBorders.png";
 import imgFooter from "../../assets/images/img_footer.png";
 import imgBook from "../../assets/images/img_book.png";
@@ -6,14 +8,16 @@ import imgFacebookLogo from "../../assets/images/img_facebookLogo.png";
 import imgIgLogo from "../../assets/images/img_igLogo.png";
 import imgXLogo from "../../assets/images/img_xLogo.png";
 import imgYtLogo from "../../assets/images/img_ytLogo.png";
+import { ModalTerminos, ModalPrivacidad } from "../common/Modal";
 
 const Footer = () => {
+  const [openModal, setOpenModal] = useState(null); // null | "terminos" | "privacidad"
+  const navigate = useNavigate();
+
   return (
     <Box className="w-full font-[Montserrat] overflow-hidden">
-
-      {/* Header del Footer: Logo + Slogan */}
+      {/* Header del Footer */}
       <Box className="flex flex-col md:flex-row w-full">
-        {/* Logo dentro de caja granate */}
         <Box className="bg-[#8f3c3c] p-4 md:p-6 flex justify-center items-center md:min-w-[330px] md:max-w-[330px]">
           <img
             src={imgLogoFamiglia}
@@ -22,16 +26,11 @@ const Footer = () => {
           />
         </Box>
 
-        {/* Slogan */}
         <Box className="bg-[#8f3c3c] flex-1 flex justify-center items-center text-center px-6 md:px-10 py-6">
           <Typography
             variant="h5"
             className="text-white font-normal leading-tight"
-            sx={{
-              fontFamily: "Montserrat, sans-serif",
-              fontWeight: 400,
-              fontSize: "35px",
-            }}
+            sx={{ fontFamily: "Montserrat, sans-serif", fontWeight: 400, fontSize: "35px" }}
           >
             Tu mesa de siempre, en la esquina de Arenales.
             <br />
@@ -40,26 +39,18 @@ const Footer = () => {
         </Box>
       </Box>
 
-      {/* Imagen decorativa con fusión al fondo granate */}
+      {/* Imagen decorativa */}
       <Box
         className="w-full relative leading-none"
-        sx={{
-          background: "linear-gradient(to bottom, transparent 80%, #8f3c3c 100%)",
-        }}
+        sx={{ background: "linear-gradient(to bottom, transparent 80%, #8f3c3c 100%)" }}
       >
-        <img
-          src={imgFooter}
-          alt="Decoración"
-          className="w-full object-cover block align-bottom m-0 p-0"
-        />
+        <img src={imgFooter} alt="Decoración" className="w-full object-cover block" />
       </Box>
 
-      {/* Contenido textual del footer */}
+      {/* Contenido textual */}
       <Box className="bg-[#8f3c3c] text-white pt-12 pb-16">
         <Box className="max-w-[1200px] mx-auto px-6 md:px-10">
           <Box className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-10 text-left">
-
-            {/* Secciones principales */}
             {[
               {
                 title: "Sobre nosotros",
@@ -75,7 +66,10 @@ const Footer = () => {
               },
               {
                 title: "Legales",
-                items: ["Términos y condiciones", "Política de privacidad"],
+                items: [
+                  { text: "Términos y condiciones", action: () => setOpenModal("terminos") },
+                  { text: "Política de privacidad", action: () => setOpenModal("privacidad") },
+                ],
               },
             ].map((section, idx) => (
               <Box key={idx}>
@@ -89,18 +83,21 @@ const Footer = () => {
                 >
                   {section.title}
                 </Typography>
+
                 <ul className="list-none pl-0 space-y-[14px]">
                   {section.items.map((item, i) => (
                     <li
                       key={i}
-                      className="text-white"
+                      onClick={item.action}
+                      className={`text-white cursor-pointer ${item.action ? "hover:underline" : ""
+                        }`}
                       style={{
                         fontFamily: "Montserrat, sans-serif",
                         fontWeight: 400,
                         fontSize: "20px",
                       }}
                     >
-                      {item}
+                      {item.text || item}
                     </li>
                   ))}
                 </ul>
@@ -111,11 +108,7 @@ const Footer = () => {
             <Box>
               <Typography
                 className="text-white mb-3"
-                sx={{
-                  fontFamily: "Montserrat, sans-serif",
-                  fontWeight: 700,
-                  fontSize: "25px",
-                }}
+                sx={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: "25px" }}
               >
                 Síguenos
               </Typography>
@@ -127,19 +120,36 @@ const Footer = () => {
                 <img src={imgYtLogo} alt="YouTube" className="w-9 h-9" />
               </Box>
 
-              <Box className="bg-white text-[#000] rounded-md px-4 py-3 flex items-center justify-center gap-2 text-[0.9rem] font-medium shadow-md hover:bg-gray-100 transition-all">
-                <img src={imgBook} alt="Libro de Reclamaciones" className="w-5 h-5" />
-                Reclamaciones
+              <Box
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  navigate("/complaints");
+                }}
+                className="bg-white text-[#753b3b] rounded-md px-5 py-3 flex items-center
+                justify-center gap-2 text-[0.9rem] font-medium shadow-md hover:bg-[#fde3e3]
+                transition-all cursor-pointer"
+              >
+
+                <img
+                  src={imgBook}
+                  alt="Libro de Reclamaciones"
+                  className="w-5 h-5"
+                />
+                Libro de Reclamaciones
               </Box>
             </Box>
           </Box>
         </Box>
       </Box>
 
-      {/* Pie de página */}
+      {/* Pie */}
       <Box className="bg-white text-[#b63434] text-center py-4 text-sm md:text-base font-medium">
         Pastelería Famiglia © 2025 - Todos los derechos reservados
       </Box>
+
+      {/* Modales */}
+      <ModalTerminos isOpen={openModal === "terminos"} onClose={() => setOpenModal(null)} />
+      <ModalPrivacidad isOpen={openModal === "privacidad"} onClose={() => setOpenModal(null)} />
     </Box>
   );
 };

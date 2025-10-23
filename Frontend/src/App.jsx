@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Catalog from "./pages/Catalog";
 import PreferencesTest from './pages/PreferencesTest';
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import Complaints from "./pages/Complaints";
 import { setUser } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
 
@@ -51,6 +52,7 @@ function Layout() {
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/complaints" element={<Complaints />} />
           <Route path="/test" element={<PreferencesTest />} />
           <Route path="/carta" element={<Catalog />} />
           
