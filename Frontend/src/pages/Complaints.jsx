@@ -1,7 +1,40 @@
-import React from "react";
-import { Box, Typography, TextField, Button } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Typography, TextField, Button, CircularProgress, Alert } from "@mui/material";
 
 const Complaints = () => {
+  const [nombre, setNombre] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState({ show: false, type: "", message: "" });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setAlert({ show: false, type: "", message: "" });
+
+    // Simulamos el envío con un retraso de 2 segundos
+    setTimeout(() => {
+      if (nombre && correo && motivo) {
+        setAlert({
+          show: true,
+          type: "success",
+          message: "Tu reclamo fue enviado correctamente. ¡Gracias por tu tiempo!",
+        });
+        setNombre("");
+        setCorreo("");
+        setMotivo("");
+      } else {
+        setAlert({
+          show: true,
+          type: "error",
+          message: "Ocurrió un error al enviar tu reclamo. Revisa los campos e intenta nuevamente.",
+        });
+      }
+      setLoading(false);
+    }, 1000);
+  };
+
   return (
     <Box
       className="
@@ -46,8 +79,10 @@ const Complaints = () => {
         reclamo o sugerencia, por favor completa el siguiente formulario. Nuestro equipo revisará tu solicitud lo antes posible.
       </Typography>
 
-      {/* Formulario visual */}
+      {/* Formulario */}
       <Box
+        component="form"
+        onSubmit={handleSubmit}
         className="max-w-md w-full"
         sx={{
           display: "flex",
@@ -64,6 +99,8 @@ const Complaints = () => {
         <TextField
           variant="outlined"
           fullWidth
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
           placeholder="Ej. María López"
           sx={{
             "& .MuiOutlinedInput-root": {
@@ -78,10 +115,12 @@ const Complaints = () => {
           Correo electrónico:
         </Typography>
         <TextField
-          variant="outlined"
           type="email"
-          placeholder="Ej. maria@gmail.com"
+          variant="outlined"
           fullWidth
+          value={correo}
+          onChange={(e) => setCorreo(e.target.value)}
+          placeholder="Ej. maria@gmail.com"
           sx={{
             "& .MuiOutlinedInput-root": {
               "& fieldset": { borderColor: "#efb0b0" },
@@ -98,8 +137,10 @@ const Complaints = () => {
           variant="outlined"
           multiline
           rows={4}
-          placeholder="Describe brevemente el motivo de tu reclamo"
           fullWidth
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Describe brevemente el motivo de tu reclamo"
           sx={{
             "& .MuiOutlinedInput-root": {
               "& fieldset": { borderColor: "#efb0b0" },
@@ -110,6 +151,8 @@ const Complaints = () => {
         />
 
         <Button
+          type="submit"
+          disabled={loading}
           sx={{
             mt: 3,
             alignSelf: "center",
@@ -121,11 +164,37 @@ const Complaints = () => {
             textTransform: "none",
             fontSize: "0.8rem",
             borderRadius: "6px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 1,
             "&:hover": { backgroundColor: "#f9cccc" },
           }}
         >
-          Enviar Reclamo
+          {loading ? (
+            <>
+              <CircularProgress size={16} sx={{ color: "#753b3b" }} />
+              Enviando...
+            </>
+          ) : (
+            "Enviar Reclamo"
+          )}
         </Button>
+
+        {alert.show && (
+          <Alert
+            severity={alert.type}
+            sx={{
+              mt: 3,
+              textAlign: "center",
+              borderRadius: "8px",
+              backgroundColor:
+                alert.type === "success" ? "#f0fff0" : "#fff0f0",
+            }}
+          >
+            {alert.message}
+          </Alert>
+        )}
       </Box>
     </Box>
   );
