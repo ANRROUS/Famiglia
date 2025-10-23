@@ -47,7 +47,7 @@ function Layout() {
   return (
     <>
       {!hideHeader && <Header />}
-      <main className="min-h-screen flex justify-center items-center">
+      <main className="min-h-screen flex justify-center">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Navigate to="/" replace />} />

@@ -47,7 +47,7 @@ const ContactUs = () => {
         flex flex-col md:flex-row 
         justify-center md:items-start items-center
         gap-16 md:gap-20 
-        py-16 px-6 sm:px-10 md:px-16 
+        pt-20 pb-30 px-6 sm:px-10 md:px-16 
         font-[Montserrat] 
         text-[#753b3b]
       "
@@ -55,7 +55,6 @@ const ContactUs = () => {
         boxSizing: "border-box",
         maxWidth: "100vw",
         overflowX: "hidden",
-        paddingTop: "90px",
       }}
     >
       {/* LEFT SIDE - CONTACT INFO */}

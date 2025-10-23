@@ -7,9 +7,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   // Cerrar modal con la tecla ESC
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+      if (e.key === 'Escape' && isOpen) onClose();
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
@@ -17,30 +15,24 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
   // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
-  if (isOpen) {
-    document.body.style.overflow = 'hidden';
-  } else {
-    document.body.style.overflow = 'auto';
-  }
-  return () => {
-    document.body.style.overflow = 'auto';
-  };
-}, [isOpen]);
+    document.body.style.overflow = isOpen ? 'hidden' : 'auto';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      {/* Fondo con solo desenfoque (sin color visible) */}
+      {/* Fondo con desenfoque */}
       <div
         className="fixed inset-0 backdrop-blur-[6px] transition-all duration-300"
         onClick={onClose}
         aria-hidden="true"
       />
-
       {/* Contenedor del modal */}
       <div className="relative bg-white rounded-lg shadow-xl border-2 border-[#b17b6b] max-w-md w-full mx-4 p-6 z-10 max-h-[90vh] overflow-y-auto font-['Montserrat']">
-        {/* Botón de cierre */}
         <IconButton
           onClick={onClose}
           sx={{
@@ -55,15 +47,10 @@ const Modal = ({ isOpen, onClose, title, children }) => {
           <CloseIcon />
         </IconButton>
 
-        {/* Título */}
-        {title && (
-          <h2 className="text-2xl font-bold text-[#6b2c2c] mb-4">{title}</h2>
-        )}
+        {title && <h2 className="text-2xl font-bold text-[#6b2c2c] mb-4">{title}</h2>}
 
-        {/* Contenido */}
         <div className="text-sm text-[#4a2b2b] leading-relaxed">{children}</div>
 
-        {/* Botón de aceptar */}
         <div className="mt-6 flex justify-center">
           <Button
             variant="contained"
@@ -122,6 +109,25 @@ export const ModalPrivacidad = ({ isOpen, onClose }) => (
     </ul>
     <p className="mt-4">
       Al usar nuestra tienda en línea, usted acepta esta política y nos autoriza a utilizar sus datos de acuerdo con ella.
+    </p>
+  </Modal>
+);
+
+// ---- Modal de Quiénes Somos ----
+export const ModalQuienesSomos = ({ isOpen, onClose }) => (
+  <Modal isOpen={isOpen} onClose={onClose} title="Quiénes Somos">
+    <p>
+      En <strong>Pastelería Famiglia</strong>, somos una empresa familiar apasionada por la
+      repostería artesanal. Desde nuestros inicios, nos hemos dedicado a elaborar
+      productos frescos, con ingredientes seleccionados y el auténtico sabor de casa.
+    </p>
+    <p className="mt-3">
+      Nuestra misión es crear momentos dulces e inolvidables para cada uno de
+      nuestros clientes, manteniendo siempre un compromiso con la calidad, el
+      detalle y el amor en cada preparación.
+    </p>
+    <p className="mt-3">
+      Gracias por permitirnos ser parte de sus celebraciones y de su día a día.
     </p>
   </Modal>
 );

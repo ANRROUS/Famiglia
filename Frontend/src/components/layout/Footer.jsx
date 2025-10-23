@@ -8,11 +8,44 @@ import imgFacebookLogo from "../../assets/images/img_facebookLogo.png";
 import imgIgLogo from "../../assets/images/img_igLogo.png";
 import imgXLogo from "../../assets/images/img_xLogo.png";
 import imgYtLogo from "../../assets/images/img_ytLogo.png";
-import { ModalTerminos, ModalPrivacidad } from "../common/Modal";
+import { ModalTerminos, ModalPrivacidad, ModalQuienesSomos } from "../common/Modal";
 
 const Footer = () => {
-  const [openModal, setOpenModal] = useState(null); // null | "terminos" | "privacidad"
+  const [openModal, setOpenModal] = useState(null); // null | "terminos" | "privacidad" | "quienes"
   const navigate = useNavigate();
+
+  const handleItemClick = (item) => {
+    if (item === "Ubicación") {
+      window.open("https://maps.app.goo.gl/rYYDD2HYf5QmBSDq7", "_blank");
+    } else if (item === "Contacto") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      navigate("/contact-us");
+    }
+  };
+
+  const handleDescubreClick = (item) => {
+    if (item === "Nuestra carta") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      navigate("/carta");
+    } else if (item === "Delivery") {
+      navigate("/home");
+      // Esperamos a que se monte el componente Home antes de hacer scroll
+      setTimeout(() => {
+        const deliverySection = document.querySelector(
+          '[data-scroll-to="rESERVASDEPEDIDOS"]'
+        );
+        if (deliverySection) {
+          deliverySection.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 500);
+    }
+  };
+
+  // 🔹 Nuevo: función para redirigir las categorías a /carta
+  const handleCategoriaClick = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    navigate("/carta");
+  };
 
   return (
     <Box className="w-full font-[Montserrat] overflow-hidden">
@@ -30,7 +63,11 @@ const Footer = () => {
           <Typography
             variant="h5"
             className="text-white font-normal leading-tight"
-            sx={{ fontFamily: "Montserrat, sans-serif", fontWeight: 400, fontSize: "35px" }}
+            sx={{
+              fontFamily: "Montserrat, sans-serif",
+              fontWeight: 400,
+              fontSize: "35px",
+            }}
           >
             Tu mesa de siempre, en la esquina de Arenales.
             <br />
@@ -42,7 +79,9 @@ const Footer = () => {
       {/* Imagen decorativa */}
       <Box
         className="w-full relative leading-none"
-        sx={{ background: "linear-gradient(to bottom, transparent 80%, #8f3c3c 100%)" }}
+        sx={{
+          background: "linear-gradient(to bottom, transparent 80%, #8f3c3c 100%)",
+        }}
       >
         <img src={imgFooter} alt="Decoración" className="w-full object-cover block" />
       </Box>
@@ -54,15 +93,28 @@ const Footer = () => {
             {[
               {
                 title: "Sobre nosotros",
-                items: ["Quienes somos", "Ubicación", "Contacto"],
+                items: [
+                  { text: "Quiénes somos", action: () => setOpenModal("quienes") },
+                  { text: "Ubicación", action: () => handleItemClick("Ubicación") },
+                  { text: "Contacto", action: () => handleItemClick("Contacto") },
+                ],
               },
               {
                 title: "Descubre",
-                items: ["Nuestra carta", "Delivery"],
+                items: [
+                  { text: "Nuestra carta", action: () => handleDescubreClick("Nuestra carta") },
+                  { text: "Delivery", action: () => handleDescubreClick("Delivery") },
+                ],
               },
               {
                 title: "Categorías",
-                items: ["Postres", "Tortas", "Salados", "Sandwiches", "Bebidas"],
+                items: [
+                  { text: "Postres" },
+                  { text: "Tortas" },
+                  { text: "Salados" },
+                  { text: "Sandwiches" },
+                  { text: "Bebidas" },
+                ],
               },
               {
                 title: "Legales",
@@ -88,16 +140,17 @@ const Footer = () => {
                   {section.items.map((item, i) => (
                     <li
                       key={i}
-                      onClick={item.action}
-                      className={`text-white cursor-pointer ${item.action ? "hover:underline" : ""
-                        }`}
+                      onClick={item.action || (section.title === "Categorías" ? handleCategoriaClick : null)}
+                      className={`text-white cursor-pointer ${
+                        item.action || section.title === "Categorías" ? "hover:underline" : ""
+                      }`}
                       style={{
                         fontFamily: "Montserrat, sans-serif",
                         fontWeight: 400,
                         fontSize: "20px",
                       }}
                     >
-                      {item.text || item}
+                      {item.text}
                     </li>
                   ))}
                 </ul>
@@ -108,7 +161,11 @@ const Footer = () => {
             <Box>
               <Typography
                 className="text-white mb-3"
-                sx={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: "25px" }}
+                sx={{
+                  fontFamily: "Montserrat, sans-serif",
+                  fontWeight: 700,
+                  fontSize: "25px",
+                }}
               >
                 Síguenos
               </Typography>
@@ -129,12 +186,7 @@ const Footer = () => {
                 justify-center gap-2 text-[0.9rem] font-medium shadow-md hover:bg-[#fde3e3]
                 transition-all cursor-pointer"
               >
-
-                <img
-                  src={imgBook}
-                  alt="Libro de Reclamaciones"
-                  className="w-5 h-5"
-                />
+                <img src={imgBook} alt="Libro de Reclamaciones" className="w-5 h-5" />
                 Libro de Reclamaciones
               </Box>
             </Box>
@@ -150,6 +202,7 @@ const Footer = () => {
       {/* Modales */}
       <ModalTerminos isOpen={openModal === "terminos"} onClose={() => setOpenModal(null)} />
       <ModalPrivacidad isOpen={openModal === "privacidad"} onClose={() => setOpenModal(null)} />
+      <ModalQuienesSomos isOpen={openModal === "quienes"} onClose={() => setOpenModal(null)} />
     </Box>
   );
 };
