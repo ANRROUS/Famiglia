@@ -57,10 +57,9 @@ const HeroSection = ({
       <img
         src={imgDegradado}
         alt="fondo"
-        className="absolute top-0 left-0 w-full h-[75%] object-cover z-0"
+        className="absolute -top-15 left-0 w-full h-[75%] object-cover z-0"
       />
 
-      {/* NAVBAR */}
       {/* NAVBAR */}
       <Box className="relative flex flex-row justify-between items-center px-6 sm:px-10 md:px-16 py-3 z-20 text-white">
         {/* Logo */}
