@@ -9,7 +9,11 @@ import Cart from "./pages/Cart";
 import Profile from "./pages/Profile";
 import Catalog from "./pages/Catalog";
 import PreferencesTest from './pages/PreferencesTest';
+import TerminosPage from './pages/TerminosPage';
+import PrivacidadPage from './pages/PrivacidadPage';
+import QuienesSomosPage from './pages/QuienesSomosPage';
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import Complaints from "./pages/Complaints";
 import { setUser } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
 
@@ -22,7 +26,7 @@ function Layout() {
   // Verificar autenticación al cargar la app (SOLO UNA VEZ)
   useEffect(() => {
     let isMounted = true;
-    
+
     const checkAuth = async () => {
       try {
         const response = await authAPI.getPerfil();
@@ -36,7 +40,7 @@ function Layout() {
     };
 
     checkAuth();
-    
+
     // Cleanup para evitar memory leaks
     return () => {
       isMounted = false;
@@ -46,30 +50,34 @@ function Layout() {
   return (
     <>
       {!hideHeader && <Header />}
-      <main className="min-h-screen flex justify-center items-center">
+      <main className="min-h-screen flex justify-center">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/complaints" element={<Complaints />} />
+          <Route path="/terminos" element={<TerminosPage />} />
+          <Route path="/privacidad" element={<PrivacidadPage />} />
+          <Route path="/quienes-somos" element={<QuienesSomosPage />} />
           <Route path="/test" element={<PreferencesTest />} />
           <Route path="/carta" element={<Catalog />} />
-          
+
           {/* Rutas protegidas */}
-          <Route 
-            path="/cart" 
+          <Route
+            path="/cart"
             element={
               <ProtectedRoute>
                 <Cart />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/profile" 
+          <Route
+            path="/profile"
             element={
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
       </main>
