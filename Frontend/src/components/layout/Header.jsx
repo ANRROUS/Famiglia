@@ -82,7 +82,7 @@ const Header = () => {
   return (
     <Box className="w-full bg-white text-[#6b2c2c] font-[Montserrat] border-b-[1.5px] border-[#b17b6b] relative">
       {/* Contenedor principal */}
-      <Box className="max-w-7xl mx-auto flex items-center justify-between px-8 py-4">
+      <Box className="max-w-7xl mx-auto flex items-center justify-between px-8">
         {/* Logo */}
         <img
           src={imgLogoFamiglia}
