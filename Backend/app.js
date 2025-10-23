@@ -7,6 +7,8 @@ import productoRoutes from './routes/productos/productoRoutes.js';
 import categoriaRoutes from './routes/productos/categoriaRoutes.js';
 import authRoutes from './routes/usuario/auth.route.js';
 import contactRoutes from './routes/contactRoutes.js';
+import pedidoRoutes from './routes/pedido/pedidoRoutes.js';
+import pagoRoutes from './routes/pedido/pagoRoutes.js';
 
 const app = express();
 app.use(morgan('dev'));
@@ -21,5 +23,8 @@ app.use('/productos', productoRoutes);
 app.use('/categorias', categoriaRoutes);
 app.use('/auth', authRoutes);
 app.use('/contact', contactRoutes);
+app.use('/pedidos',pedidoRoutes);
+app.use('/pedidos',pagoRoutes)
+
 
 export default app;
