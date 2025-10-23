@@ -9,7 +9,7 @@ import {
   clearError,
 } from "../../redux/slices/authSlice";
 import { authAPI } from "../../services/api";
-import ModalBase from "../common/Modal";
+import Modal from "../common/Modal";
 import Terminos from "../../pages/TerminosPage";
 import Privacidad from "../../pages/PrivacidadPage";
 
@@ -70,30 +70,18 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
     <>
-      {/* 🔹 Modal principal del formulario */}
-      <div className="fixed inset-0 z-50 flex">
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-
-        <div className="relative z-10 bg-white w-[58%] h-full flex flex-col items-center justify-center px-10 py-6 shadow-2xl">
-          <button
-            onClick={handleClose}
-            className="absolute top-5 right-5 text-[#8B3A3A] hover:scale-110 transition-transform"
-          >
-            <CloseIcon sx={{ fontSize: 30 }} />
-          </button>
-
-          <div className="w-full max-w-md flex flex-col items-center text-center justify-center -mt-16">
+      <Modal isOpen={isOpen} onClose={handleClose} title="">
+        <div className="flex flex-col items-center justify-center max-h-[80vh] overflow-hidden">
+          <div className="w-full max-w-sm flex flex-col items-center text-center justify-center">
             <img
               src={imgLogoFamiglia}
               alt="Panadería Famiglia"
-              className="w-56 -mb-6"
+              className="w-32 -mb-2"
             />
 
-            <h2 className="text-3xl font-semibold text-[#8B3A3A] mb-8">
+            <h2 className="text-xl font-semibold text-[#8B3A3A] mb-3">
               ¡Únete a Famiglia!
             </h2>
 
@@ -105,10 +93,10 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
 
             <form
               onSubmit={handleSubmit}
-              className="flex flex-col gap-5 w-full text-left"
+              className="flex flex-col gap-2 w-full text-left"
             >
               <div>
-                <label className="block text-[#8B3A3A] text-base font-medium mb-2">
+                <label className="block text-[#8B3A3A] text-xs font-medium mb-0.5">
                   Nombre de Usuario:
                 </label>
                 <input
@@ -116,14 +104,14 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  className="w-full border border-[#E3AFAF] rounded-md p-3 text-lg focus:outline-none focus:ring-2 focus:ring-[#E3AFAF]"
+                  className="w-full border border-[#E3AFAF] rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#E3AFAF]"
                   placeholder="Ej. María García"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[#8B3A3A] text-base font-medium mb-2">
+                <label className="block text-[#8B3A3A] text-xs font-medium mb-0.5">
                   Correo Electrónico:
                 </label>
                 <input
@@ -131,14 +119,14 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
                   name="correo"
                   value={formData.correo}
                   onChange={handleChange}
-                  className="w-full border border-[#E3AFAF] rounded-md p-3 text-lg focus:outline-none focus:ring-2 focus:ring-[#E3AFAF]"
+                  className="w-full border border-[#E3AFAF] rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#E3AFAF]"
                   placeholder="Ej. maria@gmail.com"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[#8B3A3A] text-base font-medium mb-2">
+                <label className="block text-[#8B3A3A] text-xs font-medium mb-0.5">
                   Contraseña:
                 </label>
                 <input
@@ -146,23 +134,23 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
                   name="contraseña"
                   value={formData.contraseña}
                   onChange={handleChange}
-                  className="w-full border border-[#E3AFAF] rounded-md p-3 text-lg focus:outline-none focus:ring-2 focus:ring-[#E3AFAF]"
+                  className="w-full border border-[#E3AFAF] rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#E3AFAF]"
                   placeholder="********"
                   required
                   minLength={6}
                 />
               </div>
 
-              {/* 🔸 Política de privacidad y términos */}
+              {/* Política de privacidad y términos */}
               <div className="flex items-center gap-3 text-sm text-[#5A3A29] leading-snug">
                 <input
                   type="checkbox"
                   checked={acceptedPolicy}
                   onChange={(e) => setAcceptedPolicy(e.target.checked)}
                   required
-                  className="accent-[#E3AFAF] w-6 h-6 cursor-pointer"
+                  className="accent-[#E3AFAF] w-4 h-4 cursor-pointer"
                 />
-                <p className="text-[15px] leading-snug">
+                <p className="text-xs leading-tight">
                   Estoy de acuerdo con la{" "}
                   <span
                     onClick={() => setShowPrivacyModal(true)}
@@ -184,14 +172,14 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#EACCCC] text-[#5A3A29] font-semibold py-3 rounded-md hover:bg-[#E3AFAF] transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#EACCCC] text-[#5A3A29] font-semibold py-2 rounded-md text-sm hover:bg-[#E3AFAF] transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "CREANDO CUENTA..." : "CREAR CUENTA"}
               </button>
             </form>
 
             {/* Enlace a login */}
-            <p className="text-sm text-[#5A3A29] mt-5 mb-2">
+            <p className="text-xs text-[#5A3A29] mt-3 mb-1">
               ¿Ya tienes una cuenta?{" "}
               <button
                 type="button"
@@ -206,19 +194,19 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
             </p>
           </div>
         </div>
-      </div>
+      </Modal>
 
-      {/* 🔹 Modales de Política y Términos */}
+      {/* Modales de términos y política */}
       {showPrivacyModal && (
-        <ModalBase isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)}>
+        <Modal isOpen={showPrivacyModal} onClose={() => setShowPrivacyModal(false)}>
           <Privacidad />
-        </ModalBase>
+        </Modal>
       )}
 
       {showTermsModal && (
-        <ModalBase isOpen={showTermsModal} onClose={() => setShowTermsModal(false)}>
+        <Modal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)}>
           <Terminos />
-        </ModalBase>
+        </Modal>
       )}
     </>
   );

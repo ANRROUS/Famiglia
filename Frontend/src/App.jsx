@@ -1,6 +1,9 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { LoginModalProvider } from "./context/LoginModalContext";
+import { useLoginModal } from "./context/LoginModalContext";
+import LoginForm from "./components/forms/LoginForm";
 import Home from "./pages/Home";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
@@ -22,6 +25,7 @@ function Layout() {
   const location = useLocation();
   const dispatch = useDispatch();
   const hideHeader = location.pathname === "/" || location.pathname === "/home";
+  const { isLoginModalOpen, hideLoginModal } = useLoginModal();
 
   // Verificar autenticación al cargar la app (SOLO UNA VEZ)
   useEffect(() => {
@@ -59,7 +63,6 @@ function Layout() {
           <Route path="/terminos" element={<TerminosPage />} />
           <Route path="/privacidad" element={<PrivacidadPage />} />
           <Route path="/quienes-somos" element={<QuienesSomosPage />} />
-          <Route path="/test" element={<PreferencesTest />} />
           <Route path="/carta" element={<Catalog />} />
 
           {/* Rutas protegidas */}
@@ -79,9 +82,15 @@ function Layout() {
               </ProtectedRoute>
             }
           />
+          <Route path="/test" element={
+          <ProtectedRoute> 
+            <PreferencesTest />
+          </ProtectedRoute>
+            } />
         </Routes>
       </main>
       <Footer />
+      <LoginForm isOpen={isLoginModalOpen} onClose={hideLoginModal} />
     </>
   );
 }
@@ -94,7 +103,9 @@ function App() {
         v7_relativeSplatPath: true
       }}
     >
-      <Layout />
+      <LoginModalProvider>
+        <Layout />
+      </LoginModalProvider>
     </BrowserRouter>
   );
 }

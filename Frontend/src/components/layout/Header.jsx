@@ -11,12 +11,13 @@ import RegisterForm from "../forms/RegisterForm";
 import LoginForm from "../forms/LoginForm";
 import { logout } from "../../redux/slices/authSlice";
 import { authAPI } from "../../services/api";
+import { useLoginModal } from "../../context/LoginModalContext";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [underlineStyle, setUnderlineStyle] = useState({});
   const [showRegister, setShowRegister] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
+  const { isLoginModalOpen: showLogin, showLoginModal, hideLoginModal } = useLoginModal();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 969);
 
   const navigate = useNavigate();
@@ -93,7 +94,20 @@ const Header = () => {
 
   // 🔹 Navegación
   const handleNavigation = (path) => {
-    navigate(path);
+    if (path === "/delivery") {
+      // Si estamos en home, scroll a la sección
+      if (location.pathname === "/") {
+        const deliverySection = document.getElementById("delivery-section");
+        if (deliverySection) {
+          deliverySection.scrollIntoView({ behavior: "smooth" });
+        }
+      } else {
+        // Si no estamos en home, navegar a home con hash
+        navigate("/#delivery");
+      }
+    } else {
+      navigate(path);
+    }
     setMenuOpen(false);
   };
 
