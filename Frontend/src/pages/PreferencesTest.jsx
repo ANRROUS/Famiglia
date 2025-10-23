@@ -12,7 +12,6 @@ import {
   completeTest
 } from '../redux/slices/preferencesSlice';
 import Button from '../components/common/Button';
-import Modal from '../components/common/Modal';
 import ProductCard from '../components/common/ProductCard';
 
 const PreferencesTest = () => {
@@ -32,29 +31,14 @@ const PreferencesTest = () => {
     hasActiveTest
   } = useSelector((state) => state.preferences);
 
-  const [showStartModal, setShowStartModal] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
-  const [showRecommendation, setShowRecommendation] = useState(false);
 
   useEffect(() => {
     // Cargar test desde localStorage si existe
     dispatch(loadTestFromStorage());
-    
-    // Si no hay test activo, mostrar modal de inicio
-    if (!hasActiveTest && questions.length === 0) {
-      setShowStartModal(true);
-    }
   }, [dispatch]);
 
-  useEffect(() => {
-    // Cuando se completa el test y se obtiene recomendación
-    if (testCompleted && recommendation) {
-      setShowRecommendation(true);
-    }
-  }, [testCompleted, recommendation]);
-
   const handleStartTest = async () => {
-    setShowStartModal(false);
     await dispatch(generateTest(userPrompt));
   };
 
@@ -81,8 +65,6 @@ const PreferencesTest = () => {
 
   const handleRestart = () => {
     dispatch(clearTest());
-    setShowRecommendation(false);
-    setShowStartModal(true);
     setUserPrompt('');
   };
 
@@ -126,6 +108,40 @@ const PreferencesTest = () => {
           </p>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 bg-[#f5e6d3] border border-[#b17b6b] text-[#6b2c2c] px-4 py-3 rounded">
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Start Test Section */}
+        {questions.length === 0 && !isGeneratingTest && (
+          <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-8">
+            <h2 className="text-2xl font-bold text-[#6b2c2c] mb-4">
+              Comenzar Test de Preferencias
+            </h2>
+            <div className="space-y-4">
+              <p className="text-[#6b2c2c] opacity-80">
+                ¿Tienes alguna preferencia específica que quieras compartir?
+              </p>
+              <textarea
+                value={userPrompt}
+                onChange={(e) => setUserPrompt(e.target.value)}
+                placeholder="Por ejemplo: Me gustan los postres con chocolate, prefiero sabores dulces..."
+                className="resize-none w-full px-4 py-2 border-2 border-[#b17b6b] rounded-lg focus:ring-2 focus:ring-[#6b2c2c] focus:border-[#6b2c2c] text-[#6b2c2c] box-border overflow-hidden"
+                rows="4"
+              />
+              <Button
+                onClick={handleStartTest}
+                className="w-full"
+              >
+                Comenzar Test
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Progress Bar */}
         {questions.length > 0 && !testCompleted && (
           <div className="mb-8">
@@ -139,13 +155,6 @@ const PreferencesTest = () => {
                 style={{ width: `${calculateProgress()}%` }}
               ></div>
             </div>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-[#f5e6d3] border border-[#b17b6b] text-[#6b2c2c] px-4 py-3 rounded">
-            <p>{error}</p>
           </div>
         )}
 
@@ -206,45 +215,15 @@ const PreferencesTest = () => {
             </p>
           </div>
         )}
-      </div>
 
-      {/* Start Test Modal */}
-      <Modal
-        isOpen={showStartModal}
-        onClose={() => setShowStartModal(false)}
-        title="Comenzar Test de Preferencias"
-      >
-        <div className="space-y-4">
-          <p className="text-[#6b2c2c] opacity-80">
-            ¿Tienes alguna preferencia específica que quieras compartir? (Opcional)
-          </p>
-          <textarea
-            value={userPrompt}
-            onChange={(e) => setUserPrompt(e.target.value)}
-            placeholder="Por ejemplo: Me gustan los postres con chocolate, prefiero sabores dulces..."
-            className="resize-none w-[410px] px-4 py-2 border-2 border-[#b17b6b] rounded-lg focus:ring-2 focus:ring-[#6b2c2c] focus:border-[#6b2c2c] text-[#6b2c2c]"
-            rows="4"
-          />
-          <div className="flex gap-4">
-            <Button
-              onClick={handleStartTest}
-              className="flex-1"
-            >
-              Comenzar Test
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        {/* Recommendation Section */}
+        {testCompleted && recommendation && (
+          <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-8">
+            <h2 className="text-2xl font-bold text-[#6b2c2c] mb-6 text-center">
+              Tu Recomendación Personalizada
+            </h2>
 
-      {/* Recommendation Modal */}
-      <Modal
-        isOpen={showRecommendation}
-        onClose={() => setShowRecommendation(false)}
-        title="Tu Recomendación Personalizada"
-      >
-        <div className="space-y-6">
-          {recommendation && (
-            <>
+            <div className="space-y-6">
               <div className="text-center">
                 <p className="text-[#6b2c2c] mb-4">
                   {recommendation.message || 'Basado en tus respuestas, te recomendamos:'}
@@ -282,10 +261,10 @@ const PreferencesTest = () => {
                   Hacer Nuevo Test
                 </Button>
               </div>
-            </>
-          )}
-        </div>
-      </Modal>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
