@@ -2,8 +2,7 @@ import React from 'react';
 
 const QuienesSomosPage = () => {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10 font-['Montserrat'] text-[#4a2b2b]">
-      <h1 className="text-3xl font-bold text-[#6b2c2c] mb-6">Quiénes Somos</h1>
+    <div className="max-w-3xl mx-auto font-['Montserrat'] text-[#4a2b2b]">
       <p>
         En <strong>Pastelería Famiglia</strong>, somos una empresa familiar apasionada por la
         repostería artesanal. Desde nuestros inicios, nos hemos dedicado a elaborar

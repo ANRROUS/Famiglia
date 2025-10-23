@@ -2,8 +2,7 @@ import React from 'react';
 
 const TerminosPage = () => {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10 font-['Montserrat'] text-[#4a2b2b]">
-      <h1 className="text-3xl font-bold text-[#6b2c2c] mb-6">Términos y Condiciones</h1>
+    <div className="max-w-3xl mx-auto font-['Montserrat'] text-[#4a2b2b]">
       <p>
         Bienvenido a <strong>Pastelería Famiglia</strong>. Al realizar una compra en
         nuestro sitio web, usted acepta los siguientes términos:

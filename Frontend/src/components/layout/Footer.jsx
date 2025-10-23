@@ -8,7 +8,12 @@ import imgFacebookLogo from "../../assets/images/img_facebookLogo.png";
 import imgIgLogo from "../../assets/images/img_igLogo.png";
 import imgXLogo from "../../assets/images/img_xLogo.png";
 import imgYtLogo from "../../assets/images/img_ytLogo.png";
-import { ModalTerminos, ModalPrivacidad, ModalQuienesSomos } from "../common/Modal";
+import ModalBase from "../common/Modal";
+
+// 🔹 Importamos las páginas visuales
+import Terminos from "../../pages/TerminosPage";
+import Privacidad from "../../pages/PrivacidadPage";
+import QuienesSomos from "../../pages/QuienesSomosPage";
 
 const Footer = () => {
   const [openModal, setOpenModal] = useState(null); // null | "terminos" | "privacidad" | "quienes"
@@ -29,7 +34,6 @@ const Footer = () => {
       navigate("/carta");
     } else if (item === "Delivery") {
       navigate("/home");
-      // Esperamos a que se monte el componente Home antes de hacer scroll
       setTimeout(() => {
         const deliverySection = document.querySelector(
           '[data-scroll-to="rESERVASDEPEDIDOS"]'
@@ -41,7 +45,6 @@ const Footer = () => {
     }
   };
 
-  // 🔹 Nuevo: función para redirigir las categorías a /carta
   const handleCategoriaClick = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     navigate("/carta");
@@ -199,10 +202,22 @@ const Footer = () => {
         Pastelería Famiglia © 2025 - Todos los derechos reservados
       </Box>
 
-      {/* Modales */}
-      <ModalTerminos isOpen={openModal === "terminos"} onClose={() => setOpenModal(null)} />
-      <ModalPrivacidad isOpen={openModal === "privacidad"} onClose={() => setOpenModal(null)} />
-      <ModalQuienesSomos isOpen={openModal === "quienes"} onClose={() => setOpenModal(null)} />
+      {/* 🔹 Modales dinámicos con páginas */}
+      <ModalBase
+        isOpen={!!openModal}
+        onClose={() => setOpenModal(null)}
+        title={
+          openModal === "terminos"
+            ? "Términos y Condiciones"
+            : openModal === "privacidad"
+            ? "Política de Privacidad"
+            : "Quiénes Somos"
+        }
+      >
+        {openModal === "terminos" && <Terminos />}
+        {openModal === "privacidad" && <Privacidad />}
+        {openModal === "quienes" && <QuienesSomos />}
+      </ModalBase>
     </Box>
   );
 };
