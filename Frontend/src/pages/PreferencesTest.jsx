@@ -70,7 +70,7 @@ const PreferencesTest = () => {
 
   const handleGoToCatalog = () => {
     dispatch(clearTest());
-    navigate('/catalog');
+    navigate('/carta');
   };
 
   const calculateProgress = () => {
@@ -219,7 +219,7 @@ const PreferencesTest = () => {
         )}
 
         {/* Recommendation Section */}
-        {testCompleted && recommendation && (
+        {testCompleted && recommendation && recommendation.product && (
           <div className="bg-white rounded-lg shadow-md border border-[#b17b6b] p-4 sm:p-6 md:p-8">
             <h2 className="text-xl sm:text-2xl font-bold text-[#6b2c2c] mb-4 sm:mb-6 text-center">
               Tu Recomendación Personalizada
@@ -232,9 +232,12 @@ const PreferencesTest = () => {
                 </p>
               </div>
 
-              {recommendation.product && (
+              {recommendation.product.id_producto && (
                 <div className="flex justify-center">
-                  <ProductCard product={recommendation.product} />
+                  <ProductCard 
+                    key={`rec-${recommendation.product.id_producto}`} 
+                    product={recommendation.product} 
+                  />
                 </div>
               )}
 

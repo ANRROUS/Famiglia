@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import axiosInstance from './axiosInstance';
 
 const geminiService = {
   /**
@@ -10,7 +8,7 @@ const geminiService = {
    */
   generatePreferencesTest: async (userPrompt = '') => {
     try {
-      const response = await axios.post(`${API_URL}/api/preferences/generate-test`, {
+      const response = await axiosInstance.post('/api/preferences/generate-test', {
         userPrompt
       });
 
@@ -37,7 +35,7 @@ const geminiService = {
     try {
       const { userPrompt, questions, answers } = testData;
 
-      const response = await axios.post(`${API_URL}/api/preferences/recommendation`, {
+      const response = await axiosInstance.post('/api/preferences/recommendation', {
         userPrompt,
         questions,
         answers
