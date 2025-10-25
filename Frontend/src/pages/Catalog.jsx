@@ -42,8 +42,9 @@ export default function Catalog() {
           id: p.id_producto ?? p.id ?? null,
           name: p.nombre ?? p.name ?? '',
           description: p.descripcion ?? p.description ?? '',
-          price: Number(p.precio ?? p.price ?? 0),
-          image: p.imagen ?? p.image ?? '/images/placeholder-product.jpg',
+          price: Number(p.precio ?? p.price ?? 0) || 0,
+          // DB field is `url_imagen`, fallbacks for older payloads
+          image: p.url_imagen ?? p.imagen ?? p.image ?? '/images/placeholder-product.jpg',
           id_categoria: p.id_categoria ?? p.categoriaId ?? null,
         }));
 
@@ -69,7 +70,7 @@ export default function Catalog() {
     return productos.filter((p) => {
       if (!p) return false;
       if (p.price < priceRange[0] || p.price > priceRange[1]) return false;
-      if (selectedCategory && p.id_categoria !== selectedCategory) return false;
+  if (selectedCategory && String(p.id_categoria) !== String(selectedCategory)) return false;
       if (searchTerm) {
         const q = searchTerm.trim().toLowerCase();
         return (

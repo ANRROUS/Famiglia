@@ -9,7 +9,8 @@ import {
 const productoRoutes = express.Router();
 
 productoRoutes.get('/', getProductos);
+// categoria route must come before :id to avoid collision and param name must match controller
+productoRoutes.get('/categoria/:id_categoria', getProductosByCategoria);
 productoRoutes.get('/:id', getProductoById);
-productoRoutes.get('/categoria/:categoriaId', getProductosByCategoria);
 
 export default productoRoutes;
