@@ -5,7 +5,7 @@ const FiltroCategoria = ({ categorias = [], selectedCategory, onChange }) => {
   return (
     <Box className="flex flex-wrap gap-3">
       <Chip
-        label="Todos"
+        label="TODOS"
         clickable
         onClick={() => onChange(null)}
         variant={selectedCategory === null ? 'filled' : 'outlined'}

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Box, Typography, Grid, CircularProgress, Button, useMediaQuery, useTheme } from '@mui/material';
 import { ProductosAPI, categoriaAPI } from '../services/api';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../redux/slices/cartSlice';
+import NotificationSnackbar from '../components/common/NotificationSnackbar';
 import BuscadorProductos from '../components/common/BuscadorProductos';
 import FiltroCategoria from '../components/common/FiltroCategoria';
 import FiltroPrecio from '../components/common/FiltroPrecio';
@@ -18,10 +19,13 @@ export default function Catalog() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [notification, setNotification] = useState({ open: false, message: '' });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState([0, 100]);
   const [priceBounds, setPriceBounds] = useState([0, 100]);
+  
+  const cartItems = useSelector((state) => state.cart.items);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -284,7 +288,16 @@ export default function Catalog() {
                       whiteSpace: 'nowrap',
                       '&:hover': { backgroundColor: '#ffcccc' }
                     }}
-                    onClick={() => dispatch(addToCart({ ...p, quantity: 1 }))}
+                    onClick={() => {
+                      const existingItem = cartItems.find(item => item.id === p.id);
+                      dispatch(addToCart({ ...p, quantity: 1 }));
+                      setNotification({
+                        open: true,
+                        message: existingItem ? 
+                          'Producto actualizado en el carrito' : 
+                          'Producto agregado al carrito'
+                      });
+                    }}
                   >
                     Añadir al carrito
                   </Button>
@@ -295,6 +308,13 @@ export default function Catalog() {
         )}
       </Box>
     </Box>
+
+    {/* Notification */}
+    <NotificationSnackbar 
+      open={notification.open}
+      message={notification.message}
+      onClose={() => setNotification({ ...notification, open: false })}
+    />
   </Box>
 );
 
