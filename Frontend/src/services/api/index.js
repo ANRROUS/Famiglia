@@ -18,5 +18,20 @@ export const authAPI = {
     getPerfil: () => API.get('/auth/perfil')
 }
 
+export const pagoAPI = {
+    procesarPago: (datosPago) => API.post('/api/pedido/pago/procesar', datosPago)
+}
+
+export const pedidoAPI = {
+    getHistorialPedidos: () => API.get('/pedidos/historial/mis-pedidos')
+}
+
+export const preferencesAPI = {
+    getHistorialTests: () => API.get('/api/preferences/history')
+}
+
+
+
+
 
 

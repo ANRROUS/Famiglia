@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useLoginModal } from '../../context/LoginModalContext';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onAddToCart }) => {
   const [imageError, setImageError] = useState(false);
+  const dispatch = useDispatch();
+  const { openLoginModal } = useLoginModal();
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   // Validaciones básicas
   if (!product) {
@@ -20,7 +25,8 @@ const ProductCard = ({ product }) => {
     descripcion: description = 'Sin descripción disponible',
     precio: price,
     imagen,
-    url_imagen
+    url_imagen,
+    totalVendido = 0
   } = product;
 
   // Usar url_imagen si existe, sino usar imagen, sino placeholder
@@ -40,43 +46,69 @@ const ProductCard = ({ product }) => {
     }
   };
 
+  const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      // Si no está autenticado, abrir modal de login
+      openLoginModal();
+      return;
+    }
+    
+    // Si está autenticado, agregar al carrito
+    if (onAddToCart) {
+      onAddToCart(product);
+    }
+  };
+
+  // Determinar si es el más vendido (threshold: más de 5 ventas)
+  const isBestSeller = totalVendido > 5;
+
   return (
-    <div className="bg-white rounded-lg shadow-md border-2 border-[#b17b6b] overflow-hidden hover:shadow-lg transition-shadow duration-300 font-['Montserrat']">
-      {/* Imagen del producto */}
-      <div className="aspect-w-16 aspect-h-9 bg-[#f5e6d3]">
-        <img
-          src={image}
-          alt={name}
-          className="w-full h-48 object-cover"
-          onError={handleImageError}
-        />
-      </div>
+    <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 font-['Montserrat'] border border-gray-200 mb-3">
+      {/* Contenedor Principal - Layout Horizontal */}
+      <div className="grid grid-cols-[100px_1fr_auto] gap-4 items-center px-4 py-4">
+        {/* Imagen del producto */}
+        <div className="w-[100px] h-[90px] rounded-xl overflow-hidden bg-[#ffe3d9] flex items-center justify-center">
+          <img
+            src={image}
+            alt={name}
+            className="w-full h-full object-cover"
+            onError={handleImageError}
+          />
+        </div>
 
-      {/* Contenido */}
-      <div className="p-4">
-        {/* Nombre */}
-        <h3 className="text-xl font-bold text-[#6b2c2c] mb-2">
-          {name}
-        </h3>
+        {/* Información del producto */}
+        <div className="flex flex-col justify-center">
+          {/* Nombre del producto */}
+          <h3 className="text-base font-bold text-black mb-1">
+            {name}
+          </h3>
 
-        {/* Descripción */}
-        <p className="text-[#6b2c2c] opacity-80 text-sm mb-4 line-clamp-2">
-          {description}
-        </p>
+          {/* Descripción */}
+          <p className="text-gray-700 text-sm mb-2 line-clamp-2">
+            {description}
+          </p>
 
-        {/* Precio */}
-        <div className="flex items-center justify-between">
-          <span className="text-2xl font-bold text-[#6b2c2c]">
-            ${price?.toFixed(2)}
-          </span>
+          {/* Etiqueta Más Vendido */}
+          {isBestSeller && (
+            <div className="inline-block bg-purple-200 text-purple-800 px-3 py-1 rounded text-xs font-medium w-fit">
+              Más comprado
+            </div>
+          )}
+        </div>
+
+        {/* Precio y Botón */}
+        <div className="flex flex-col items-end gap-2">
+          {/* Precio */}
+          <div className="text-xl font-bold text-red-600">
+            S/{price?.toFixed(2)}
+          </div>
+
+          {/* Botón Añadir al carrito */}
           <button
-            className="px-4 py-2 bg-[#6b2c2c] text-white rounded-lg hover:bg-[#5a2424] transition-colors duration-200"
-            onClick={() => {
-              // Aquí puedes agregar la lógica para agregar al carrito
-              console.log('Agregar al carrito:', product);
-            }}
+            className="px-4 py-2 bg-pink-50 text-[#771919] rounded-lg hover:bg-pink-100 transition-colors duration-200 font-medium text-sm border border-pink-200"
+            onClick={handleAddToCart}
           >
-            Agregar
+            Añadir al carrito
           </button>
         </div>
       </div>

@@ -9,6 +9,8 @@ import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 import ContactUs from "./pages/ContactUs";
 import Cart from "./pages/Cart";
+import Payment from "./pages/Payment";
+import OrderConfirmation from "./pages/OrderConfirmation";
 import Profile from "./pages/Profile";
 import Catalog from "./pages/Catalog";
 import PreferencesTest from './pages/PreferencesTest';
@@ -71,6 +73,22 @@ function Layout() {
             element={
               <ProtectedRoute>
                 <Cart />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment"
+            element={
+              <ProtectedRoute>
+                <Payment />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/order-confirmation"
+            element={
+              <ProtectedRoute>
+                <OrderConfirmation />
               </ProtectedRoute>
             }
           />

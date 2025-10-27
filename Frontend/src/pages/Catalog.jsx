@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { Box, Typography, Grid, CircularProgress, Button, useMediaQuery, useTheme } from '@mui/material';
 import { ProductosAPI, categoriaAPI } from '../services/api';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../redux/slices/cartSlice';
+import { addToCartAsync } from '../redux/slices/cartSlice';
 import NotificationSnackbar from '../components/common/NotificationSnackbar';
 import BuscadorProductos from '../components/common/BuscadorProductos';
 import FiltroCategoria from '../components/common/FiltroCategoria';
 import FiltroPrecio from '../components/common/FiltroPrecio';
+import ProductCard from '../components/common/ProductCard';
 
 export default function Catalog() {
   const dispatch = useDispatch();
@@ -46,6 +47,7 @@ export default function Catalog() {
           // DB field is `url_imagen`, fallbacks for older payloads
           image: p.url_imagen ?? p.imagen ?? p.image ?? '/images/placeholder-product.jpg',
           id_categoria: p.id_categoria ?? p.categoriaId ?? null,
+          totalVendido: p.totalVendido ?? 0,
         }));
 
         setProductos(normalized);
@@ -188,13 +190,13 @@ export default function Catalog() {
         </Box>
 
         {/* Filtro de categorías */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2, mb: 6 }}>
+        {/* <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2, mb: 6 }}>
           <FiltroCategoria
             categorias={categorias}
             selectedCategory={selectedCategory}
             onChange={setSelectedCategory}
           />
-        </Box>
+        </Box> */}
         {/* Filtro de precio visible solo en móvil */}
         <Box
           sx={{
@@ -220,92 +222,37 @@ export default function Catalog() {
             No hay productos disponibles con esos filtros.
           </Typography>
         ) : (
-          <Box>
+          <div className="space-y-3">
             {filteredProducts.map((p) => (
-              <Box
+              <ProductCard 
                 key={p.id}
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: '100px 1fr 180px',
-                  gap: 3,
-                  alignItems: 'center',
-                  py: 4,
-                  borderTop: '1px solid #ff9c9c'
+                product={{
+                  id_producto: p.id,
+                  nombre: p.name,
+                  descripcion: p.description,
+                  precio: p.price,
+                  url_imagen: p.image,
+                  totalVendido: p.totalVendido || 0
                 }}
-              >
-                <Box
-                  sx={{
-                    width: 100,
-                    height: 90,
-                    borderRadius: 2,
-                    backgroundColor: '#ffe3d9',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <img
-                    src={p.image}
-                    alt={p.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => {
-                      e.target.src = '/images/placeholder-product.jpg';
-                    }}
-                  />
-                </Box>
-
-                <Box>
-                  <Typography sx={{ fontWeight: 700, color: '#6b2c2c' }}>{p.name}</Typography>
-                  <Typography sx={{ color: '#6b2c2c', opacity: 0.85, mt: 1 }}>
-                    {p.description}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: { xs: 'row', sm: 'column' }, 
-                  alignItems: 'center', 
-                  justifyContent: { xs: 'space-between', sm: 'center' },
-                  gap: 2,
-                  gridColumn: { xs: '1 / -1', sm: 'auto' },
-                  mt: { xs: 2, sm: 0 }
-                }}>
-                  <Typography sx={{ 
-                    color: '#f00000', 
-                    fontWeight: 700,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}>
-                    S/{p.price.toFixed(2)}
-                  </Typography>
-                  <Button
-                    sx={{
-                      backgroundColor: '#ffe5e5',
-                      color: '#771919',
-                      px: { xs: 2, sm: 3 },
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      whiteSpace: 'nowrap',
-                      '&:hover': { backgroundColor: '#ffcccc' }
-                    }}
-                    onClick={() => {
-                      const existingItem = cartItems.find(item => item.id === p.id);
-                      dispatch(addToCart({ ...p, quantity: 1 }));
+                onAddToCart={(product) => {
+                  dispatch(addToCartAsync(product))
+                    .unwrap()
+                    .then(() => {
                       setNotification({
                         open: true,
-                        message: existingItem ? 
-                          'Producto actualizado en el carrito' : 
-                          'Producto agregado al carrito'
+                        message: 'Producto agregado al carrito'
                       });
-                    }}
-                  >
-                    Añadir al carrito
-                  </Button>
-                </Box>
-              </Box>
+                    })
+                    .catch((error) => {
+                      setNotification({
+                        open: true,
+                        message: error.error || 'Error al agregar al carrito'
+                      });
+                    });
+                }}
+              />
             ))}
-          </Box>
+          </div>
         )}
       </Box>
     </Box>

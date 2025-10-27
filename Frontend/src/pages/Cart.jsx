@@ -1,6 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { removeFromCart, updateQuantity } from "../redux/slices/cartSlice";
+import { 
+  removeFromCartAsync, 
+  updateCartItemAsync,
+  loadCartAsync
+} from "../redux/slices/cartSlice";
+import { useEffect, useRef, useCallback, useState } from "react";
 import {
   Box,
   Typography,
@@ -8,7 +13,7 @@ import {
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
-import SentimentDissatisfiedOutlinedIcon from '@mui/icons-material/SentimentDissatisfiedOutlined'; // <-- Importa este icono
+import SentimentDissatisfiedOutlinedIcon from '@mui/icons-material/SentimentDissatisfiedOutlined';
 import imgMilhojasFresa from "../assets/images/img_milhojasFresa.png";
 
 // Selector de cantidad compacto tipo checkbox
@@ -72,16 +77,72 @@ const QuantitySelector = ({ value, onChange }) => {
 const Cart = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { items: products, totalAmount } = useSelector((state) => state.cart);
+  const { items: products, totalAmount, isLoading } = useSelector((state) => state.cart);
 
-  const handleQuantityChange = (id, newQuantity) => {
+  // Estado local para las cantidades mientras el usuario edita
+  const [localQuantities, setLocalQuantities] = useState({});
+  
+  // Refs para los temporizadores de debounce
+  const debounceTimers = useRef({});
+
+  // Cargar carrito al montar el componente
+  useEffect(() => {
+    dispatch(loadCartAsync());
+  }, [dispatch]);
+
+  // Inicializar cantidades locales cuando se cargan los productos
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const quantities = {};
+      products.forEach(product => {
+        quantities[product.id_detalle] = product.cantidad;
+      });
+      setLocalQuantities(quantities);
+    }
+  }, [products]);
+
+  // Función debounced para actualizar en el backend
+  const debouncedUpdate = useCallback((id_detalle, cantidad) => {
+    // Limpiar el temporizador anterior si existe
+    if (debounceTimers.current[id_detalle]) {
+      clearTimeout(debounceTimers.current[id_detalle]);
+    }
+
+    // Crear nuevo temporizador que espera 2 segundos
+    debounceTimers.current[id_detalle] = setTimeout(() => {
+      console.log(`Guardando cantidad ${cantidad} para producto ${id_detalle}`);
+      dispatch(updateCartItemAsync({ id_detalle, cantidad }));
+      delete debounceTimers.current[id_detalle];
+    }, 2000); // 2 segundos de espera
+  }, [dispatch]);
+
+  // Limpiar temporizadores al desmontar
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
+    };
+  }, []);
+
+  const handleQuantityChange = (id_detalle, newQuantity) => {
     if (newQuantity > 0) {
-      dispatch(updateQuantity({ id, quantity: newQuantity }));
+      // Actualizar inmediatamente en el estado local (UI instantánea)
+      setLocalQuantities(prev => ({
+        ...prev,
+        [id_detalle]: newQuantity
+      }));
+      
+      // Programar actualización en el backend con debounce
+      debouncedUpdate(id_detalle, newQuantity);
     }
   };
 
-  const handleRemoveProduct = (id) => {
-    dispatch(removeFromCart(id));
+  const handleRemoveProduct = (id_detalle) => {
+    // Limpiar el temporizador si existe para este producto
+    if (debounceTimers.current[id_detalle]) {
+      clearTimeout(debounceTimers.current[id_detalle]);
+      delete debounceTimers.current[id_detalle];
+    }
+    dispatch(removeFromCartAsync(id_detalle));
   };
 
   const handleContinue = () => {
@@ -92,6 +153,17 @@ const Cart = () => {
     navigate("/carta");
   };
 
+  // Calcular el total local basado en las cantidades que el usuario está editando
+  const calculateLocalTotal = () => {
+    if (!products || products.length === 0) return 0;
+    
+    return products.reduce((total, product) => {
+      const quantity = localQuantities[product.id_detalle] || product.cantidad;
+      return total + (product.precio * quantity);
+    }, 0);
+  };
+
+  const localTotal = calculateLocalTotal();
   const isCartEmpty = products.length === 0;
 
   return (
@@ -148,7 +220,7 @@ const Cart = () => {
               {/* FILAS DE PRODUCTOS */}
               {products.map((product) => (
                 <Box
-                  key={product.id}
+                  key={product.id_detalle}
                   sx={{
                     display: "grid",
                     gridTemplateColumns: "auto minmax(250px, 1fr) 0.6fr 0.6fr 0.6fr",
@@ -159,7 +231,7 @@ const Cart = () => {
                   }}
                 >
                   <CloseIcon
-                    onClick={() => handleRemoveProduct(product.id)}
+                    onClick={() => handleRemoveProduct(product.id_detalle)}
                     sx={{
                       color: "#771919", 
                       fontSize: 22,
@@ -182,12 +254,15 @@ const Cart = () => {
                       }}
                     >
                       <img
-                        src={product.image}
-                        alt={product.name}
+                        src={product.url_imagen || '/images/placeholder-product.jpg'}
+                        alt={product.nombre}
                         style={{
                           width: "100%",
                           height: "100%",
                           objectFit: "cover",
+                        }}
+                        onError={(e) => {
+                          e.target.src = '/images/placeholder-product.jpg';
                         }}
                       />
                     </Box>
@@ -198,22 +273,22 @@ const Cart = () => {
                         textOverflow: 'clip',
                       }}
                     >
-                      {product.name}
+                      {product.nombre}
                     </Typography>
                   </Box>
                   <Typography sx={{ textAlign: "center" }}>
-                    S/{product.price.toFixed(2)}
+                    S/{product.precio.toFixed(2)}
                   </Typography>
                   <Box sx={{ display: "flex", justifyContent: "center" }}>
                     <QuantitySelector
-                      value={product.quantity}
+                      value={localQuantities[product.id_detalle] || product.cantidad}
                       onChange={(newQty) =>
-                        handleQuantityChange(product.id, newQty)
+                        handleQuantityChange(product.id_detalle, newQty)
                       }
                     />
                   </Box>
                   <Typography sx={{ textAlign: "center" }}>
-                    S/{(product.price * product.quantity).toFixed(2)}
+                    S/{((localQuantities[product.id_detalle] || product.cantidad) * product.precio).toFixed(2)}
                   </Typography>
                 </Box>
               ))}
@@ -363,25 +438,33 @@ const Cart = () => {
                       fontSize: "1.1rem",
                     }}
                   >
-                    S/{totalAmount.toFixed(2)}
+                    S/{localTotal.toFixed(2)}
                   </Typography>
                 </Box>
               </Box>
 
-              {/* Bloque 3: Botón "En Proceso..." */}
+              {/* Bloque 3: Botón "Proceder al Pago" */}
               <Box
+                onClick={() => navigate('/payment')}
                 sx={{
-                  backgroundColor: "#ffe5e5",
-                  color: "rgba(119,25,25,0.8)",
+                  backgroundColor: "#ff9c9c",
+                  color: "#fff",
                   px: 3,
                   py: 1.5,
                   borderRadius: "8px",
                   fontSize: "14px",
-                  fontWeight: "500",
+                  fontWeight: "600",
                   textAlign: "center",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  '&:hover': {
+                    backgroundColor: "#ff7a7a",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 4px 8px rgba(255, 156, 156, 0.3)",
+                  },
                 }}
               >
-                En Proceso ...
+                Proceder al Pago
               </Box>
             </>
           )}

@@ -6,12 +6,20 @@ import {
     getPedidoById, 
     getPedidoByUsuario, 
     getPedidos, 
-    updateCantidadFromDetallePedido 
+    updateCantidadFromDetallePedido,
+    getHistorialPedidos
 } from "../../controllers/pedido/pedido.js";
+import { verifyToken } from "../../middleware/authMiddleware.js";
+
 const pedidoRoutes = express.Router();
+
 pedidoRoutes.get("/", getPedidos);
 pedidoRoutes.get("/:id_pedido", getPedidoById);
 pedidoRoutes.get("/usuario/:id_usuario", getPedidoByUsuario);
+
+// Ruta protegida para obtener historial del usuario autenticado
+pedidoRoutes.get("/historial/mis-pedidos", verifyToken, getHistorialPedidos);
+
 // Gestión del carrito
 pedidoRoutes.post("/", createPedido);
 pedidoRoutes.post("/:id_pedido", addProductoToPedido);

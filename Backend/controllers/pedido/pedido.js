@@ -242,3 +242,66 @@ export const deleteProductoFromPedido = async (req, res) => {
     }
 };
 
+// Obtener historial de pedidos del usuario autenticado
+export const getHistorialPedidos = async (req, res) => {
+    const id_usuario = req.user?.id;
+
+    if (!id_usuario) {
+        return res.status(401).json({ error: "Usuario no autenticado" });
+    }
+
+    try {
+        const pedidos = await prisma.pedido.findMany({
+            where: { 
+                id_usuario: BigInt(id_usuario),
+                estado: {
+                    not: "carrito" // Excluir pedidos en carrito
+                }
+            },
+            include: {
+                detalle_pedido: {
+                    include: {
+                        producto: true,
+                    },
+                },
+                pago: true,
+            },
+            orderBy: {
+                fecha: 'desc'
+            }
+        });
+
+        // Convertir BigInt a string para JSON
+        const pedidosFormateados = pedidos.map(pedido => ({
+            id_pedido: pedido.id_pedido.toString(),
+            fecha: pedido.fecha,
+            estado: pedido.estado,
+            envio: pedido.envio,
+            total: pedido.detalle_pedido.reduce((sum, item) => 
+                sum + (item.cantidad * item.producto.precio), 0
+            ),
+            items: pedido.detalle_pedido.map(detalle => ({
+                id_detalle: detalle.id_detalle_pedido.toString(),
+                cantidad: detalle.cantidad,
+                producto: {
+                    id_producto: detalle.producto.id_producto.toString(),
+                    nombre: detalle.producto.nombre,
+                    precio: detalle.producto.precio,
+                    url_imagen: detalle.producto.url_imagen
+                }
+            })),
+            pago: pedido.pago[0] ? {
+                medio: pedido.pago[0].medio,
+                total: pedido.pago[0].total,
+                fecha: pedido.pago[0].fecha
+            } : null
+        }));
+
+        res.json(pedidosFormateados);
+    } catch (error) {
+        console.error("Error al obtener historial de pedidos:", error);
+        res.status(500).json({ error: "Error al obtener historial de pedidos" });
+    }
+};
+
+
