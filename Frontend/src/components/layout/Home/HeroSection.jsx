@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { Box, Typography, IconButton } from "@mui/material";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { Box, Typography, IconButton, Badge } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 import imgDegradado from "../../../assets/images/img_degradado.png";
 import imgLogoFamigliawithourBorders from "../../../assets/images/img_logoFamigliawithoutBorders.png";
@@ -9,6 +13,10 @@ import imgMilhojasFresa from "../../../assets/images/img_milhojasFresa.png";
 import imgAlfajor from "../../../assets/images/img_alfajor.png";
 import imgEmpanadaMixta from "../../../assets/images/img_empanadaMixta.png";
 import imgPointMap from "../../../assets/images/img_map.png";
+import RegisterForm from "../../forms/RegisterForm";
+import LoginForm from "../../forms/LoginForm";
+import { logout } from "../../../redux/slices/authSlice";
+import { authAPI } from "../../../services/api";
 
 const HeroSection = ({
   onHomeTextClick,
@@ -20,6 +28,28 @@ const HeroSection = ({
   onGroupContainerClick1,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  // Estado de autenticación desde Redux
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { totalQuantity } = useSelector((state) => state.cart);
+  
+  // Función de logout
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+      dispatch(logout());
+      navigate("/");
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      dispatch(logout());
+      navigate("/");
+    }
+  };
 
   return (
     <Box className="relative w-full bg-white text-[#753b3b] font-[Montserrat] overflow-hidden">
@@ -60,19 +90,75 @@ const HeroSection = ({
         </Box>
 
         {/* Botones en escritorio */}
-        <Box className="hidden md:flex gap-3">
-          <button
-            onClick={onGroupContainerClick1}
-            className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-4 py-2 text-sm md:text-base"
-          >
-            Registrarse
-          </button>
-          <button
-            onClick={onGroupContainerClick}
-            className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-4 py-2 text-sm md:text-base"
-          >
-            Iniciar Sesión
-          </button>
+        <Box className="hidden md:flex gap-3 items-center">
+          {isAuthenticated ? (
+            <>
+              {/* Carrito */}
+              <IconButton
+                onClick={() => navigate("/cart")}
+                sx={{ color: "white", position: "relative" }}
+              >
+                <ShoppingCartIcon />
+                {totalQuantity > 0 && (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      backgroundColor: "#e74c3c",
+                      color: "white",
+                      borderRadius: "50%",
+                      width: 18,
+                      height: 18,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 10,
+                      fontWeight: "bold"
+                    }}
+                  >
+                    {totalQuantity}
+                  </Box>
+                )}
+              </IconButton>
+
+              {/* Perfil */}
+              <IconButton
+                onClick={() => navigate("/profile")}
+                sx={{ color: "white" }}
+              >
+                <AccountCircleIcon />
+              </IconButton>
+
+              {/* Nombre del usuario */}
+              <span className="text-white text-sm font-medium">
+                {user?.nombre}
+              </span>
+
+              {/* Botón Cerrar Sesión */}
+              <button
+                onClick={handleLogout}
+                className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-4 py-2 text-sm md:text-base"
+              >
+                Cerrar Sesión
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowRegister(true)}
+                className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-4 py-2 text-sm md:text-base"
+              >
+                Registrarse
+              </button>
+              <button
+                onClick={() => setShowLogin(true)}
+                className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-4 py-2 text-sm md:text-base"
+              >
+                Iniciar Sesión
+              </button>
+            </>
+          )}
         </Box>
 
         {/* Botón menú hamburguesa (solo en móvil) */}
@@ -111,22 +197,80 @@ const HeroSection = ({
 
             {/* Botones también visibles en móvil */}
             <Box className="flex flex-col gap-4 mt-8">
-              <button
-                onClick={onGroupContainerClick1}
-                className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
-              >
-                Registrarse
-              </button>
-              <button
-                onClick={onGroupContainerClick}
-                className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
-              >
-                Iniciar Sesión
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      navigate("/cart");
+                    }}
+                    className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
+                  >
+                    🛒 Carrito ({totalQuantity})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      navigate("/profile");
+                    }}
+                    className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
+                  >
+                    👤 Perfil
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
+                  >
+                    Cerrar Sesión
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowRegister(true);
+                    }}
+                    className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
+                  >
+                    Registrarse
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowLogin(true);
+                    }}
+                    className="border-2 border-white text-white bg-transparent font-semibold rounded-md hover:bg-white hover:text-[#8f3c3c] transition px-6 py-2"
+                  >
+                    Iniciar Sesión
+                  </button>
+                </>
+              )}
             </Box>
           </Box>
         )}
       </Box>
+
+      {/* Modales de Login y Registro */}
+      <RegisterForm 
+        isOpen={showRegister} 
+        onClose={() => setShowRegister(false)}
+        onSwitchToLogin={() => {
+          setShowRegister(false);
+          setShowLogin(true);
+        }}
+      />
+      <LoginForm 
+        isOpen={showLogin} 
+        onClose={() => setShowLogin(false)}
+        onSwitchToRegister={() => {
+          setShowLogin(false);
+          setShowRegister(true);
+        }}
+      />
 
 
       {/* HERO SECTION */}

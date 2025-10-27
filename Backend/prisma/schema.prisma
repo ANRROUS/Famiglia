@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js" 
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model categoria {
+  id_categoria BigInt     @id @default(autoincrement())
+  nombre       String?    @db.VarChar
+  producto     producto[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model detalle_pedido {
+  id_detalle_pedido BigInt    @id @default(autoincrement())
+  cantidad          Int?
+  id_producto       BigInt?
+  id_pedido         BigInt?
+  pedido            pedido?   @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction)
+  producto          producto? @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pago {
+  id_pago   BigInt    @id @default(autoincrement())
+  medio     String?   @db.VarChar
+  numero    Int?
+  cod_ver   Int?
+  total     Float?    @db.Real
+  fecha     DateTime? @db.Timestamp(6)
+  id_pedido BigInt?
+  pedido    pedido?   @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pedido {
+  id_pedido      BigInt           @id @default(autoincrement())
+  envio          String?          @db.VarChar
+  fecha          DateTime?        @db.Timestamp(6)
+  estado         String?          @db.VarChar
+  id_usuario     BigInt?
+  detalle_pedido detalle_pedido[]
+  pago           pago[]
+  usuario        usuario?         @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model producto {
+  id_producto    BigInt           @id @default(autoincrement())
+  nombre         String?          @db.VarChar
+  descripcion    String?
+  precio         Float?           @db.Real
+  url_imagen     String?
+  stock          Int?
+  id_categoria   BigInt?
+  id_tienda      BigInt?
+  detalle_pedido detalle_pedido[]
+  categoria      categoria?       @relation(fields: [id_categoria], references: [id_categoria], onDelete: NoAction, onUpdate: NoAction)
+  tienda         tienda?          @relation(fields: [id_tienda], references: [id_tienda], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model test {
+  id_test       BigInt    @id @default(autoincrement())
+  consulta      String?   @db.VarChar
+  resultado     String?
+  url_resultado String?
+  fecha         DateTime? @db.Timestamp(6)
+  id_usuario    BigInt?
+  usuario       usuario?  @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tienda {
+  id_tienda      BigInt           @id @default(autoincrement())
+  nombre         String?          @db.VarChar
+  direccion      String?          @db.VarChar
+  producto       producto[]
+  tienda_usuario tienda_usuario[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tienda_usuario {
+  id_tienda_usuario BigInt   @id @default(autoincrement())
+  id_tienda         BigInt
+  id_usuario        BigInt?
+  tienda            tienda   @relation(fields: [id_tienda], references: [id_tienda], onDelete: NoAction, onUpdate: NoAction)
+  usuario           usuario? @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuario {
+  id_usuario     BigInt           @id @default(autoincrement())
+  nombre         String           @db.VarChar
+  correo         String           @db.VarChar @unique
+  contrase_a     String?          @map("contraseña") @db.VarChar
+  url_imagen     String?
+  pedido         pedido[]
+  test           test[]
+  tienda_usuario tienda_usuario[]
+}

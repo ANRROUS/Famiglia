@@ -18,7 +18,7 @@ const ContactUs = () => {
     setAlert({ show: false, type: "", message: "" });
 
     try {
-      await axios.post("http://localhost:3000/send-email", { nombre, email, mensaje });
+      await axios.post("http://localhost:3000/contact/send-email", { nombre, email, mensaje });
 
       setAlert({
         show: true,
