@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export const generatePreferencesTest = async (userPrompt = '') => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `
 Eres un asistente que ayuda a crear tests de preferencias para una panadería.
@@ -67,7 +67,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato exacto (sin markdown, s
 
 export const getProductRecommendation = async (testData, products) => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const { userPrompt, questions, answers } = testData;
 

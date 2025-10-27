@@ -1,14 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const ProductCard = ({ product }) => {
-  if (!product) return null;
+  const [imageError, setImageError] = useState(false);
+
+  // Validaciones básicas
+  if (!product) {
+    console.error('ProductCard: No se recibió ningún producto');
+    return null;
+  }
+
+  // Validar que el producto tenga todas las propiedades necesarias
+  if (!product.nombre || typeof product.precio !== 'number') {
+    console.error('ProductCard: Producto con datos inválidos:', product);
+    return null;
+  }
 
   const {
-    name,
-    description,
-    price,
-    image = '/images/placeholder-product.jpg'
+    nombre: name,
+    descripcion: description = 'Sin descripción disponible',
+    precio: price,
+    imagen,
+    url_imagen
   } = product;
+
+  // Usar url_imagen si existe, sino usar imagen, sino placeholder
+  const image = imageError 
+    ? '/images/placeholder-product.jpg' 
+    : (url_imagen || imagen || '/images/placeholder-product.jpg');
+
+  // Validar que el precio sea positivo
+  if (price < 0) {
+    console.error('ProductCard: Precio inválido:', price);
+    return null;
+  }
+
+  const handleImageError = () => {
+    if (!imageError) {
+      setImageError(true);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md border-2 border-[#b17b6b] overflow-hidden hover:shadow-lg transition-shadow duration-300 font-['Montserrat']">
@@ -18,9 +48,7 @@ const ProductCard = ({ product }) => {
           src={image}
           alt={name}
           className="w-full h-48 object-cover"
-          onError={(e) => {
-            e.target.src = '/images/placeholder-product.jpg';
-          }}
+          onError={handleImageError}
         />
       </div>
 
@@ -56,4 +84,5 @@ const ProductCard = ({ product }) => {
   );
 };
 
-export default ProductCard;
+// Usar React.memo para evitar re-renders innecesarios
+export default React.memo(ProductCard);
