@@ -1,5 +1,6 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { removeFromCart, updateQuantity } from "../redux/slices/cartSlice";
 import {
   Box,
   Typography,
@@ -70,34 +71,17 @@ const QuantitySelector = ({ value, onChange }) => {
 
 const Cart = () => {
   const navigate = useNavigate();
-
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Milhojas de fresa artesanal",
-      price: 80.0,
-      quantity: 1,
-      image: imgMilhojasFresa,
-    },
-    {
-      id: 2,
-      name: "Milhojas de fresa artesanal",
-      price: 80.0,
-      quantity: 1,
-      image: imgMilhojasFresa,
-    },
-  ]);
+  const dispatch = useDispatch();
+  const { items: products, totalAmount } = useSelector((state) => state.cart);
 
   const handleQuantityChange = (id, newQuantity) => {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, quantity: newQuantity } : { ...p }
-      )
-    );
+    if (newQuantity > 0) {
+      dispatch(updateQuantity({ id, quantity: newQuantity }));
+    }
   };
 
   const handleRemoveProduct = (id) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    dispatch(removeFromCart(id));
   };
 
   const handleContinue = () => {
@@ -107,11 +91,6 @@ const Cart = () => {
   const handleAddProduct = () => {
     navigate("/carta");
   };
-
-  const cartTotal = products.reduce(
-    (acc, product) => acc + product.price * product.quantity,
-    0
-  );
 
   const isCartEmpty = products.length === 0;
 
@@ -384,7 +363,7 @@ const Cart = () => {
                       fontSize: "1.1rem",
                     }}
                   >
-                    S/{cartTotal.toFixed(2)}
+                    S/{totalAmount.toFixed(2)}
                   </Typography>
                 </Box>
               </Box>
