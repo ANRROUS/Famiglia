@@ -1,18 +1,36 @@
 import { Box } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import HeroSection from "../components/layout/Home/HeroSection";
 import MenuSection from "../components/layout/Home/MenuSection";
 import DeliverySection from "../components/layout/Home/DeliverySection";
 
 const Home = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   
   const onCartaTextClick = () => navigate("/carta");
-  const onDeliveryTextClick = () => navigate("/delivery");
+  const onDeliveryTextClick = () => {
+    // Si ya estamos en Home, scroll a la sección
+    const deliverySection = document.getElementById("delivery-section");
+    if (deliverySection) {
+      deliverySection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
   const onTestTextClick = () => navigate("/test");
   const onContactanosTextClick = () => navigate("/contact-us");
   const onGroupContainerClick = () => {};
   const onGroupContainerClick1 = () => {};
+
+  // Manejar el scroll a delivery cuando se llega desde otra página
+  useEffect(() => {
+    if (location.hash === "#delivery") {
+      const deliverySection = document.getElementById("delivery-section");
+      if (deliverySection) {
+        deliverySection.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [location]);
 
   return (
     <Box className="w-full min-h-screen bg-white overflow-hidden">
@@ -25,7 +43,7 @@ const Home = () => {
         onGroupContainerClick1={onGroupContainerClick1}
       />
       <MenuSection />
-      <DeliverySection />
+      <DeliverySection id="delivery-section" />
     </Box>
   );
 };

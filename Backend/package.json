@@ -11,6 +11,7 @@
   "author": "famiglia",
   "license": "ISC",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.17.1",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
@@ -21,6 +22,7 @@
     "morgan": "^1.10.1",
     "nodemailer": "^7.0.9",
     "nodemon": "^3.1.10",
-    "prisma": "^6.17.1"
+    "prisma": "^6.17.1",
+    "zod": "^4.1.12"
   }
 }

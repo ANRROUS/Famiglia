@@ -109,7 +109,8 @@ const preferencesSlice = createSlice({
     
     clearTest: (state) => {
       preferencesStorage.clearTest();
-      return initialState;
+      // Limpiar completamente el estado, incluida la recomendación
+      Object.assign(state, initialState);
     },
     
     completeTest: (state) => {
@@ -139,6 +140,7 @@ const preferencesSlice = createSlice({
         state.currentQuestion = 0;
         state.hasActiveTest = true;
         state.testCompleted = false;
+        state.recommendation = null; // Limpiar recomendación anterior
         
         // Guardar en localStorage
         preferencesStorage.saveTest({
@@ -166,6 +168,7 @@ const preferencesSlice = createSlice({
         state.isGettingRecommendation = false;
         state.isLoading = false;
         state.recommendation = action.payload;
+        console.log('✅ Recomendación recibida UNA VEZ:', action.payload);
       })
       .addCase(getRecommendation.rejected, (state, action) => {
         state.isGettingRecommendation = false;
