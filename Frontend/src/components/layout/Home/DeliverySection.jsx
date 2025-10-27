@@ -2,9 +2,10 @@ import { Box, Typography } from "@mui/material";
 import imgRappiLogo from "../../../assets/images/img_rappiLogo.png";
 import imgWhatsappLogo from "../../../assets/images/img_wspLogo.png";
 
-const DeliverySection = () => {
+const DeliverySection = ({ id }) => {
   return (
     <Box
+      id={id}
       className="w-full bg-[#FFFFFF] text-center font-[Montserrat] text-[#000] py-24 flex flex-col items-center justify-center"
       data-scroll-to="rESERVASDEPEDIDOS"
     >

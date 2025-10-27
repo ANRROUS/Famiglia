@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, IconButton, Badge } from "@mui/material";
@@ -30,14 +30,16 @@ const HeroSection = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 1137);
+  const [showHeroImages, setShowHeroImages] = useState(window.innerWidth >= 969);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+
   // Estado de autenticación desde Redux
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const { totalQuantity } = useSelector((state) => state.cart);
-  
+
   // Función de logout
   const handleLogout = async () => {
     try {
@@ -51,16 +53,52 @@ const HeroSection = ({
     }
   };
 
+  useEffect(() => {
+    const handleResize = () => {
+      const small = window.innerWidth < 1137;
+      const showImages = window.innerWidth >= 969;
+
+      setIsSmallScreen(small);
+      setShowHeroImages(showImages);
+
+      // Si el menú está abierto y se pasa a escritorio, se cierra
+      if (!small && menuOpen) setMenuOpen(false);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [menuOpen]);
+
+  // Bloquea el scroll al abrir el menú y lo restaura al cerrarlo
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+  }, [menuOpen]);
+
+  // Cierra el menú si cambia a pantalla grande
+  useEffect(() => {
+    const handleResize = () => {
+      const small = window.innerWidth < 1137;
+      setIsSmallScreen(small);
+      if (!small && menuOpen) setMenuOpen(false);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [menuOpen]);
+
   return (
     <Box className="relative w-full bg-white text-[#753b3b] font-[Montserrat] overflow-hidden">
       {/* Fondo degradado */}
       <img
         src={imgDegradado}
         alt="fondo"
-        className="absolute top-0 left-0 w-full h-[75%] object-cover z-0"
+        className="absolute -top-15 left-0 w-full h-[75%] object-cover z-0"
       />
 
-      {/* NAVBAR */}
       {/* NAVBAR */}
       <Box className="relative flex flex-row justify-between items-center px-6 sm:px-10 md:px-16 py-3 z-20 text-white">
         {/* Logo */}
@@ -71,7 +109,10 @@ const HeroSection = ({
         />
 
         {/* Menú en pantallas grandes */}
-        <Box className="hidden md:flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-10 text-base sm:text-lg md:text-base font-medium">
+        <Box
+          className={`${isSmallScreen ? "hidden" : "flex"
+            } flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-10 text-base sm:text-lg md:text-base font-medium`}
+        >
           <div className="cursor-pointer border-b-2 border-white pb-1" onClick={onHomeTextClick}>
             Home
           </div>
@@ -90,7 +131,7 @@ const HeroSection = ({
         </Box>
 
         {/* Botones en escritorio */}
-        <Box className="hidden md:flex gap-3 items-center">
+        <Box className={`${isSmallScreen ? "hidden" : "flex"} gap-3 items-center`}>
           {isAuthenticated ? (
             <>
               {/* Carrito */}
@@ -162,17 +203,33 @@ const HeroSection = ({
         </Box>
 
         {/* Botón menú hamburguesa (solo en móvil) */}
-        <Box className="flex md:hidden absolute right-6 top-4 z-30">
-          <IconButton
-            onClick={() => setMenuOpen(!menuOpen)}
-            sx={{
-              color: "white",
-              "&:hover": { color: "#f5f5f5" },
-            }}
+        {isSmallScreen && (
+          <Box
+            className="absolute right-8 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center"
           >
-            {menuOpen ? <CloseIcon /> : <MenuIcon />}
-          </IconButton>
-        </Box>
+            <IconButton
+              onClick={() => setMenuOpen(!menuOpen)}
+              sx={{
+                color: "white",
+                backgroundColor: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.25)",
+                width: 56,
+                height: 56,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  backgroundColor: "rgba(255,255,255,0.3)",
+                  transform: "scale(1.1)",
+                },
+              }}
+            >
+              {menuOpen ? (
+                <CloseIcon sx={{ fontSize: 34 }} />
+              ) : (
+                <MenuIcon sx={{ fontSize: 34 }} />
+              )}
+            </IconButton>
+          </Box>
+        )}
 
         {/* Menú móvil desplegable */}
         {menuOpen && (
@@ -255,16 +312,16 @@ const HeroSection = ({
       </Box>
 
       {/* Modales de Login y Registro */}
-      <RegisterForm 
-        isOpen={showRegister} 
+      <RegisterForm
+        isOpen={showRegister}
         onClose={() => setShowRegister(false)}
         onSwitchToLogin={() => {
           setShowRegister(false);
           setShowLogin(true);
         }}
       />
-      <LoginForm 
-        isOpen={showLogin} 
+      <LoginForm
+        isOpen={showLogin}
         onClose={() => setShowLogin(false)}
         onSwitchToRegister={() => {
           setShowLogin(false);
@@ -276,7 +333,13 @@ const HeroSection = ({
       {/* HERO SECTION */}
       <Box className="relative flex flex-col md:flex-row justify-between items-center px-6 sm:px-10 md:px-16 pt-2 md:pt-0 pb-8 md:pb-12 z-10">
         {/* Texto principal */}
-        <Box className="relative z-10 text-center md:text-left md:w-1/2 flex flex-col gap-6">
+        <Box
+          className={`relative z-10 flex flex-col gap-6 transition-all duration-500
+      ${showHeroImages
+              ? "md:w-1/2 text-left items-start"
+              : "w-full text-center items-center"
+            }`}
+        >
           <Typography
             variant="h2"
             sx={{
@@ -284,11 +347,7 @@ const HeroSection = ({
               fontWeight: 400,
               color: "#753b3b",
               lineHeight: 1.1,
-              fontSize: {
-                xs: "2rem",
-                sm: "2.8rem",
-                md: "3.8rem",
-              },
+              fontSize: { xs: "2rem", sm: "2.8rem", md: "3.8rem" },
             }}
           >
             Panadería,{" "}
@@ -296,11 +355,19 @@ const HeroSection = ({
             <span style={{ color: "#da3644" }}>snack bar</span>
           </Typography>
 
-          <button className="bg-[#8f3c3c] text-white text-[1.3rem] sm:text-[1.7rem] md:text-[1.9rem] font-['Lilita_One'] rounded-xl px-10 sm:px-14 py-4 shadow-lg hover:bg-[#702828] transition self-center">
+          <button
+            onClick={() => {
+              navigate("/carta");
+            }}
+            className="bg-[#8f3c3c] text-white text-[1.3rem] sm:text-[1.7rem] md:text-[1.9rem] font-['Lilita_One'] rounded-xl px-10 sm:px-14 py-4 shadow-lg hover:bg-[#702828] transition"
+          >
             RESERVA TU PEDIDO
           </button>
 
-          <Box className="flex items-center gap-3 justify-center mt-4 text-[#000]">
+          <Box
+            className={`flex items-center gap-3 mt-4 text-[#000] transition-all duration-500
+        ${showHeroImages ? "justify-start" : "justify-center"}`}
+          >
             <img
               src={imgPointMap}
               alt="Ubicación"
@@ -310,7 +377,7 @@ const HeroSection = ({
               variant="body1"
               sx={{
                 fontFamily: "'Montserrat', sans-serif",
-                fontWeight: 200, // Extralight
+                fontWeight: 200,
                 fontSize: { xs: "0.9rem", sm: "1rem", md: "1.1rem" },
                 color: "#000",
               }}
@@ -320,24 +387,26 @@ const HeroSection = ({
           </Box>
         </Box>
 
-        {/* Imágenes del hero */}
-        <Box className="hidden md:flex relative -mt-8 md:-mt-12 w-full md:w-1/2 justify-center items-center -mr-6 sm:-mr-10 md:-mr-16 lg:-mr-20">
-          <img
-            src={imgMilhojasFresa}
-            alt="Milhojas Fresa"
-            className="relative z-10 w-80 sm:w-[28rem] md:w-[40rem] h-auto object-contain drop-shadow-2xl"
-          />
-          <img
-            src={imgAlfajor}
-            alt="Alfajor"
-            className="absolute bottom-0 -right-5 w-28 sm:w-36 md:w-44 object-contain"
-          />
-          <img
-            src={imgEmpanadaMixta}
-            alt="Empanada"
-            className="absolute top-0 left-[-18%] w-24 sm:w-32 md:w-60 object-contain"
-          />
-        </Box>
+        {/* Imágenes (solo si >= 969px) */}
+        {showHeroImages && (
+          <Box className="relative -mt-8 md:-mt-12 w-full md:w-1/2 justify-center items-center -mr-6 sm:-mr-10 md:-mr-16 lg:-mr-20 hidden md:flex">
+            <img
+              src={imgMilhojasFresa}
+              alt="Milhojas Fresa"
+              className="relative z-10 w-80 sm:w-[28rem] md:w-[40rem] h-auto object-contain drop-shadow-2xl"
+            />
+            <img
+              src={imgAlfajor}
+              alt="Alfajor"
+              className="absolute bottom-0 -right-5 w-28 sm:w-36 md:w-44 object-contain"
+            />
+            <img
+              src={imgEmpanadaMixta}
+              alt="Empanada"
+              className="absolute top-0 left-[-18%] w-24 sm:w-32 md:w-60 object-contain"
+            />
+          </Box>
+        )}
       </Box>
     </Box>
   );

@@ -1,72 +1,55 @@
 import React, { useEffect } from 'react';
+import { IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
+// Modal genérico reutilizable
 const Modal = ({ isOpen, onClose, title, children }) => {
   // Cerrar modal con la tecla ESC
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+      if (e.key === 'Escape' && isOpen) onClose();
     };
-
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
-  // Prevenir scroll del body cuando el modal está abierto
+  // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
+    document.body.style.overflow = isOpen ? 'hidden' : 'auto';
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = 'auto';
     };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+      {/* Fondo con desenfoque */}
       <div
-        className="fixed inset-0 bg-white bg-opacity-30 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 backdrop-blur-[6px] transition-all duration-300"
         onClick={onClose}
         aria-hidden="true"
       />
-
-      {/* Modal */}
+      {/* Contenedor del modal */}
       <div className="relative bg-white rounded-lg shadow-xl border-2 border-[#b17b6b] max-w-md w-full mx-4 p-6 z-10 max-h-[90vh] overflow-y-auto font-['Montserrat']">
-        {/* Header */}
-        {title && (
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-[#6b2c2c]">{title}</h2>
-          </div>
-        )}
-
-        {/* Close button */}
-        <button
+        <IconButton
           onClick={onClose}
-          className="absolute top-4 right-4 text-[#b17b6b] hover:text-[#6b2c2c] transition-colors"
+          sx={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            color: '#b17b6b',
+            '&:hover': { color: '#6b2c2c' },
+          }}
           aria-label="Cerrar"
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          <CloseIcon />
+        </IconButton>
 
-        {/* Content */}
-        <div>{children}</div>
+        {title && <h2 className="text-2xl font-bold text-[#6b2c2c] mb-4">{title}</h2>}
+
+        <div className="text-sm text-[#4a2b2b] leading-relaxed">{children}</div>
       </div>
     </div>
   );

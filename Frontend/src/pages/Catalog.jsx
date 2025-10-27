@@ -88,7 +88,7 @@ export default function Catalog() {
           <Grid container spacing={4}>
             {filteredProducts.map((producto) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={producto.id_producto}>
-                <ProductCard producto={producto} />
+                <ProductCard product={producto} />
               </Grid>
             ))}
           </Grid>

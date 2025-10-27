@@ -5,6 +5,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import imgLogoFamiglia from "../../assets/images/img_logoFamigliawithoutBorders.png";
 import { loginStart, loginSuccess, loginFailure, clearError } from "../../redux/slices/authSlice";
 import { authAPI } from "../../services/api";
+import { useLoginModal } from "../../context/LoginModalContext";
+import Modal from "../common/Modal";
 
 export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
   const dispatch = useDispatch();
@@ -23,6 +25,8 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
     });
   };
 
+  const { redirectPath } = useLoginModal();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     dispatch(loginStart());
@@ -35,8 +39,12 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
       setFormData({ correo: "", contraseña: "" });
       onClose();
       
-      // Redirigir al home o perfil
-      navigate("/");
+      // Redirigir a la ruta guardada o al home
+      if (redirectPath) {
+        navigate(redirectPath);
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Error al iniciar sesión";
       dispatch(loginFailure(errorMessage));
@@ -49,22 +57,9 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
     onClose();
   };
 
-  if (!isOpen) return null; 
-
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Fondo difuminado */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-
-      {/* Panel izquierdo */}
-      <div className="relative z-10 bg-white w-[58%] h-full flex flex-col items-center justify-center px-10 py-6 shadow-2xl">
-        {/* Botón cerrar */}
-        <button
-          onClick={handleClose}
-          className="absolute top-5 right-5 text-[#8B3A3A] hover:scale-110 transition-transform"
-        >
-          <CloseIcon sx={{ fontSize: 30 }} />
-        </button>
+    <Modal isOpen={isOpen} onClose={handleClose} title="">
+      <div className="flex flex-col items-center justify-center px-6 py-4">
 
         {/* Contenedor centrado */}
         <div className="w-full max-w-md flex flex-col items-center text-center justify-center -mt-16">
@@ -145,6 +140,6 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
           </p>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
