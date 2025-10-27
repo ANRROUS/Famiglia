@@ -6,6 +6,7 @@ import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 import ContactUs from "./pages/ContactUs";
 import Cart from "./pages/Cart";
+import PaymentForm from "./components/forms/PaymentForm";
 import Profile from "./pages/Profile";
 import Catalog from "./pages/Catalog";
 import PreferencesTest from './pages/PreferencesTest';
@@ -58,10 +59,18 @@ function Layout() {
           <Route 
             path="/cart" 
             element={
-              <ProtectedRoute>
+              
                 <Cart />
-              </ProtectedRoute>
+              
             } 
+          />
+          <Route
+            path="/payment"
+            element={
+              
+                <PaymentForm />
+              
+            }
           />
           <Route 
             path="/profile" 
