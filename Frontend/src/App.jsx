@@ -19,7 +19,7 @@ import PrivacidadPage from './pages/PrivacidadPage';
 import QuienesSomosPage from './pages/QuienesSomosPage';
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import Complaints from "./pages/Complaints";
-import { setUser } from "./redux/slices/authSlice";
+import { setUser, authCheckComplete } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
 
 // 🔹 Controla la visibilidad del Header
@@ -40,8 +40,11 @@ function Layout() {
           dispatch(setUser(response.data.usuario));
         }
       } catch (error) {
-        // Usuario no autenticado, no hacer nada
+        // Usuario no autenticado, marcar verificación como completa
         console.log("Usuario no autenticado");
+        if (isMounted) {
+          dispatch(authCheckComplete());
+        }
       }
     };
 
