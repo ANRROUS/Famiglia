@@ -11,6 +11,7 @@ import preferencesRoutes from './routes/preferences/preferencesRoutes.js';
 import pedidoRoutes from './routes/pedido/pedidoRoutes.js';
 import pagoRoutes from './routes/pedido/pagoRoutes.js';
 import carritoRoutes from './routes/pedido/carritoRoutes.js';
+import voiceRoutes from './routes/voice/voiceRoutes.js';
 
 const app = express();
 app.use(morgan('dev'));
@@ -29,6 +30,7 @@ app.use('/api/preferences', preferencesRoutes);
 app.use('/api/pedido/carrito', carritoRoutes);
 app.use('/api/pedido/pago', pagoRoutes);
 app.use('/pedidos', pedidoRoutes);
+app.use('/api/voice', voiceRoutes);
 
 
 export default app;
