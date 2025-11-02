@@ -778,5 +778,487 @@ const readActions = {
   }
 };
 
+// ============================================
+// LIST NAVIGATOR
+// ============================================
+
+class ListNavigator {
+  /**
+   * Constructor
+   * @param {String} selector - Selector CSS para los elementos de la lista
+   */
+  constructor(selector) {
+    this.selector = selector;
+    this.currentIndex = -1;
+    this.elements = [];
+    this.updateElements();
+  }
+
+  /**
+   * Actualizar lista de elementos
+   */
+  updateElements() {
+    this.elements = Array.from(document.querySelectorAll(this.selector));
+    console.log('[List Navigator] Updated elements:', this.elements.length, 'items');
+  }
+
+  /**
+   * Ir al siguiente elemento
+   * @returns {HTMLElement|null} - Elemento actual o null
+   */
+  next() {
+    this.updateElements();
+
+    if (this.elements.length === 0) {
+      console.warn('[List Navigator] No elements found');
+      return null;
+    }
+
+    this.currentIndex = (this.currentIndex + 1) % this.elements.length;
+    const element = this.elements[this.currentIndex];
+
+    console.log('[List Navigator] Next - Index:', this.currentIndex, '/', this.elements.length);
+    this.highlightElement(element);
+
+    return element;
+  }
+
+  /**
+   * Ir al elemento anterior
+   * @returns {HTMLElement|null} - Elemento actual o null
+   */
+  previous() {
+    this.updateElements();
+
+    if (this.elements.length === 0) {
+      console.warn('[List Navigator] No elements found');
+      return null;
+    }
+
+    this.currentIndex = this.currentIndex <= 0 ? this.elements.length - 1 : this.currentIndex - 1;
+    const element = this.elements[this.currentIndex];
+
+    console.log('[List Navigator] Previous - Index:', this.currentIndex, '/', this.elements.length);
+    this.highlightElement(element);
+
+    return element;
+  }
+
+  /**
+   * Ir al primer elemento
+   * @returns {HTMLElement|null} - Elemento actual o null
+   */
+  first() {
+    this.updateElements();
+
+    if (this.elements.length === 0) {
+      console.warn('[List Navigator] No elements found');
+      return null;
+    }
+
+    this.currentIndex = 0;
+    const element = this.elements[this.currentIndex];
+
+    console.log('[List Navigator] First element');
+    this.highlightElement(element);
+
+    return element;
+  }
+
+  /**
+   * Ir al último elemento
+   * @returns {HTMLElement|null} - Elemento actual o null
+   */
+  last() {
+    this.updateElements();
+
+    if (this.elements.length === 0) {
+      console.warn('[List Navigator] No elements found');
+      return null;
+    }
+
+    this.currentIndex = this.elements.length - 1;
+    const element = this.elements[this.currentIndex];
+
+    console.log('[List Navigator] Last element');
+    this.highlightElement(element);
+
+    return element;
+  }
+
+  /**
+   * Hacer click en el elemento actual
+   * @returns {Boolean} - True si se hizo click exitosamente
+   */
+  selectCurrent() {
+    if (this.currentIndex < 0 || this.currentIndex >= this.elements.length) {
+      console.warn('[List Navigator] No current element selected');
+      return false;
+    }
+
+    const element = this.elements[this.currentIndex];
+    console.log('[List Navigator] Selecting current element:', element);
+
+    clickActions.simulateReactClick(element);
+    return true;
+  }
+
+  /**
+   * Obtener información del elemento actual
+   * @returns {Object|null} - Info del elemento o null
+   */
+  getCurrentInfo() {
+    if (this.currentIndex < 0 || this.currentIndex >= this.elements.length) {
+      return null;
+    }
+
+    const element = this.elements[this.currentIndex];
+
+    return {
+      index: this.currentIndex,
+      total: this.elements.length,
+      element: element,
+      text: element.textContent.trim(),
+      tag: element.tagName.toLowerCase()
+    };
+  }
+
+  /**
+   * Ir a índice específico
+   * @param {Number} index - Índice (0-based)
+   * @returns {HTMLElement|null} - Elemento o null
+   */
+  goToIndex(index) {
+    this.updateElements();
+
+    if (index < 0 || index >= this.elements.length) {
+      console.warn('[List Navigator] Index out of bounds:', index);
+      return null;
+    }
+
+    this.currentIndex = index;
+    const element = this.elements[this.currentIndex];
+
+    console.log('[List Navigator] Go to index:', index);
+    this.highlightElement(element);
+
+    return element;
+  }
+
+  /**
+   * Resaltar elemento visualmente
+   * @param {HTMLElement} element - Elemento a resaltar
+   */
+  highlightElement(element) {
+    if (!element) return;
+
+    // Remover highlights previos
+    document.querySelectorAll('.voice-highlight').forEach(el => {
+      el.classList.remove('voice-highlight');
+    });
+
+    // Agregar highlight al elemento actual
+    element.classList.add('voice-highlight');
+
+    // Scroll al elemento
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+
+    // Remover highlight después de 3 segundos
+    setTimeout(() => {
+      element.classList.remove('voice-highlight');
+    }, 3000);
+
+    console.log('[List Navigator] Element highlighted:', element);
+  }
+
+  /**
+   * Resetear navegador
+   */
+  reset() {
+    this.currentIndex = -1;
+    console.log('[List Navigator] Reset');
+  }
+}
+
+// ============================================
+// MODAL ACTIONS
+// ============================================
+
+const modalActions = {
+  /**
+   * Abrir modal por ID o selector
+   * @param {String} modalId - ID o selector del modal
+   * @returns {Boolean} - True si se abrió exitosamente
+   */
+  openModal(modalId) {
+    if (!modalId || typeof modalId !== 'string') {
+      console.error('[Modal Actions] Invalid modal ID provided');
+      return false;
+    }
+
+    console.log('[Modal Actions] Opening modal:', modalId);
+
+    // Buscar modal por ID
+    let modal = document.getElementById(modalId);
+
+    // Buscar por selector
+    if (!modal) {
+      modal = document.querySelector(modalId);
+    }
+
+    // Buscar por data attribute
+    if (!modal) {
+      modal = document.querySelector(`[data-modal="${modalId}"]`);
+    }
+
+    if (modal) {
+      // Métodos comunes para abrir modales
+
+      // 1. Remover clase hidden/d-none
+      modal.classList.remove('hidden', 'd-none');
+
+      // 2. Agregar clase show/open
+      modal.classList.add('show', 'open');
+
+      // 3. Establecer display block
+      if (modal.style.display === 'none') {
+        modal.style.display = 'block';
+      }
+
+      // 4. Buscar botón de abrir dentro del documento
+      const openButton = document.querySelector(`[data-modal-open="${modalId}"], [data-target="${modalId}"]`);
+      if (openButton) {
+        openButton.click();
+      }
+
+      console.log('[Modal Actions] Modal opened:', modal);
+      return true;
+    }
+
+    console.warn('[Modal Actions] Modal not found:', modalId);
+    return false;
+  },
+
+  /**
+   * Cerrar modal visible
+   * @returns {Boolean} - True si se cerró exitosamente
+   */
+  closeModal() {
+    console.log('[Modal Actions] Closing visible modal');
+
+    // Buscar modales visibles
+    const visibleModals = Array.from(document.querySelectorAll('[role="dialog"], .modal, [data-modal]'))
+      .filter(modal => {
+        const style = window.getComputedStyle(modal);
+        return style.display !== 'none' &&
+               !modal.classList.contains('hidden') &&
+               !modal.classList.contains('d-none');
+      });
+
+    if (visibleModals.length === 0) {
+      console.warn('[Modal Actions] No visible modal found');
+      return false;
+    }
+
+    // Cerrar el último modal visible (el de arriba)
+    const modal = visibleModals[visibleModals.length - 1];
+
+    // Métodos comunes para cerrar modales
+
+    // 1. Buscar botón de cerrar dentro del modal
+    const closeButton = modal.querySelector('[data-modal-close], .close, .modal-close, button[aria-label*="close" i]');
+    if (closeButton) {
+      closeButton.click();
+      console.log('[Modal Actions] Clicked close button');
+      return true;
+    }
+
+    // 2. Remover clases show/open
+    modal.classList.remove('show', 'open');
+
+    // 3. Agregar clases hidden/d-none
+    modal.classList.add('hidden');
+
+    // 4. Establecer display none
+    modal.style.display = 'none';
+
+    console.log('[Modal Actions] Modal closed:', modal);
+    return true;
+  },
+
+  /**
+   * Cerrar modal con tecla Escape
+   * @returns {Boolean} - True si se simuló exitosamente
+   */
+  closeModalByEscape() {
+    console.log('[Modal Actions] Simulating Escape key');
+
+    const escapeEvent = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      keyCode: 27,
+      code: 'Escape',
+      which: 27,
+      bubbles: true,
+      cancelable: true
+    });
+
+    document.dispatchEvent(escapeEvent);
+
+    // Dispatch en el body también
+    document.body.dispatchEvent(escapeEvent);
+
+    return true;
+  }
+};
+
+// ============================================
+// FOCUS ACTIONS
+// ============================================
+
+const focusActions = {
+  /**
+   * Obtener elementos focusables
+   * @returns {Array<HTMLElement>} - Lista de elementos focusables
+   */
+  getFocusableElements() {
+    const selector = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const elements = Array.from(document.querySelectorAll(selector))
+      .filter(el => {
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      });
+
+    console.log('[Focus Actions] Found', elements.length, 'focusable elements');
+    return elements;
+  },
+
+  /**
+   * Enfocar siguiente elemento interactivo
+   * @returns {Boolean} - True si se enfocó exitosamente
+   */
+  focusNext() {
+    const focusableElements = this.getFocusableElements();
+
+    if (focusableElements.length === 0) {
+      console.warn('[Focus Actions] No focusable elements found');
+      return false;
+    }
+
+    const currentIndex = focusableElements.findIndex(el => el === document.activeElement);
+    const nextIndex = (currentIndex + 1) % focusableElements.length;
+    const nextElement = focusableElements[nextIndex];
+
+    nextElement.focus();
+    console.log('[Focus Actions] Focused next element:', nextElement);
+
+    return true;
+  },
+
+  /**
+   * Enfocar elemento anterior interactivo
+   * @returns {Boolean} - True si se enfocó exitosamente
+   */
+  focusPrevious() {
+    const focusableElements = this.getFocusableElements();
+
+    if (focusableElements.length === 0) {
+      console.warn('[Focus Actions] No focusable elements found');
+      return false;
+    }
+
+    const currentIndex = focusableElements.findIndex(el => el === document.activeElement);
+    const previousIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
+    const previousElement = focusableElements[previousIndex];
+
+    previousElement.focus();
+    console.log('[Focus Actions] Focused previous element:', previousElement);
+
+    return true;
+  },
+
+  /**
+   * Enfocar elemento específico
+   * @param {String} selector - Selector CSS del elemento
+   * @returns {Boolean} - True si se enfocó exitosamente
+   */
+  focusElement(selector) {
+    if (!selector || typeof selector !== 'string') {
+      console.error('[Focus Actions] Invalid selector provided');
+      return false;
+    }
+
+    console.log('[Focus Actions] Focusing element:', selector);
+
+    const element = document.querySelector(selector);
+
+    if (!element) {
+      console.warn('[Focus Actions] Element not found:', selector);
+      return false;
+    }
+
+    element.focus();
+    console.log('[Focus Actions] Element focused:', element);
+
+    return true;
+  },
+
+  /**
+   * Guardar foco actual
+   */
+  saveFocus() {
+    this.savedFocusElement = document.activeElement;
+    console.log('[Focus Actions] Focus saved:', this.savedFocusElement);
+  },
+
+  /**
+   * Restaurar foco guardado
+   * @returns {Boolean} - True si se restauró exitosamente
+   */
+  restoreFocus() {
+    if (this.savedFocusElement) {
+      this.savedFocusElement.focus();
+      console.log('[Focus Actions] Focus restored:', this.savedFocusElement);
+      return true;
+    }
+
+    console.warn('[Focus Actions] No saved focus to restore');
+    return false;
+  }
+};
+
+// Agregar estilos CSS para highlight
+if (typeof document !== 'undefined') {
+  const styleId = 'voice-highlight-styles';
+
+  // Solo agregar si no existe
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .voice-highlight {
+        outline: 3px solid #10b981 !important;
+        outline-offset: 2px !important;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2) !important;
+        transition: outline 0.3s ease, box-shadow 0.3s ease !important;
+        animation: voice-pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes voice-pulse {
+        0%, 100% {
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    console.log('[Voice Actions] Highlight styles added');
+  }
+}
+
 // Exportar acciones
-export { clickActions, scrollActions, formActions, readActions };
+export { clickActions, scrollActions, formActions, readActions, ListNavigator, modalActions, focusActions };
