@@ -7,12 +7,14 @@ import {
     getPedidoByUsuario, 
     getPedidos, 
     updateCantidadFromDetallePedido,
-    getHistorialPedidos
+    getHistorialPedidos,
+    getPedidosAdmin
 } from "../../controllers/pedido/pedido.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const pedidoRoutes = express.Router();
 
+pedidoRoutes.get("/admin", verifyToken, getPedidosAdmin);
 pedidoRoutes.get("/", getPedidos);
 pedidoRoutes.get("/:id_pedido", getPedidoById);
 pedidoRoutes.get("/usuario/:id_usuario", getPedidoByUsuario);
