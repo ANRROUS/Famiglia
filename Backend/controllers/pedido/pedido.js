@@ -307,7 +307,7 @@ export const getHistorialPedidos = async (req, res) => {
 // Obtener todos los pedidos (solo para admin)
 export const getPedidosAdmin = async (req, res) => {
   try {
-    // Verificar que el usuario autenticado sea admin
+
     if (req.user?.rol !== "admin") {
       return res.status(403).json({ message: "No autorizado" });
     }
@@ -315,35 +315,20 @@ export const getPedidosAdmin = async (req, res) => {
     const pedidos = await prisma.pedido.findMany({
       include: {
         usuario: {
-          select: {
-            id_usuario: true,
-            nombre: true,
-            correo: true,
-          },
+          select: { id_usuario: true, nombre: true, correo: true },
         },
         pago: {
-          select: {
-            id_pago: true,
-            total: true,
-            fecha: true,
-            medio: true,
-          },
+          select: { id_pago: true, total: true, fecha: true, medio: true },
         },
         detalle_pedido: {
           include: {
             producto: {
-              select: {
-                id_producto: true,
-                nombre: true,
-                precio: true,
-              },
+              select: { id_producto: true, nombre: true, precio: true },
             },
           },
         },
       },
-      orderBy: {
-        fecha: "desc",
-      },
+      orderBy: { fecha: "desc" },
     });
 
     res.json(pedidos);
@@ -352,5 +337,6 @@ export const getPedidosAdmin = async (req, res) => {
     res.status(500).json({ message: "Error al obtener pedidos de admin" });
   }
 };
+
 
 

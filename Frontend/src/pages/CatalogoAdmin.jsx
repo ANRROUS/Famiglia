@@ -219,7 +219,7 @@ export default function CatalogoAdmin() {
                     precio: p.price,
                     url_imagen: p.image,
                     totalVendido: p.totalVendido || 0,
-                  }}
+                  }} showAddButton={false}
 
                 />
               ))}

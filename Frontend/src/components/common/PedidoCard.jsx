@@ -14,18 +14,22 @@ export default function PedidoCard({ pedido, onSelect }) {
 
   return (
     <div
-      className="bg-white rounded-2xl shadow-md p-4 mb-4 cursor-pointer hover:shadow-lg transition"
+      className="bg-white rounded-2xl shadow-md p-4 mb-4 cursor-pointer hover:shadow-lg transition-all"
       onClick={() => onSelect?.(pedido)}
     >
-      <div className="flex justify-between items-center mb-3">
+      {/* Cabecera */}
+      <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
         <div>
           <h3 className="text-lg font-semibold text-gray-800">
             Pedido #{pedido.id_pedido}
           </h3>
+          <p className="text-sm text-gray-600">
+            Usuario: {pedido.usuario?.nombre || "Sin usuario"}
+          </p>
           <p className="text-sm text-gray-500">{fecha}</p>
         </div>
         <span
-          className={`px-3 py-1 text-sm rounded-full ${
+          className={`px-3 py-1 text-sm rounded-full text-center ${
             pedido.estado === "Entregado"
               ? "bg-green-100 text-green-700"
               : pedido.estado === "Reservado"
@@ -37,33 +41,48 @@ export default function PedidoCard({ pedido, onSelect }) {
         </span>
       </div>
 
-      <div className="border-t border-gray-200 pt-3">
-        {pedido.detalle_pedido?.slice(0, 2).map((d) => (
-          <div key={d.id_detalle_pedido} className="flex items-center gap-3 mb-2">
-            <img
-              src={d.producto?.url_imagen || "/images/placeholder-product.jpg"}
-              alt={d.producto?.nombre}
-              className="w-14 h-14 object-cover rounded-md"
-            />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-800">{d.producto?.nombre}</p>
-              <p className="text-xs text-gray-500">
-                Cantidad: {d.cantidad} × S/.{d.producto?.precio ?? 0}
-              </p>
-            </div>
-          </div>
-        ))}
-        {pedido.detalle_pedido?.length > 2 && (
-          <p className="text-xs text-gray-500 italic">
-            + {pedido.detalle_pedido.length - 2} productos más...
+      {/* Tabla de productos */}
+      <div className="overflow-x-auto border-t border-gray-200 pt-2">
+        <table className="w-full text-sm text-gray-700">
+          <thead>
+            <tr className="text-left text-gray-500 border-b border-gray-200">
+              <th className="py-1">Producto</th>
+              <th className="py-1 text-center">Cant.</th>
+              <th className="py-1 text-center">Precio</th>
+              <th className="py-1 text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pedido.detalle_pedido?.slice(0, 3).map((d) => (
+              <tr key={d.id_detalle_pedido} className="border-b last:border-0">
+                <td className="py-1 pr-2 break-words max-w-[150px]">
+                  {d.producto?.nombre}
+                </td>
+                <td className="py-1 text-center">{d.cantidad}</td>
+                <td className="py-1 text-center">
+                  S/.{d.producto?.precio?.toFixed(2) ?? "0.00"}
+                </td>
+                <td className="py-1 text-right">
+                  S/.{(d.cantidad * (d.producto?.precio ?? 0)).toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {pedido.detalle_pedido?.length > 3 && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            + {pedido.detalle_pedido.length - 3} productos más...
           </p>
         )}
       </div>
 
-      <div className="flex justify-between items-center mt-3">
-        <span className="text-gray-700 font-semibold">Total: S/.{total?.toFixed(2)}</span>
+      {/* Total y pago */}
+      <div className="flex justify-between items-center mt-3 flex-wrap gap-2">
+        <span className="font-semibold text-gray-800">
+          Total: S/.{total?.toFixed(2)}
+        </span>
         {pedido.pago?.[0] && (
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-600">
             Pago: {pedido.pago[0].medio || "Desconocido"}
           </span>
         )}

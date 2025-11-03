@@ -50,30 +50,44 @@ export default function PedidosAdmin() {
     fetchPedidos();
   }, []);
 
-  // 🔍 Filtro combinado
-  const filteredPedidos = useMemo(() => {
-    return pedidos.filter((p) => {
-      if (!p) return false;
+// 🔍 Filtro combinado
+const filteredPedidos = useMemo(() => {
+  return pedidos.filter((p) => {
+    if (!p) return false;
 
-      // Filtro por estado
-      if (selectedEstado !== 'todos' && p.estado?.toLowerCase() !== selectedEstado) {
-        return false;
+    // Filtro por estado
+    if (selectedEstado !== 'todos' && p.estado?.toLowerCase() !== selectedEstado) {
+      return false;
+    }
+
+    // Filtro de búsqueda
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      const fechaStr = p.fecha
+        ? new Date(p.fecha).toLocaleDateString('es-PE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          })
+        : '';
+
+      // 🟢 Si empieza con '#', buscar por código de pedido
+      if (q.startsWith('#')) {
+        const idBuscado = q.slice(1).trim(); // quita el '#'
+        return String(p.id_pedido) === idBuscado; // búsqueda exacta por ID
       }
 
-      // Filtro de búsqueda
-      if (searchTerm.trim()) {
-        const q = searchTerm.trim().toLowerCase();
-        const fechaStr = p.fecha ? new Date(p.fecha).toLocaleDateString('es-PE') : '';
-        return (
-          String(p.id_pedido).includes(q) ||
-          p.usuario?.nombre?.toLowerCase().includes(q) ||
-          fechaStr.toLowerCase().includes(q)
-        );
-      }
+      // 🔹 Si no hay '#', buscar por nombre de usuario o fecha
+      return (
+        p.usuario?.nombre?.toLowerCase().includes(q) ||
+        fechaStr.toLowerCase().includes(q)
+      );
+    }
 
-      return true;
-    });
-  }, [pedidos, selectedEstado, searchTerm]);
+    return true; // sin búsqueda = mostrar todo
+  });
+}, [pedidos, selectedEstado, searchTerm]);
+
 
   if (loading) {
     return (
@@ -118,8 +132,8 @@ export default function PedidosAdmin() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {[
               { label: 'Todos', value: 'todos' },
-              { label: 'Reservados', value: 'reservado' },
-              { label: 'Entregados', value: 'entregado' },
+              { label: 'Reservados', value: 'carrito' },
+              { label: 'Entregados', value: 'confirmado' },
             ].map((f) => (
               <Button
                 key={f.value}

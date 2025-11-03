@@ -233,7 +233,7 @@ export default function Catalog() {
                   precio: p.price,
                   url_imagen: p.image,
                   totalVendido: p.totalVendido || 0
-                }}
+                }} 
                 onAddToCart={(product) => {
                   dispatch(addToCartAsync(product))
                     .unwrap()
@@ -250,6 +250,7 @@ export default function Catalog() {
                       });
                     });
                 }}
+                showAddButton={true}
               />
             ))}
           </div>
