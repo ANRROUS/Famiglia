@@ -7,7 +7,7 @@ import LoginForm from "./components/forms/LoginForm";
 import Home from "./pages/Home";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
-import HeaderAdmin from "./components/layout/HeaderAdmin"; // <-- importamos el header admin
+import HeaderAdmin from "./components/layout/HeaderAdmin";
 import ContactUs from "./pages/ContactUs";
 import Cart from "./pages/Cart";
 import Payment from "./pages/Payment";
@@ -20,7 +20,7 @@ import PrivacidadPage from './pages/PrivacidadPage';
 import QuienesSomosPage from './pages/QuienesSomosPage';
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import Complaints from "./pages/Complaints";
-import { setUser } from "./redux/slices/authSlice";
+import { setUser, authCheckComplete } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
 
 // Admin pages
@@ -32,12 +32,12 @@ function Layout() {
   const dispatch = useDispatch();
   const { isLoginModalOpen, hideLoginModal } = useLoginModal();
 
-  // 🔹 Determinar si es una ruta admin
+  // Determinar si es una ruta admin
   const isAdminRoute =
     location.pathname.startsWith("/pedidos-admin") ||
     location.pathname.startsWith("/catalogo-admin");
 
-  // 🔹 Ocultar header en home
+  // Ocultar header en home
   const hideHeader = location.pathname === "/" || location.pathname === "/home";
 
   // Verificar autenticación al cargar la app
@@ -49,6 +49,9 @@ function Layout() {
         if (isMounted) dispatch(setUser(response.data.usuario));
       } catch {
         console.log("Usuario no autenticado");
+        if (isMounted) {
+          dispatch(authCheckComplete());
+        }
       }
     };
     checkAuth();
