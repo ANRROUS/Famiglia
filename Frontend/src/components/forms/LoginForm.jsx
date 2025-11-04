@@ -33,18 +33,34 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
 
     try {
       const response = await authAPI.login(formData);
-      dispatch(loginSuccess(response.data));
+  dispatch(loginSuccess(response.data));
+  const userRole = response.data?.usuario?.rol || "C";
+  const isAdmin = userRole === "A";
+  const adminDefaultPath = "/pedidos-admin";
+  const clientDefaultPath = "/carta";
+  const isAdminRedirectPath = redirectPath?.startsWith("/pedidos-admin") || redirectPath?.startsWith("/catalogo-admin");
       
       // Limpiar formulario y cerrar modal
       setFormData({ correo: "", contraseña: "" });
       onClose();
       
-      // Redirigir a la ruta guardada o al home
-      if (redirectPath) {
-        navigate(redirectPath);
+      let targetPath;
+
+      if (isAdmin) {
+        if (redirectPath && isAdminRedirectPath) {
+          targetPath = redirectPath;
+        } else {
+          targetPath = adminDefaultPath;
+        }
       } else {
-        navigate("/");
+        if (redirectPath && !isAdminRedirectPath) {
+          targetPath = redirectPath;
+        } else {
+          targetPath = clientDefaultPath;
+        }
       }
+
+      navigate(targetPath);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Error al iniciar sesión";
       dispatch(loginFailure(errorMessage));

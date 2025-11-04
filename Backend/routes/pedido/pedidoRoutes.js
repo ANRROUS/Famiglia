@@ -8,7 +8,8 @@ import {
   getPedidos,
   updateCantidadFromDetallePedido,
   getHistorialPedidos,
-  getPedidosAdmin
+  getPedidosAdmin,
+  updatePedidoEstadoAdmin
 } from "../../controllers/pedido/pedido.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 
@@ -16,6 +17,7 @@ const pedidoRoutes = express.Router();
 
 // Solo admin puede acceder a esta ruta
 pedidoRoutes.get("/admin", verifyToken, getPedidosAdmin);
+pedidoRoutes.put("/admin/:id_pedido/estado", verifyToken, updatePedidoEstadoAdmin);
 
 // Rutas generales
 pedidoRoutes.get("/", getPedidos);

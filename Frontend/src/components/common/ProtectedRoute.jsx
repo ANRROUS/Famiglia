@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 import { useLoginModal } from '../../context/LoginModalContext';
 import { CircularProgress, Box } from '@mui/material';
 
-export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, isLoading } = useSelector((state) => state.auth);
+export default function ProtectedRoute({ children, allowedRoles = null, fallbackPath = '/' }) {
+  const { isAuthenticated, isLoading, role } = useSelector((state) => state.auth);
   const { showLoginModal } = useLoginModal();
   const location = useLocation();
 
@@ -36,6 +36,10 @@ export default function ProtectedRoute({ children }) {
   // Si no está autenticado después de verificar, redirigir
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(role || 'C')) {
+    return <Navigate to={fallbackPath} replace />;
   }
 
   return children;

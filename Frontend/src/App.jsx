@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { LoginModalProvider } from "./context/LoginModalContext";
 import { useLoginModal } from "./context/LoginModalContext";
 import LoginForm from "./components/forms/LoginForm";
@@ -30,12 +30,16 @@ import CatalogoAdmin from './pages/CatalogoAdmin';
 function Layout() {
   const location = useLocation();
   const dispatch = useDispatch();
+  const { role } = useSelector((state) => state.auth);
   const { isLoginModalOpen, hideLoginModal } = useLoginModal();
 
   // Determinar si es una ruta admin
   const isAdminRoute =
     location.pathname.startsWith("/pedidos-admin") ||
     location.pathname.startsWith("/catalogo-admin");
+
+  const isAdminUser = role === "A";
+  const showAdminHeader = isAdminUser && isAdminRoute;
 
   // Ocultar header en home
   const hideHeader = location.pathname === "/" || location.pathname === "/home";
@@ -60,7 +64,7 @@ function Layout() {
 
   return (
     <>
-      {!hideHeader && (isAdminRoute ? <HeaderAdmin /> : <Header />)}
+  {!hideHeader && (showAdminHeader ? <HeaderAdmin /> : <Header />)}
 
       <main className="min-h-screen flex justify-center">
         <Routes>
@@ -74,8 +78,22 @@ function Layout() {
           <Route path="/carta" element={<Catalog />} />
 
           {/* Admin */}
-          <Route path="/pedidos-admin" element={<PedidosAdmin />} />
-          <Route path="/catalogo-admin" element={<CatalogoAdmin />} />
+          <Route
+            path="/pedidos-admin"
+            element={
+              <ProtectedRoute allowedRoles={["A"]} fallbackPath="/carta">
+                <PedidosAdmin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/catalogo-admin"
+            element={
+              <ProtectedRoute allowedRoles={["A"]} fallbackPath="/carta">
+                <CatalogoAdmin />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Rutas protegidas */}
           <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
