@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { LoginModalProvider } from "./context/LoginModalContext";
 import { useLoginModal } from "./context/LoginModalContext";
 import LoginForm from "./components/forms/LoginForm";
@@ -22,12 +22,17 @@ import Complaints from "./pages/Complaints";
 import { setUser, authCheckComplete } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
 
+import { enviarEventoAuditoria } from "./services/api/auditoriaClient.js";
+
 // 🔹 Controla la visibilidad del Header
 function Layout() {
   const location = useLocation();
   const dispatch = useDispatch();
   const hideHeader = location.pathname === "/" || location.pathname === "/home";
   const { isLoginModalOpen, hideLoginModal } = useLoginModal();
+
+  const usuario = useSelector(state => state.auth.user);
+  const usuarioId = usuario?.id || usuario?.id_usuario || null;
 
   // Verificar autenticación al cargar la app (SOLO UNA VEZ)
   useEffect(() => {
@@ -55,6 +60,19 @@ function Layout() {
       isMounted = false;
     };
   }, []); // ✅ Array vacío = ejecutar SOLO una vez al montar
+
+  useEffect(() => {
+    const usuarioLogueado = Boolean(usuarioId);
+    enviarEventoAuditoria({
+      accion: 'visualizar',
+      recurso: 'pagina',
+      ruta: location.pathname + location.search,
+      meta: {
+        titulo: document.title || null,
+        usuarioId 
+      }
+    }, usuarioLogueado);
+  }, [location, usuarioId]);
 
   return (
     <>
