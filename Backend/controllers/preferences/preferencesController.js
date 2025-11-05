@@ -1,5 +1,6 @@
 import prisma from '../../prismaClient.js';
 import { generatePreferencesTest, getProductRecommendation } from '../../services/geminiService.js';
+import { logAuditoria } from '../../services/auditoriaService.js';
 
 export const generateTest = async (req, res) => {
   try {
@@ -11,6 +12,17 @@ export const generateTest = async (req, res) => {
       success: true,
       data: testData
     });
+    logAuditoria({
+      usuarioId: req.user?.id || null,
+      anonimoId: req.cookies?.anon_id || null,
+      accion: 'generar_test',
+      recurso: 'test',
+      ruta: req.originalUrl || req.url,
+      meta: {
+        promptLength: String((userPrompt || '').length),
+      }
+    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+    
   } catch (error) {
     console.error('Error en generateTest:', error);
     res.status(500).json({
@@ -58,12 +70,13 @@ export const getRecommendation = async (req, res) => {
     );
 
     // Guardar el test y la recomendación en la base de datos
+    let testRecord = null;
     try {
       // Validar que el usuario esté autenticado
       if (!userId) {
         console.warn('⚠️ Usuario no autenticado, no se guardará en BD');
       } else {
-        const testRecord = await prisma.test.create({
+        testRecord = await prisma.test.create({
           data: {
             consulta: userPrompt || 'Test de preferencias',
             resultado: recommendation.product.id_producto.toString(), // Solo el ID del producto
@@ -80,10 +93,27 @@ export const getRecommendation = async (req, res) => {
       console.error('⚠️ Error al guardar en BD (continuando):', dbError.message);
     }
 
+    logAuditoria({
+      usuarioId: userId,
+      anonimoId: req.cookies?.anon_id || null,
+      req,
+      accion: 'resultado_test',
+      recurso: 'test',
+      recursoId: testRecord ? String(testRecord.id_test) : null,
+      ruta: req.originalUrl || req.url,
+      meta: {
+        productoSugerido: recommendation.product.id_producto.toString(),
+        url_producto: recommendation.product.url_imagen || null,
+        guardadoEnBD: Boolean(testRecord)
+      }
+    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr))
+  
+
     res.json({
       success: true,
       data: recommendation
     });
+    
   } catch (error) {
     console.error('Error en getRecommendation:', error);
     res.status(500).json({
