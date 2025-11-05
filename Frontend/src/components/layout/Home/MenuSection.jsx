@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
@@ -17,6 +17,8 @@ const MenuSection = () => {
   const prevScrollLeft = useRef(0);
   const currentPointerX = useRef(0);
 
+  const [categoria, setCategoria] = useState(false);
+
   const categorias = [
     { nombre: "Postres", img: imgTartaDurazno },
     { nombre: "Tortas", img: imgTartaMokaChocolate },
@@ -27,6 +29,12 @@ const MenuSection = () => {
 
   // Duplicamos categorías para crear un efecto de scroll infinito
   const items = [...categorias, ...categorias, ...categorias];
+
+  useEffect(() => {
+    if (categoria) {
+      navigate("/carta")
+    }
+  }, [categoria]);  
 
   /** 🔹 Inicializa el scroll al centro del contenedor */
   useEffect(() => {
@@ -99,16 +107,18 @@ const MenuSection = () => {
   };
 
   /** 🔹 Evita selección de texto al arrastrar */
-  useEffect(() => {
-    const preventSelect = (e) => {
-      if (isPointerDown.current) e.preventDefault();
-    };
-    document.addEventListener("selectstart", preventSelect);
-    return () => document.removeEventListener("selectstart", preventSelect);
-  }, []);
+  // useEffect(() => {
+  //   const preventSelect = (e) => {
+  //     if (isPointerDown.current) e.preventDefault();
+  //   };
+  //   document.addEventListener("selectstart", preventSelect);
+  //   return () => document.removeEventListener("selectstart", preventSelect);
+  // }, []);
 
   /** 🔹 Redirige al hacer clic en una categoría */
-  const handleCategoryClick = () => navigate("/carta");
+  const handleCategoryClick = () => {
+    setCategoria(true);
+  }
 
   return (
     <Box
