@@ -10,6 +10,7 @@ import contactRoutes from './routes/contactRoutes.js';
 import preferencesRoutes from './routes/preferences/preferencesRoutes.js';
 import pedidoRoutes from './routes/pedido/pedidoRoutes.js';
 import pagoRoutes from './routes/pedido/pagoRoutes.js';
+import carritoRoutes from './routes/pedido/carritoRoutes.js';
 
 const app = express();
 app.use(morgan('dev'));
@@ -25,8 +26,9 @@ app.use('/categorias', categoriaRoutes);
 app.use('/auth', authRoutes);
 app.use('/contact', contactRoutes);
 app.use('/api/preferences', preferencesRoutes);
-app.use('/pedidos',pedidoRoutes);
-app.use('/pedidos',pagoRoutes)
+app.use('/api/pedido/carrito', carritoRoutes);
+app.use('/api/pedido/pago', pagoRoutes);
+app.use('/pedidos', pedidoRoutes);
 
 
 export default app;

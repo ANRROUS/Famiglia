@@ -233,7 +233,7 @@ const Header = () => {
                   <Button onClick={() => setShowRegister(true)} variant="contained" sx={buttonStyles.contained}>
                     Registrarse
                   </Button>
-                  <Button onClick={() => setShowLogin(true)} variant="outlined" sx={buttonStyles.outlined}>
+                  <Button onClick={() => showLoginModal()} variant="outlined" sx={buttonStyles.outlined}>
                     Iniciar Sesión
                   </Button>
                 </>
@@ -279,7 +279,7 @@ const Header = () => {
                 <Button onClick={() => { setShowRegister(true); setMenuOpen(false); }} variant="contained" sx={buttonStyles.contained}>
                   Registrarse
                 </Button>
-                <Button onClick={() => { setShowLogin(true); setMenuOpen(false); }} variant="outlined" sx={buttonStyles.outlined}>
+                <Button onClick={() => { showLoginModal(); setMenuOpen(false); }} variant="outlined" sx={buttonStyles.outlined}>
                   Iniciar Sesión
                 </Button>
               </>
@@ -294,14 +294,14 @@ const Header = () => {
         onClose={() => setShowRegister(false)}
         onSwitchToLogin={() => {
           setShowRegister(false);
-          setShowLogin(true);
+          showLoginModal();
         }}
       />
       <LoginForm
         isOpen={showLogin}
-        onClose={() => setShowLogin(false)}
+        onClose={hideLoginModal}
         onSwitchToRegister={() => {
-          setShowLogin(false);
+          hideLoginModal();
           setShowRegister(true);
         }}
       />

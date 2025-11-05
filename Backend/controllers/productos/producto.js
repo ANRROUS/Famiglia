@@ -2,8 +2,35 @@ import prisma from '../../prismaClient.js';
 
 export const getProductos = async (req, res) => {
     try {
-        const productos = await prisma.producto.findMany();
-        res.json(productos);
+        // Obtener productos con información de ventas
+        const productos = await prisma.producto.findMany({
+            include: {
+                categoria: true,
+                detalle_pedido: {
+                    select: {
+                        cantidad: true
+                    }
+                }
+            }
+        });
+
+        // Calcular ventas totales para cada producto
+        const productosConVentas = productos.map(producto => {
+            const totalVendido = producto.detalle_pedido.reduce(
+                (sum, detalle) => sum + (detalle.cantidad || 0), 
+                0
+            );
+            
+            // Eliminar detalle_pedido del objeto final y agregar totalVendido
+            const { detalle_pedido, ...productoSinDetalle } = producto;
+            
+            return {
+                ...productoSinDetalle,
+                totalVendido
+            };
+        });
+
+        res.json(productosConVentas);
         
     } catch (error) {
         console.error("Error al obtener productos:", error);

@@ -1,4 +1,43 @@
 import prisma from "../../prismaClient.js";
+import crypto from "crypto";
+
+const hashOrderId = (id) => {
+    const hash = crypto.createHash("sha256").update(id.toString()).digest("hex");
+    return `SA-${hash.substring(0, 8).toUpperCase()}`;
+};
+
+const formatPedidoAdmin = (pedido) => ({
+    id_pedido: Number(pedido.id_pedido),
+    codigo: hashOrderId(pedido.id_pedido),
+    fecha: pedido.fecha,
+    estado: (pedido.estado || "").toLowerCase(),
+    envio: pedido.envio,
+    usuario: pedido.usuario
+        ? {
+            id_usuario: Number(pedido.usuario.id_usuario),
+            nombre: pedido.usuario.nombre,
+            correo: pedido.usuario.correo,
+        }
+        : null,
+    detalle_pedido: pedido.detalle_pedido?.map((detalle) => ({
+        id_detalle_pedido: Number(detalle.id_detalle_pedido),
+        cantidad: detalle.cantidad,
+        producto: detalle.producto
+            ? {
+                id_producto: Number(detalle.producto.id_producto),
+                nombre: detalle.producto.nombre,
+                precio: detalle.producto.precio,
+                url_imagen: detalle.producto.url_imagen,
+            }
+            : null,
+    })) || [],
+    pago: pedido.pago?.map((pago) => ({
+        id_pago: Number(pago.id_pago),
+        total: pago.total,
+        fecha: pago.fecha,
+        medio: pago.medio,
+    })) || [],
+});
 
 export const getPedidos = async (req, res) => {
     try {
@@ -16,7 +55,7 @@ export const getPedidos = async (req, res) => {
     catch (error) {
         console.error("Error al obtener pedidos:", error);
         res.status(500).json({ error: "Error al obtener pedidos" });
-    }                   
+    }
 };
 
 export const getPedidoById = async (req, res) => {
@@ -76,14 +115,14 @@ export const createPedido = async (req, res) => {
             const producto = await prisma.producto.findUnique({
                 where: { id_producto: BigInt(prod.id_producto) }
             });
-            
+
             if (!producto) {
                 return res.status(404).json({ error: `Producto ${prod.id_producto} no encontrado` });
             }
-            
+
             if (producto.stock < prod.cantidad) {
-                return res.status(400).json({ 
-                    error: `Stock insuficiente` 
+                return res.status(400).json({
+                    error: `Stock insuficiente`
                 });
             }
         }
@@ -102,7 +141,7 @@ export const createPedido = async (req, res) => {
 
             },
             include: {
-                detalle_pedido:{
+                detalle_pedido: {
                     include: {
                         producto: true,
                     },
@@ -114,7 +153,7 @@ export const createPedido = async (req, res) => {
     catch (error) {
         console.error("Error al crear pedido:", error);
         res.status(500).json({ error: "Error al crear pedido" });
-    }   
+    }
 };
 
 export const addProductoToPedido = async (req, res) => {
@@ -179,8 +218,8 @@ export const addProductoToPedido = async (req, res) => {
 };
 
 export const updateCantidadFromDetallePedido = async (req, res) => {
-    const {id_detalle_pedido} = req.params;
-    const {cantidad} = req.body;
+    const { id_detalle_pedido } = req.params;
+    const { cantidad } = req.body;
 
     if (!cantidad || cantidad <= 0) {
         return res.status(400).json({ error: "Cantidad inválida" });
@@ -241,4 +280,155 @@ export const deleteProductoFromPedido = async (req, res) => {
         res.status(500).json({ error: "Error al eliminar producto del pedido" });
     }
 };
+
+// Obtener historial de pedidos del usuario autenticado
+export const getHistorialPedidos = async (req, res) => {
+    const id_usuario = req.user?.id;
+
+    if (!id_usuario) {
+        return res.status(401).json({ error: "Usuario no autenticado" });
+    }
+
+    try {
+        const pedidos = await prisma.pedido.findMany({
+            where: {
+                id_usuario: BigInt(id_usuario),
+                estado: {
+                    not: "carrito" // Excluir pedidos en carrito
+                }
+            },
+            include: {
+                detalle_pedido: {
+                    include: {
+                        producto: true,
+                    },
+                },
+                pago: true,
+            },
+            orderBy: {
+                fecha: 'desc'
+            }
+        });
+
+        // Convertir BigInt a string para JSON
+        const pedidosFormateados = pedidos.map(pedido => ({
+            id_pedido: pedido.id_pedido.toString(),
+            fecha: pedido.fecha,
+            estado: pedido.estado,
+            envio: pedido.envio,
+            total: pedido.detalle_pedido.reduce((sum, item) =>
+                sum + (item.cantidad * item.producto.precio), 0
+            ),
+            items: pedido.detalle_pedido.map(detalle => ({
+                id_detalle: detalle.id_detalle_pedido.toString(),
+                cantidad: detalle.cantidad,
+                producto: {
+                    id_producto: detalle.producto.id_producto.toString(),
+                    nombre: detalle.producto.nombre,
+                    precio: detalle.producto.precio,
+                    url_imagen: detalle.producto.url_imagen
+                }
+            })),
+            pago: pedido.pago[0] ? {
+                medio: pedido.pago[0].medio,
+                total: pedido.pago[0].total,
+                fecha: pedido.pago[0].fecha
+            } : null
+        }));
+
+        res.json(pedidosFormateados);
+    } catch (error) {
+        console.error("Error al obtener historial de pedidos:", error);
+        res.status(500).json({ error: "Error al obtener historial de pedidos" });
+    }
+};
+
+// Obtener todos los pedidos (solo para admin)
+export const getPedidosAdmin = async (req, res) => {
+    try {
+
+        if (req.user?.rol !== "A") {
+            return res.status(403).json({ message: "No autorizado" });
+        }
+
+        const pedidos = await prisma.pedido.findMany({
+            include: {
+                usuario: {
+                    select: { id_usuario: true, nombre: true, correo: true },
+                },
+                pago: {
+                    select: { id_pago: true, total: true, fecha: true, medio: true },
+                },
+                detalle_pedido: {
+                    include: {
+                        producto: {
+                            select: { id_producto: true, nombre: true, precio: true, url_imagen: true },
+                        },
+                    },
+                },
+            },
+            orderBy: { fecha: "desc" },
+        });
+
+        const pedidosFormateados = pedidos.map(formatPedidoAdmin);
+
+        res.json(pedidosFormateados);
+    } catch (error) {
+        console.error("Error en getPedidosAdmin:", error);
+        res.status(500).json({ message: "Error al obtener pedidos de admin" });
+    }
+};
+
+export const updatePedidoEstadoAdmin = async (req, res) => {
+    try {
+        if (req.user?.rol !== "A") {
+            return res.status(403).json({ message: "No autorizado" });
+        }
+
+        const { id_pedido } = req.params;
+        const { estado } = req.body;
+
+        const allowedEstados = ["confirmado", "entregado", "cancelado"];
+        const normalizedEstado = estado?.toString().toLowerCase();
+
+        if (!normalizedEstado || !allowedEstados.includes(normalizedEstado)) {
+            return res.status(400).json({ message: "Estado inválido" });
+        }
+
+        const pedidoExistente = await prisma.pedido.findUnique({
+            where: { id_pedido: BigInt(id_pedido) },
+        });
+
+        if (!pedidoExistente) {
+            return res.status(404).json({ message: "Pedido no encontrado" });
+        }
+
+        const pedidoActualizado = await prisma.pedido.update({
+            where: { id_pedido: BigInt(id_pedido) },
+            data: { estado: normalizedEstado },
+            include: {
+                usuario: {
+                    select: { id_usuario: true, nombre: true, correo: true },
+                },
+                pago: {
+                    select: { id_pago: true, total: true, fecha: true, medio: true },
+                },
+                detalle_pedido: {
+                    include: {
+                        producto: {
+                            select: { id_producto: true, nombre: true, precio: true, url_imagen: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        res.json(formatPedidoAdmin(pedidoActualizado));
+    } catch (error) {
+        console.error("Error al actualizar estado del pedido:", error);
+        res.status(500).json({ message: "Error al actualizar el estado del pedido" });
+    }
+};
+
+
 
