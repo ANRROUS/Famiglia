@@ -17,7 +17,7 @@ export const register = async (req, res) => {
     const hashed = await bcrypt.hash(contraseña, 10);
 
     const nuevoUsuario = await prisma.usuario.create({
-      data: { nombre, correo, contrase_a: hashed },
+      data: { nombre, correo, contrase_a: hashed, rol: "C" },
     });
 
     res.status(201).json({
@@ -26,6 +26,7 @@ export const register = async (req, res) => {
         id: Number(nuevoUsuario.id_usuario),
         nombre: nuevoUsuario.nombre,
         correo: nuevoUsuario.correo,
+        rol: nuevoUsuario.rol || "C",
       },
     });
     logAuditoria({
@@ -49,14 +50,16 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { correo } });
+  const usuario = await prisma.usuario.findUnique({ where: { correo } });
     if (!usuario) return res.status(400).json({ message: "Usuario no encontrado" });
 
     const isMatch = await bcrypt.compare(contraseña, usuario.contrase_a);
     if (!isMatch) return res.status(401).json({ message: "Contraseña incorrecta" });
 
+    const rol = usuario.rol || "C";
+
     const token = jwt.sign(
-      { id: Number(usuario.id_usuario), correo: usuario.correo },
+      { id: Number(usuario.id_usuario), correo: usuario.correo, rol },
       process.env.JWT_SECRET || "famiglia-secret",
       { expiresIn: "1d" }
     );
@@ -76,6 +79,7 @@ export const login = async (req, res) => {
         nombre: usuario.nombre,
         correo: usuario.correo,
         url_imagen: usuario.url_imagen,
+        rol,
       },
     });
     logAuditoria({
@@ -97,7 +101,7 @@ export const getPerfil = async (req, res) => {
     
     const user = await prisma.usuario.findUnique({
       where: { id_usuario: userId },
-      select: { id_usuario: true, nombre: true, correo: true, url_imagen: true },
+      select: { id_usuario: true, nombre: true, correo: true, url_imagen: true, rol: true },
     });
 
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
@@ -109,6 +113,7 @@ export const getPerfil = async (req, res) => {
         nombre: user.nombre,
         correo: user.correo,
         url_imagen: user.url_imagen,
+        rol: user.rol || "C",
       },
     });
   } catch (error) {

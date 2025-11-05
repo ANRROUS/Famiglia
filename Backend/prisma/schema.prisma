@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js" 
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -97,9 +97,10 @@ model tienda_usuario {
 model usuario {
   id_usuario     BigInt           @id @default(autoincrement())
   nombre         String           @db.VarChar
-  correo         String           @db.VarChar @unique
+  correo         String           @unique @db.VarChar
   contrase_a     String?          @map("contraseña") @db.VarChar
   url_imagen     String?
+  rol            String?          @db.VarChar
   pedido         pedido[]
   test           test[]
   tienda_usuario tienda_usuario[]

@@ -23,7 +23,9 @@ export const pagoAPI = {
 }
 
 export const pedidoAPI = {
-    getHistorialPedidos: () => API.get('/pedidos/historial/mis-pedidos')
+    getHistorialPedidos: () => API.get('/pedidos/historial/mis-pedidos'),
+    getPedidosAdmin: () => API.get('/pedidos/admin'),
+    updatePedidoEstadoAdmin: (id_pedido, estado) => API.put(`/pedidos/admin/${id_pedido}/estado`, { estado })
 }
 
 export const preferencesAPI = {

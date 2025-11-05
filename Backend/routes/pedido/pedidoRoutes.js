@@ -1,23 +1,30 @@
 import express from "express";
-import { 
-    addProductoToPedido, 
-    createPedido, 
-    deleteProductoFromPedido, 
-    getPedidoById, 
-    getPedidoByUsuario, 
-    getPedidos, 
-    updateCantidadFromDetallePedido,
-    getHistorialPedidos
+import {
+  addProductoToPedido,
+  createPedido,
+  deleteProductoFromPedido,
+  getPedidoById,
+  getPedidoByUsuario,
+  getPedidos,
+  updateCantidadFromDetallePedido,
+  getHistorialPedidos,
+  getPedidosAdmin,
+  updatePedidoEstadoAdmin
 } from "../../controllers/pedido/pedido.js";
 import { verifyToken } from "../../middleware/authMiddleware.js";
 
 const pedidoRoutes = express.Router();
 
+// Solo admin puede acceder a esta ruta
+pedidoRoutes.get("/admin", verifyToken, getPedidosAdmin);
+pedidoRoutes.put("/admin/:id_pedido/estado", verifyToken, updatePedidoEstadoAdmin);
+
+// Rutas generales
 pedidoRoutes.get("/", getPedidos);
 pedidoRoutes.get("/:id_pedido", getPedidoById);
 pedidoRoutes.get("/usuario/:id_usuario", getPedidoByUsuario);
 
-// Ruta protegida para obtener historial del usuario autenticado
+// Ruta protegida para historial del usuario autenticado
 pedidoRoutes.get("/historial/mis-pedidos", verifyToken, getHistorialPedidos);
 
 // Gestión del carrito

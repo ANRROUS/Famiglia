@@ -331,7 +331,7 @@ const HeroSection = ({
 
 
       {/* HERO SECTION */}
-      <Box className="relative flex flex-col md:flex-row justify-between items-center px-6 sm:px-10 md:px-16 pt-2 md:pt-0 pb-8 md:pb-12 z-10">
+      <Box className="relative flex flex-col md:flex-row justify-between items-center px-6 sm:px-10 md:px-16 pt-2 md:pt-0 pb-8 md:pb-12 z-100">
         {/* Texto principal */}
         <Box
           className={`relative z-10 flex flex-col gap-6 transition-all duration-500
