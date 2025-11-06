@@ -1,12 +1,43 @@
+// Profile.jsx (completo, reemplaza tu archivo)
 import { useState, useEffect } from "react";
-import { useSelector } from 'react-redux';
-import { Box, Typography, Avatar, Paper, Tabs, Tab, Card, CardContent, Chip, CircularProgress, Alert, Divider } from '@mui/material';
-import { ShoppingBag, Quiz, CalendarToday, LocationOn, CreditCard } from "@mui/icons-material";
+import { useSelector } from "react-redux";
+import {
+  Box,
+  Typography,
+  Avatar,
+  Paper,
+  Tabs,
+  Tab,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Alert,
+  Divider,
+  IconButton,
+  Button,
+} from "@mui/material";
+import {
+  ShoppingBag,
+  Quiz,
+  CameraAlt,
+  Edit,
+  CalendarToday,
+  LocationOn,
+  CreditCard,
+  ArrowBack,
+  ArrowForward,
+} from "@mui/icons-material";
 import { pedidoAPI, preferencesAPI } from "../services/api";
-import crypto from 'crypto-js';
+import crypto from "crypto-js";
 
 export default function Profile() {
   const { user } = useSelector((state) => state.auth);
+
+  // pagination
+  const itemsPerPage = 6;
+  const [page, setPage] = useState(0);
+
   const [tabValue, setTabValue] = useState(0);
   const [pedidos, setPedidos] = useState([]);
   const [tests, setTests] = useState([]);
@@ -14,18 +45,26 @@ export default function Profile() {
   const [loadingTests, setLoadingTests] = useState(false);
   const [error, setError] = useState("");
 
-  // Función para generar el hash del ID del pedido
+  const palette = {
+    dark: "#6B3730",
+    dark2: "#AF442F",
+    accent: "#EF9D58",
+    primary: "#C94549", // used for headers / chips
+    pastel: "#EBBABC",
+    white: "#FFFFFF",
+    pageBg: "#FBF2F2", // soft background derived from palette
+  };
+
   const hashOrderId = (id) => {
     const hash = crypto.SHA256(id.toString()).toString();
     return `SA-${hash.substring(0, 8).toUpperCase()}`;
   };
 
   useEffect(() => {
-    if (tabValue === 0) {
-      fetchPedidos();
-    } else if (tabValue === 1) {
-      fetchTests();
-    }
+    if (tabValue === 0) fetchPedidos();
+    if (tabValue === 1) fetchTests();
+    // reset page when tab changes
+    setPage(0);
   }, [tabValue]);
 
   const fetchPedidos = async () => {
@@ -34,9 +73,9 @@ export default function Profile() {
     try {
       const response = await pedidoAPI.getHistorialPedidos();
       setPedidos(response.data || []);
-    } catch (error) {
-      console.error("Error al obtener pedidos:", error);
-      setError("Error al cargar el historial de pedidos");
+    } catch (err) {
+      console.error(err);
+      setError("❌ Error al cargar pedidos");
     } finally {
       setLoadingPedidos(false);
     }
@@ -47,159 +86,345 @@ export default function Profile() {
     setError("");
     try {
       const response = await preferencesAPI.getHistorialTests();
-      setTests(response.data.data || []);
-    } catch (error) {
-      console.error("Error al obtener tests:", error);
-      setError("Error al cargar el historial de tests");
+      setTests(response.data?.data || []);
+    } catch (err) {
+      console.error(err);
+      setError("❌ Error al cargar tests");
     } finally {
       setLoadingTests(false);
     }
   };
 
   const getEstadoColor = (estado) => {
-    const colors = {
+    const map = {
       confirmado: "#4caf50",
       pendiente: "#ff9800",
       enviado: "#2196f3",
       entregado: "#8bc34a",
       cancelado: "#f44336",
     };
-    return colors[estado?.toLowerCase()] || "#999";
+    return map[estado?.toLowerCase()] || palette.dark2;
   };
 
-  const formatDate = (date) => {
+  // date dd/mm/yy
+  const formatDateShort = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("es-PE", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    const d = new Date(date);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
   };
+
+  // slice for pagination
+  const displayedPedidos = pedidos;
+  const displayedTests = tests;
+  const totalItems = tabValue === 0 ? displayedPedidos.length : displayedTests.length;
+  const pageData =
+    (tabValue === 0 ? displayedPedidos : displayedTests).slice(
+      page * itemsPerPage,
+      (page + 1) * itemsPerPage
+    );
 
   return (
-    <Box sx={{ minHeight: "100vh", backgroundColor: "#fef7f5", pt: 10, pb: 6, px: 2, fontFamily: "'Montserrat', sans-serif" }}>
-      <Box sx={{ maxWidth: "1200px", margin: "0 auto" }}>
-        {/* Header del Perfil */}
-        <Paper elevation={3} sx={{ p: 4, mb: 4, borderRadius: "16px", background: "linear-gradient(135deg, #ff9c9c 0%, #ffb3b3 100%)", color: "#fff" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <Avatar src={user?.url_imagen} alt={user?.nombre} sx={{ width: 100, height: 100, border: "4px solid #fff", fontSize: "40px", bgcolor: "#fff", color: "#ff9c9c" }}>
-              {user?.nombre?.charAt(0).toUpperCase()}
-            </Avatar>
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: "700", mb: 1 }}>{user?.nombre}</Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9 }}>{user?.correo}</Typography>
+    <Box sx={{ minHeight: "100vh", backgroundColor: palette.pageBg, py: 6, px: { xs: 3, md: 6 } }}>
+      <Box sx={{ maxWidth: "1400px", mx: "auto" }}>
+        {/* Header */}
+        <Typography variant="h4" sx={{ fontWeight: 800, color: palette.dark, mb: 4 }}>
+          Mi Perfil
+        </Typography>
+
+        <Box sx={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {/* LEFT PANEL - fixed width, independent height, vertically centered */}
+          <Paper
+            elevation={3}
+            sx={{
+              width: { xs: "100%", md: 340 },
+              borderRadius: 2,
+              p: 3,
+              alignSelf: "center", // center vertically relative to right panel content
+              position: { md: "sticky" },
+              top: { md: 24 },
+            }}
+          >
+            {/* avatar box (fixed rectangle) */}
+            <Box
+              sx={{
+                width: "100%",
+                height: 200,
+                borderRadius: 2,
+                bgcolor: palette.pastel,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                position: "relative",
+                overflow: "hidden",
+                mb: 2,
+              }}
+            >
+              {user?.url_imagen ? (
+                // keep avatar filling same box without changing dimensions
+                <img
+                  src={user.url_imagen}
+                  alt="avatar"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                <CameraAlt sx={{ fontSize: 72, color: palette.primary }} />
+              )}
+
+              <IconButton
+                size="small"
+                aria-label="Cambiar foto"
+                sx={{
+                  position: "absolute",
+                  bottom: 12,
+                  right: 12,
+                  bgcolor: palette.primary,
+                  color: "#fff",
+                  "&:hover": { bgcolor: palette.dark2 },
+                }}
+              >
+                <CameraAlt fontSize="small" />
+              </IconButton>
             </Box>
-          </Box>
-        </Paper>
 
-        {/* Tabs */}
-        <Paper elevation={2} sx={{ mb: 3, borderRadius: "12px" }}>
-          <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} centered
-            sx={{ "& .MuiTab-root": { textTransform: "none", fontSize: "16px", fontWeight: "600", py: 2 }, "& .Mui-selected": { color: "#ff9c9c" }, "& .MuiTabs-indicator": { backgroundColor: "#ff9c9c" } }}>
-            <Tab icon={<ShoppingBag />} label="Mis Pedidos" iconPosition="start" />
-            <Tab icon={<Quiz />} label="Mis Tests" iconPosition="start" />
-          </Tabs>
-        </Paper>
+            {/* Nombre */}
+            <Typography sx={{ color: palette.primary, fontWeight: 700, mb: 0.5 }}>Nombre</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+              <Typography sx={{ color: palette.dark, fontWeight: 800, fontSize: 18 }}>
+                {user?.nombre || "—"}
+              </Typography>
+              <Edit sx={{ color: palette.primary, cursor: "pointer" }} />
+            </Box>
 
-        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+            {/* Correo */}
+            <Typography sx={{ color: palette.primary, fontWeight: 700, mb: 0.5 }}>Correo</Typography>
+            <Typography sx={{ color: "#5A5A5A" }}>{user?.correo || "—"}</Typography>
+          </Paper>
 
-        {/* Tab 0: Pedidos */}
-        {tabValue === 0 && (
-          <Box>
-            {loadingPedidos ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress sx={{ color: "#ff9c9c" }} /></Box>
-            ) : pedidos.length === 0 ? (
-              <Paper elevation={2} sx={{ p: 6, textAlign: "center", borderRadius: "12px" }}>
-                <ShoppingBag sx={{ fontSize: 80, color: "#ddd", mb: 2 }} />
-                <Typography variant="h6" color="textSecondary">No tienes pedidos realizados</Typography>
-              </Paper>
-            ) : (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                {pedidos.map((pedido) => (
-                  <Card key={pedido.id_pedido} elevation={2} sx={{ borderRadius: "12px", overflow: "hidden", transition: "all 0.3s ease", "&:hover": { boxShadow: 6 } }}>
-                    <Box sx={{ bgcolor: "#ff9c9c", color: "#fff", px: 3, py: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <Typography variant="h6" sx={{ fontWeight: "600" }}>Pedido #{hashOrderId(pedido.id_pedido)}</Typography>
-                      <Chip label={pedido.estado} sx={{ bgcolor: getEstadoColor(pedido.estado), color: "#fff", fontWeight: "600", textTransform: "capitalize" }} />
-                    </Box>
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ display: "flex", gap: 4, mb: 3, flexWrap: "wrap" }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <CalendarToday sx={{ color: "#999", fontSize: 20 }} />
-                          <Typography variant="body2" color="textSecondary">{formatDate(pedido.fecha)}</Typography>
-                        </Box>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <LocationOn sx={{ color: "#999", fontSize: 20 }} />
-                          <Typography variant="body2" color="textSecondary">{pedido.envio || "Por definir"}</Typography>
-                        </Box>
-                        {pedido.pago && (
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <CreditCard sx={{ color: "#999", fontSize: 20 }} />
-                            <Typography variant="body2" color="textSecondary">{pedido.pago.medio}</Typography>
+          {/* RIGHT PANEL - flexible */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {/* Tabs panel */}
+            <Paper elevation={2} sx={{ borderRadius: 2, mb: 3 }}>
+              <Tabs
+                value={tabValue}
+                onChange={(e, v) => setTabValue(v)}
+                centered
+                sx={{
+                  "& .MuiTab-root": { textTransform: "none", fontWeight: 700 },
+                  "& .Mui-selected": { color: palette.dark },
+                  "& .MuiTabs-indicator": { backgroundColor: palette.primary },
+                }}
+              >
+                <Tab icon={<ShoppingBag sx={{ color: palette.primary }} />} label="Mis Pedidos" iconPosition="start" />
+                <Tab icon={<Quiz sx={{ color: palette.dark }} />} label="Mis Tests" iconPosition="start" />
+              </Tabs>
+            </Paper>
+
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+            {/* CONTENT GRID (Pedidos or Tests) */}
+            {tabValue === 0 ? (
+              loadingPedidos ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
+              ) : displayedPedidos.length === 0 ? (
+                <Paper sx={{ p: 6, textAlign: "center" }}>No tienes pedidos</Paper>
+              ) : (
+                <>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 3,
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(2, 1fr)",
+                        lg: "repeat(3, 1fr)",
+                      },
+                      alignItems: "start",
+                    }}
+                  >
+                    {pageData.map((p) => {
+                      // product list vertical centering when few items:
+                      const fewItems = (p.items?.length || 0) <= 1;
+                      return (
+                        <Card key={p.id_pedido} sx={{ borderRadius: 2, display: "flex", flexDirection: "column", height: "100%" }}>
+                          {/* header */}
+                          <Box sx={{ bgcolor: palette.primary, color: "#fff", px: 2, py: 1.2, display: "flex", alignItems: "center", justifyContent: "space-between", gap:2 }}>
+                            <Typography fontWeight={700} sx={{ fontSize: 15 }}>
+                              Pedido #{hashOrderId(p.id_pedido)}
+                            </Typography>
+
+                            {/* separation and chip */}
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Chip label={p.estado} size="small" sx={{ bgcolor: getEstadoColor(p.estado), color: "#fff", fontWeight: 700, ml: 1 }} />
+                            </Box>
                           </Box>
+
+                          <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, flex: 1 }}>
+                            {/* date / envio / pago */}
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                              <CalendarToday sx={{ fontSize: 16, color: palette.dark }} />
+                              <Typography sx={{ fontSize: 13, color: "#333" }}>{formatDateShort(p.fecha)}</Typography>
+
+                              {/* delivery & payment (same row) */}
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1.2, ml: 2 }}>
+                                <LocationOn sx={{ fontSize: 16, color: "#666" }} />
+                                <Typography sx={{ fontSize: 13, color: "#666" }}>{p.envio || "Por definir"}</Typography>
+                              </Box>
+
+                              {p.pago?.medio && (
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1.2, ml: 2 }}>
+                                  <CreditCard sx={{ fontSize: 16, color: "#666" }} />
+                                  <Typography sx={{ fontSize: 13, color: "#666" }}>{p.pago.medio}</Typography>
+                                </Box>
+                              )}
+                            </Box>
+
+                            <Divider />
+
+                            {/* productos: this container will center items vertically when few */}
+                            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: fewItems ? "center" : "flex-start", gap: 1 }}>
+                              <Typography sx={{ fontWeight: 700 }}>Productos</Typography>
+
+                              {p.items?.map((item) => (
+                                <Box key={item.id_detalle} sx={{ display: "flex", gap: 1.2, alignItems: "center" }}>
+                                  <img
+                                    src={item.producto?.url_imagen || "/images/placeholder-product.jpg"}
+                                    width={56}
+                                    height={56}
+                                    style={{ borderRadius: 8, objectFit: "cover" }}
+                                    onError={(e) => (e.target.src = "/images/placeholder-product.jpg")}
+                                  />
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{item.producto?.nombre}</Typography>
+                                    <Typography sx={{ fontSize: 13, color: "#777" }}>
+                                      Cantidad: {item.cantidad} × S/{Number(item.producto?.precio).toFixed(2)}
+                                    </Typography>
+                                  </Box>
+
+                                  {/* subtotal for this product: cantidad * precio */}
+                                  <Typography sx={{ fontWeight: 700, color: palette.dark }}>
+                                    S/{(item.cantidad * Number(item.producto?.precio || 0)).toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              ))}
+
+                            </Box>
+
+                            <Divider />
+
+                            {/* Footer (total) aligned to bottom via CardContent flex column) */}
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
+                              <Typography sx={{ fontWeight: 800 }}>Total:</Typography>
+                              <Typography sx={{ fontWeight: 800, color: palette.dark }}>
+                                S/{Number(p.total).toFixed(2)}
+                              </Typography>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </Box>
+
+                  {/* Pagination (Atrás / Siguiente) */}
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
+                    <Button
+                      startIcon={<ArrowBack />}
+                      onClick={() => setPage((s) => Math.max(0, s - 1))}
+                      disabled={page === 0}
+                      sx={{ color: page === 0 ? "#bbb" : palette.dark }}
+                    >
+                      Atrás
+                    </Button>
+
+                    <Typography sx={{ color: "#666" }}>
+                      Página {page + 1} de {Math.max(1, Math.ceil(totalItems / itemsPerPage))}
+                    </Typography>
+
+                    <Button
+                      endIcon={<ArrowForward />}
+                      onClick={() => setPage((s) => s + 1)}
+                      disabled={(page + 1) * itemsPerPage >= totalItems}
+                      sx={{ color: (page + 1) * itemsPerPage >= totalItems ? "#bbb" : palette.dark }}
+                    >
+                      Siguiente
+                    </Button>
+                  </Box>
+                </>
+              )
+            ) : (
+              // TAB: TESTS (grid same behaviour)
+              loadingTests ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
+              ) : displayedTests.length === 0 ? (
+                <Paper sx={{ p: 6, textAlign: "center" }}>No tienes tests</Paper>
+              ) : (
+                <>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 3,
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(2, 1fr)",
+                        lg: "repeat(3, 1fr)",
+                      },
+                    }}
+                  >
+                    {pageData.map((t) => (
+                      <Card key={t.id} sx={{ borderRadius: 2 }}>
+                        {t.url_resultado && (
+                          <img
+                            src={t.url_resultado}
+                            alt="resultado"
+                            style={{
+                              width: "100%",
+                              height: 160,
+                              objectFit: "cover",
+                              borderTopLeftRadius: 8,
+                              borderTopRightRadius: 8,
+                            }}
+                          />
                         )}
-                      </Box>
-                      <Divider sx={{ my: 2 }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: "600", mb: 2, color: "#666" }}>Productos:</Typography>
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        {pedido.items.map((item) => (
-                          <Box key={item.id_detalle} sx={{ display: "flex", gap: 2, alignItems: "center", p: 2, bgcolor: "#f9f9f9", borderRadius: "8px" }}>
-                            <Box sx={{ width: 60, height: 60, borderRadius: "8px", overflow: "hidden", bgcolor: "#ffe3d9", flexShrink: 0 }}>
-                              <img src={item.producto.url_imagen || "/images/placeholder-product.jpg"} alt={item.producto.nombre}
-                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                onError={(e) => { e.target.src = "/images/placeholder-product.jpg"; }} />
-                            </Box>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography sx={{ fontWeight: "500" }}>{item.producto.nombre}</Typography>
-                              <Typography variant="body2" color="textSecondary">Cantidad: {item.cantidad} x S/{item.producto.precio.toFixed(2)}</Typography>
-                            </Box>
-                            <Typography sx={{ fontWeight: "600", color: "#ff9c9c", fontSize: "16px" }}>S/{(item.cantidad * item.producto.precio).toFixed(2)}</Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                      <Divider sx={{ my: 2 }} />
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography variant="h6" sx={{ fontWeight: "700" }}>Total:</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: "700", color: "#f00000" }}>S/{pedido.total.toFixed(2)}</Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Box>
-            )}
-          </Box>
-        )}
 
-        {/* Tab 1: Tests */}
-        {tabValue === 1 && (
-          <Box>
-            {loadingTests ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress sx={{ color: "#ff9c9c" }} /></Box>
-            ) : tests.length === 0 ? (
-              <Paper elevation={2} sx={{ p: 6, textAlign: "center", borderRadius: "12px" }}>
-                <Quiz sx={{ fontSize: 80, color: "#ddd", mb: 2 }} />
-                <Typography variant="h6" color="textSecondary">No has realizado tests de preferencias</Typography>
-              </Paper>
-            ) : (
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 3 }}>
-                {tests.map((test) => (
-                  <Card key={test.id} elevation={2} sx={{ borderRadius: "12px", overflow: "hidden", transition: "all 0.3s ease", "&:hover": { transform: "translateY(-4px)", boxShadow: 6 } }}>
-                    {test.url_resultado && (
-                      <Box sx={{ height: 200, overflow: "hidden", bgcolor: "#ffe3d9" }}>
-                        <img src={test.url_resultado} alt="Resultado del test" style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          onError={(e) => { e.target.src = "/images/placeholder-product.jpg"; }} />
-                      </Box>
-                    )}
-                    <CardContent>
-                      <Typography variant="body2" color="textSecondary" sx={{ mb: 1, fontSize: "12px" }}>{formatDate(test.fecha)}</Typography>
-                      <Typography variant="h6" sx={{ fontWeight: "600", mb: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{test.consulta}</Typography>
-                      <Chip label="Ver recomendación" size="small" sx={{ bgcolor: "#ff9c9c", color: "#fff", fontWeight: "500" }} />
-                    </CardContent>
-                  </Card>
-                ))}
-              </Box>
+                        <CardContent>
+                          <Typography fontSize={12} color="#777">{formatDateShort(t.fecha)}</Typography>
+                          <Typography fontWeight={800} sx={{ mt: 1 }}>{t.consulta}</Typography>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Box>
+
+                  {/* Pagination for tests */}
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
+                    <Button
+                      startIcon={<ArrowBack />}
+                      onClick={() => setPage((s) => Math.max(0, s - 1))}
+                      disabled={page === 0}
+                      sx={{ color: page === 0 ? "#bbb" : palette.dark }}
+                    >
+                      Atrás
+                    </Button>
+
+                    <Typography sx={{ color: "#666" }}>
+                      Página {page + 1} de {Math.max(1, Math.ceil(totalItems / itemsPerPage))}
+                    </Typography>
+
+                    <Button
+                      endIcon={<ArrowForward />}
+                      onClick={() => setPage((s) => s + 1)}
+                      disabled={(page + 1) * itemsPerPage >= totalItems}
+                      sx={{ color: (page + 1) * itemsPerPage >= totalItems ? "#bbb" : palette.dark }}
+                    >
+                      Siguiente
+                    </Button>
+                  </Box>
+                </>
+              )
             )}
           </Box>
-        )}
+        </Box>
       </Box>
     </Box>
   );
