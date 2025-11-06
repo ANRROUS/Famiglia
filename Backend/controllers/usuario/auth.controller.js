@@ -12,7 +12,7 @@ export const register = async (req, res) => {
     }
 
     const existente = await prisma.usuario.findUnique({ where: { correo } });
-    if (existente) return res.status(400).json({ message: "El correo ya está registrado" });
+    if (existente) return res.status(409).json({ message: "El correo ya está registrado" });
 
     const hashed = await bcrypt.hash(contraseña, 10);
 
@@ -51,7 +51,7 @@ export const login = async (req, res) => {
     }
 
   const usuario = await prisma.usuario.findUnique({ where: { correo } });
-    if (!usuario) return res.status(400).json({ message: "Usuario no encontrado" });
+    if (!usuario) return res.status(404).json({ message: "Usuario no encontrado" });
 
     const isMatch = await bcrypt.compare(contraseña, usuario.contrase_a);
     if (!isMatch) return res.status(401).json({ message: "Contraseña incorrecta" });

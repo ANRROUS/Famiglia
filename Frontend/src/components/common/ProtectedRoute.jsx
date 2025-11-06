@@ -35,7 +35,9 @@ export default function ProtectedRoute({ children, allowedRoles = null, fallback
 
   // Si no está autenticado después de verificar, redirigir
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    // Obtener la última ruta segura registrada
+    const lastSafePath = localStorage.getItem("lastSafePath") || "/";
+    return <Navigate to={lastSafePath} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(role || 'C')) {
