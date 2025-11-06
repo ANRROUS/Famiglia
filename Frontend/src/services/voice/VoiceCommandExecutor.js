@@ -7,6 +7,7 @@
 import { clickActions, scrollActions, formActions, readActions, ListNavigator, modalActions, focusActions } from './voiceActions.js';
 import voiceReduxBridge from './reduxIntegration.js';
 import homeCommands from './commands/homeCommands.js';
+import catalogCommands from './commands/catalogCommands.js';
 
 class VoiceCommandExecutor {
   /**
@@ -105,6 +106,12 @@ class VoiceCommandExecutor {
           return await this.searchProduct(params.producto);
         case 'filter_category':
           return await this.filterCategory(params.categoria);
+        case 'filter_price_max':
+        case 'filter_price_less_than':
+          return await this.filterPriceLessThan(params.precio);
+        case 'filter_price_min':
+        case 'filter_price_greater_than':
+          return await this.filterPriceGreaterThan(params.precio);
         case 'clear_filters':
           return await this.clearFilters();
 
@@ -283,40 +290,19 @@ class VoiceCommandExecutor {
   // ==================== COMANDOS DE BÚSQUEDA Y FILTROS ====================
 
   async searchProduct(productName) {
-    if (!productName) {
-      await this._speak('¿Qué producto quieres buscar?');
-      return { success: false, error: 'No product name provided' };
-    }
-
-    // Buscar input de búsqueda
-    const searchInput = document.querySelector('input[type="search"], input[placeholder*="buscar" i], input[name*="search" i]');
-
-    if (searchInput) {
-      formActions.fillInput('buscar', productName);
-      await this._speak(`Buscando ${productName}`);
-      return { success: true, action: 'search', product: productName };
-    }
-
-    await this._speak('No encontré el campo de búsqueda');
-    return { success: false, error: 'Search input not found' };
+    return await catalogCommands.searchProduct(productName, this.ttsService);
   }
 
   async filterCategory(category) {
-    if (!category) {
-      await this._speak('¿Por qué categoría quieres filtrar?');
-      return { success: false, error: 'No category provided' };
-    }
+    return await catalogCommands.filterByCategory(category, this.ttsService);
+  }
 
-    // Buscar botón de categoría
-    const categoryButton = clickActions.clickByAccessibleName(category);
+  async filterPriceLessThan(maxPrice) {
+    return await catalogCommands.filterPriceLessThan(maxPrice, this.ttsService);
+  }
 
-    if (categoryButton) {
-      await this._speak(`Filtrando por ${category}`);
-      return { success: true, action: 'filter', category };
-    }
-
-    await this._speak(`No encontré la categoría ${category}`);
-    return { success: false, error: 'Category not found' };
+  async filterPriceGreaterThan(minPrice) {
+    return await catalogCommands.filterPriceGreaterThan(minPrice, this.ttsService);
   }
 
   async clearFilters() {
@@ -375,28 +361,7 @@ class VoiceCommandExecutor {
   // ==================== COMANDOS DE LECTURA ====================
 
   async readProducts() {
-    const products = readActions.readProducts();
-
-    if (products.length === 0) {
-      await this._speak('No hay productos para leer');
-      return { success: false, action: 'read_products' };
-    }
-
-    await this._speak(`Hay ${products.length} productos disponibles`);
-
-    // Leer primeros 5 productos
-    const productsToRead = products.slice(0, 5);
-    for (const product of productsToRead) {
-      const message = `${product.name}, ${product.price}`;
-      await this._speak(message);
-      await new Promise(resolve => setTimeout(resolve, 800));
-    }
-
-    if (products.length > 5) {
-      await this._speak(`Y ${products.length - 5} productos más`);
-    }
-
-    return { success: true, action: 'read_products', count: products.length };
+    return await catalogCommands.readAllProducts(this.ttsService);
   }
 
   async readCart() {
@@ -430,37 +395,11 @@ class VoiceCommandExecutor {
   // ==================== COMANDOS DE NAVEGACIÓN DE LISTAS ====================
 
   async nextItem() {
-    if (!this.listNavigator) {
-      this.listNavigator = new ListNavigator('[data-product-card], .product-card, article');
-    }
-
-    const element = this.listNavigator.next();
-
-    if (element) {
-      const info = this.listNavigator.getCurrentInfo();
-      await this._speak(`Producto ${info.index + 1} de ${info.total}`);
-      return { success: true, action: 'next_item', index: info.index };
-    }
-
-    await this._speak('No hay elementos para navegar');
-    return { success: false, action: 'next_item' };
+    return await catalogCommands.nextProduct(this.ttsService);
   }
 
   async previousItem() {
-    if (!this.listNavigator) {
-      this.listNavigator = new ListNavigator('[data-product-card], .product-card, article');
-    }
-
-    const element = this.listNavigator.previous();
-
-    if (element) {
-      const info = this.listNavigator.getCurrentInfo();
-      await this._speak(`Producto ${info.index + 1} de ${info.total}`);
-      return { success: true, action: 'previous_item', index: info.index };
-    }
-
-    await this._speak('No hay elementos para navegar');
-    return { success: false, action: 'previous_item' };
+    return await catalogCommands.previousProduct(this.ttsService);
   }
 
   async firstItem() {
