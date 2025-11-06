@@ -1,8 +1,8 @@
 import { Box, Typography } from "@mui/material";
-import imgRappiLogo from "../../../assets/images/img_rappiLogo.png";
-import imgWhatsappLogo from "../../../assets/images/img_wspLogo.png";
+import imgRappiLogo from "../assets/images/img_rappiLogo.png";
+import imgWhatsappLogo from "../assets/images/img_wspLogo.png";
 
-const DeliverySection = ({ id }) => {
+const Delivery = ({ id }) => {
   return (
     <Box
       id={id}
@@ -113,4 +113,4 @@ const DeliverySection = ({ id }) => {
   );
 };
 
-export default DeliverySection;
+export default Delivery;

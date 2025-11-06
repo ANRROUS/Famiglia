@@ -25,10 +25,8 @@ const MenuSection = () => {
     { nombre: "Bebidas", img: imgJugoArandano },
   ];
 
-  // Duplicamos categorías para crear un efecto de scroll infinito
   const items = [...categorias, ...categorias, ...categorias];
 
-  /** 🔹 Inicializa el scroll al centro del contenedor */
   useEffect(() => {
     const slider = sliderRef.current;
     if (!slider) return;
@@ -37,7 +35,6 @@ const MenuSection = () => {
     prevScrollLeft.current = oneThird;
   }, []);
 
-  /** 🔹 Hace que el scroll sea infinito (rebote suave a los extremos) */
   const handleScroll = () => {
     const slider = sliderRef.current;
     if (!slider) return;
@@ -56,7 +53,6 @@ const MenuSection = () => {
     startX.current = currentPointerX.current;
   };
 
-  /** 🔹 Control de desplazamiento con drag */
   const onPointerDown = (e) => {
     const slider = sliderRef.current;
     if (!slider) return;
@@ -98,7 +94,6 @@ const MenuSection = () => {
     prevScrollLeft.current = slider.scrollLeft;
   };
 
-  /** 🔹 Evita selección de texto al arrastrar */
   useEffect(() => {
     const preventSelect = (e) => {
       if (isPointerDown.current) e.preventDefault();
@@ -107,8 +102,9 @@ const MenuSection = () => {
     return () => document.removeEventListener("selectstart", preventSelect);
   }, []);
 
-  /** 🔹 Redirige al hacer clic en una categoría */
-  const handleCategoryClick = () => navigate("/carta");
+  const handleCategoryClick = () => { 
+    navigate("/carta");
+  }
 
   return (
     <Box
@@ -167,9 +163,7 @@ const MenuSection = () => {
             <Box
               key={index}
               onClick={handleCategoryClick}
-              className="flex flex-col items-center justify-center flex-shrink-0 cursor-pointer 
-                         transition-transform duration-300 hover:scale-105 
-                         hover:drop-shadow-[0_8px_12px_rgba(255,255,255,0.3)] active:scale-95"
+              className="flex flex-col items-center justify-center flex-shrink-0 cursor-pointer"
             >
               <Box
                 sx={{
@@ -184,7 +178,7 @@ const MenuSection = () => {
                 <img
                   src={img}
                   alt={nombre}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover"
                   draggable={false}
                 />
               </Box>

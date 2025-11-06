@@ -10,7 +10,6 @@ const FiltroPrecio = ({ min = 0, max = 100, value = [0, 100], onChange }) => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Typography sx={{ color: '#8b3e3e', fontWeight: 600, mb: 1 }}>Precios</Typography>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
         <Typography sx={{ color: '#6b2c2c' }}>{valorTexto(value[0])}</Typography>
         <Typography sx={{ color: '#6b2c2c' }}>{valorTexto(value[1])}</Typography>
