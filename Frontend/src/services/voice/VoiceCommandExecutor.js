@@ -9,6 +9,7 @@ import voiceReduxBridge from './reduxIntegration.js';
 import homeCommands from './commands/homeCommands.js';
 import catalogCommands from './commands/catalogCommands.js';
 import cartCommands from './commands/cartCommands.js';
+import testCommands from './commands/testCommands.js';
 
 class VoiceCommandExecutor {
   /**
@@ -213,9 +214,22 @@ class VoiceCommandExecutor {
 
         // ==================== ESPECÍFICOS DE TEST ====================
         case 'request_test':
+        case 'start_test':
+        case 'new_test':
           return await this.requestTest();
         case 'view_result':
+        case 'show_result':
           return await this.viewTestResult();
+        case 'read_result':
+          return await this.readTestResult();
+        case 'add_recommended':
+          return await this.addRecommendedToCart(params.numero);
+        case 'restart_test':
+        case 'repeat_test':
+          return await this.restartTest();
+        case 'answer_question':
+        case 'select_option':
+          return await this.answerTestQuestion(params.opcion);
 
         // ==================== AUTH ====================
         case 'logout':
@@ -596,38 +610,27 @@ class VoiceCommandExecutor {
   // ==================== COMANDOS ESPECÍFICOS DE TEST ====================
 
   async requestTest() {
-    const testButton = clickActions.clickByAccessibleName('solicitar test') ||
-                      clickActions.clickByAccessibleName('hacer test') ||
-                      clickActions.clickByAccessibleName('comenzar test');
-
-    if (testButton) {
-      await this._speak('Iniciando test de preferencias');
-      return { success: true, action: 'request_test' };
-    }
-
-    // Intentar navegar a la página de test
-    if (this.navigate) {
-      this.navigate('/test');
-      await this._speak('Ir al test de preferencias');
-      return { success: true, action: 'request_test' };
-    }
-
-    await this._speak('No encontré el test');
-    return { success: false, action: 'request_test' };
+    return await testCommands.requestNewTest(this.navigate, this.ttsService);
   }
 
   async viewTestResult() {
-    const resultButton = clickActions.clickByAccessibleName('ver resultado') ||
-                        clickActions.clickByAccessibleName('mi resultado') ||
-                        clickActions.clickByAccessibleName('resultado');
+    return await testCommands.viewTestResult(this.ttsService);
+  }
 
-    if (resultButton) {
-      await this._speak('Mostrando resultado');
-      return { success: true, action: 'view_result' };
-    }
+  async readTestResult() {
+    return await testCommands.readTestResult(this.ttsService);
+  }
 
-    await this._speak('No encontré el resultado');
-    return { success: false, action: 'view_result' };
+  async addRecommendedToCart(index = 1) {
+    return await testCommands.addRecommendedToCart(index, this.ttsService);
+  }
+
+  async restartTest() {
+    return await testCommands.restartTest(this.ttsService);
+  }
+
+  async answerTestQuestion(optionIndex) {
+    return await testCommands.answerTestQuestion(optionIndex, this.ttsService);
   }
 }
 
