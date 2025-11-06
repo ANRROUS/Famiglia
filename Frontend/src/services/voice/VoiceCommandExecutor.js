@@ -6,6 +6,7 @@
 
 import { clickActions, scrollActions, formActions, readActions, ListNavigator, modalActions, focusActions } from './voiceActions.js';
 import voiceReduxBridge from './reduxIntegration.js';
+import homeCommands from './commands/homeCommands.js';
 
 class VoiceCommandExecutor {
   /**
@@ -175,9 +176,20 @@ class VoiceCommandExecutor {
         case 'whatsapp':
           return await this.openWhatsapp();
         case 'about':
+        case 'quienes_somos':
           return await this.scrollToAbout();
         case 'location':
+        case 'ubicacion':
           return await this.scrollToLocation();
+        case 'terms':
+        case 'terminos':
+          return await this.openTerms();
+        case 'privacy':
+        case 'privacidad':
+          return await this.openPrivacy();
+        case 'contact':
+        case 'contacto':
+          return await this.readContactInfo();
 
         // ==================== ESPECÍFICOS DE TEST ====================
         case 'request_test':
@@ -601,57 +613,31 @@ class VoiceCommandExecutor {
   // ==================== COMANDOS ESPECÍFICOS DE HOME ====================
 
   async openRappi() {
-    const rappiLink = document.querySelector('a[href*="rappi"]');
-
-    if (rappiLink) {
-      rappiLink.click();
-      await this._speak('Abriendo Rappi');
-      return { success: true, action: 'open_rappi' };
-    }
-
-    await this._speak('No encontré el enlace de Rappi');
-    return { success: false, action: 'open_rappi' };
+    return await homeCommands.openRappi(this.ttsService);
   }
 
   async openWhatsapp() {
-    const whatsappLink = document.querySelector('a[href*="whatsapp"], a[href*="wa.me"]');
-
-    if (whatsappLink) {
-      whatsappLink.click();
-      await this._speak('Abriendo WhatsApp');
-      return { success: true, action: 'open_whatsapp' };
-    }
-
-    await this._speak('No encontré el enlace de WhatsApp');
-    return { success: false, action: 'open_whatsapp' };
+    return await homeCommands.openWhatsapp(this.ttsService);
   }
 
   async scrollToAbout() {
-    const success = scrollActions.scrollToSection('quiénes somos') ||
-                   scrollActions.scrollToSection('about') ||
-                   scrollActions.scrollToSection('nosotros');
-
-    if (success) {
-      await this._speak('Ir a quiénes somos');
-      return { success: true, action: 'scroll_to_about' };
-    }
-
-    await this._speak('No encontré la sección');
-    return { success: false, action: 'scroll_to_about' };
+    return await homeCommands.goToAboutUs(this.ttsService);
   }
 
   async scrollToLocation() {
-    const success = scrollActions.scrollToSection('ubicación') ||
-                   scrollActions.scrollToSection('location') ||
-                   scrollActions.scrollToSection('mapa');
+    return await homeCommands.goToLocation(this.ttsService);
+  }
 
-    if (success) {
-      await this._speak('Ir a ubicación');
-      return { success: true, action: 'scroll_to_location' };
-    }
+  async openTerms() {
+    return await homeCommands.openTerms(this.ttsService);
+  }
 
-    await this._speak('No encontré la ubicación');
-    return { success: false, action: 'scroll_to_location' };
+  async openPrivacy() {
+    return await homeCommands.openPrivacy(this.ttsService);
+  }
+
+  async readContactInfo() {
+    return await homeCommands.readContactInfo(this.ttsService);
   }
 
   // ==================== COMANDOS ESPECÍFICOS DE TEST ====================
