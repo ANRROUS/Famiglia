@@ -1,6 +1,8 @@
 import prisma from '../../prismaClient.js';
 import crypto from 'crypto';
 
+import { logAuditoria } from '../../services/auditoriaService.js';
+
 // Función para generar hash del ID del pedido
 const hashOrderId = (orderId) => {
   const hash = crypto.createHash('sha256').update(orderId.toString()).digest('hex');
@@ -165,6 +167,19 @@ export const addToCart = async (req, res) => {
       totalQuantity,
       totalAmount
     });
+
+    logAuditoria({
+      usuarioId: userId,
+      anonimoId: req.cookies?.anon_id || null,
+      accion: 'agregar_al_carrito',
+      recurso: 'producto',
+      recursoId: String(id_producto),
+      meta: { 
+        cantidad, 
+        pedidoId: String(pedido.id_pedido) 
+      }
+    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+
   } catch (error) {
     console.error('Error al agregar al carrito:', error);
     res.status(500).json({
@@ -303,6 +318,17 @@ export const removeFromCart = async (req, res) => {
       totalQuantity,
       totalAmount
     });
+    // Registrar auditoría de eliminación del carrito
+    logAuditoria({
+      usuarioId: userId,
+      anonimoId: req.cookies?.anon_id || null,
+      accion: 'eliminar_carrito',
+      recurso: 'detalle_pedido',
+      recursoId: String(id),
+      req,
+      meta: { pedidoId: String(idPedido), totalQuantity, totalAmount }
+    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+
   } catch (error) {
     console.error('Error al eliminar del carrito:', error);
     res.status(500).json({

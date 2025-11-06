@@ -1,6 +1,7 @@
 import prisma from '../../prismaClient.js';
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { logAuditoria } from '../../services/auditoriaService.js';
 
 export const register = async (req, res) => {
   try {
@@ -28,10 +29,18 @@ export const register = async (req, res) => {
         rol: nuevoUsuario.rol || "C",
       },
     });
+    logAuditoria({
+      usuarioId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
+      accion: 'register',
+      recurso: 'usuario',
+      recursoId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
+      req
+    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
   } catch (error) {
     res.status(500).json({ message: "Error en el registro", error: error.message });
   }
 };
+
 
 export const login = async (req, res) => {
   try {
@@ -73,6 +82,14 @@ export const login = async (req, res) => {
         rol,
       },
     });
+    logAuditoria({
+      usuarioId: usuario?.id_usuario || usuario?.id || null,
+      accion: 'login',
+      recurso: 'usuario',
+      recursoId: usuario?.id_usuario || usuario?.id || null,
+      req,
+      meta: { metodo: 'password' }
+    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
   } catch (error) {
     res.status(500).json({ message: "Error al iniciar sesión", error: error.message });
   }

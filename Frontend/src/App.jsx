@@ -24,6 +24,9 @@ import Complaints from "./pages/Complaints";
 import { setUser, authCheckComplete } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
 
+import { enviarEventoAuditoria } from "./services/api/auditoriaClient.js";
+
+// 🔹 Controla la visibilidad del Header
 // Admin pages
 import PedidosAdmin from './pages/PedidoAdmin';
 import CatalogoAdmin from './pages/CatalogoAdmin';
@@ -34,6 +37,10 @@ function Layout() {
   const { role } = useSelector((state) => state.auth);
   const { isLoginModalOpen, hideLoginModal } = useLoginModal();
 
+  const usuario = useSelector(state => state.auth.user);
+  const usuarioId = usuario?.id || usuario?.id_usuario || null;
+
+  // Verificar autenticación al cargar la app (SOLO UNA VEZ)
   // Determinar si es una ruta admin
   const isAdminRoute =
     location.pathname.startsWith("/pedidos-admin") ||
@@ -62,6 +69,19 @@ function Layout() {
     checkAuth();
     return () => { isMounted = false; };
   }, [dispatch]);
+
+  useEffect(() => {
+    const usuarioLogueado = Boolean(usuarioId);
+    enviarEventoAuditoria({
+      accion: 'visualizar',
+      recurso: 'pagina',
+      ruta: location.pathname + location.search,
+      meta: {
+        titulo: document.title || null,
+        usuarioId 
+      }
+    }, usuarioLogueado);
+  }, [location, usuarioId]);
 
   useEffect(() => {
     const publicRoutes = [

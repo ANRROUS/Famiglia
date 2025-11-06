@@ -20,6 +20,7 @@ import NotificationSnackbar from "../components/common/NotificationSnackbar";
 import BuscadorProductos from "../components/common/BuscadorProductos";
 import FiltroPrecio from "../components/common/FiltroPrecio";
 import ProductCard from "../components/common/ProductCard";
+import { useLocation } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -28,6 +29,7 @@ export default function Catalog() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [openFilters, setOpenFilters] = useState(false);
+  const location = useLocation();
 
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -82,6 +84,24 @@ export default function Catalog() {
     fetch();
     return () => (mounted = false);
   }, []);
+
+  useEffect(() => {
+    if (categorias.length === 0) return; // Espera que carguen las categorías
+
+    const categoriaGuardada = localStorage.getItem("categoriaSeleccionada");
+
+    if (categoriaGuardada) {
+      const categoriaEncontrada = categorias.find(
+        (cat) => cat.nombre.toLowerCase() === categoriaGuardada.toLowerCase()
+      );
+
+      if (categoriaEncontrada) {
+        setSelectedCategories([String(categoriaEncontrada.id_categoria)]);
+      }
+    }
+  }, [categorias]);
+
+
 
   // filtered results (memoized)
   const filteredProducts = useMemo(() => {
@@ -487,8 +507,8 @@ export default function Catalog() {
                     },
                     "& .MuiPaginationItem-ellipsis": {
                       color: "#8b3e3e",
-                      fontSize: "1.5rem", // 👈 agranda los puntos
-                      lineHeight: "1", // 👈 centra verticalmente
+                      fontSize: "1.5rem",
+                      lineHeight: "1",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
