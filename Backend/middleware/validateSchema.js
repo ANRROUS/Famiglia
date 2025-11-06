@@ -5,19 +5,19 @@ export const validateSchema = (schema) => async (req, res, next) => {
     await schema.parseAsync(req.body);
     next();
   } catch (error) {
-    // Si es un error de Zod, mostramos sus mensajes personalizados
     if (error instanceof ZodError) {
       return res.status(400).json({
         message: "Error de validación",
-        errors: error.issues.map((issue) => issue.message),
+        errors: error.issues.map((issue) => ({
+          field: issue.path[0],
+          message: issue.message,
+        })),
       });
     }
 
-    // Si es otro tipo de error, mostramos un mensaje genérico
-    console.error("Error inesperado en validateSchema:", error);
     return res.status(400).json({
       message: "Error de validación",
-      errors: ["Error desconocido"],
+      errors: [{ field: "unknown", message: "Error desconocido" }],
     });
   }
 };

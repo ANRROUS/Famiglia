@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { LoginModalProvider } from "./context/LoginModalContext";
@@ -19,6 +19,7 @@ import TerminosPage from './pages/TerminosPage';
 import PrivacidadPage from './pages/PrivacidadPage';
 import QuienesSomosPage from './pages/QuienesSomosPage';
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import Delivery from "./pages/Delivery";
 import Complaints from "./pages/Complaints";
 import { setUser, authCheckComplete } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
@@ -82,9 +83,20 @@ function Layout() {
     }, usuarioLogueado);
   }, [location, usuarioId]);
 
+  useEffect(() => {
+    const publicRoutes = [
+      "/", "/home", "/contact-us", "/complaints", "/terminos",
+      "/privacidad", "/quienes-somos", "/carta", "/delivery"
+    ];
+
+    if (publicRoutes.includes(location.pathname)) {
+      localStorage.setItem("lastSafePath", location.pathname);
+    }
+  }, [location.pathname]);
+
   return (
     <>
-  {!hideHeader && (showAdminHeader ? <HeaderAdmin /> : <Header />)}
+      {!hideHeader && (showAdminHeader ? <HeaderAdmin /> : <Header />)}
 
       <main className="min-h-screen flex justify-center">
         <Routes>
@@ -96,6 +108,7 @@ function Layout() {
           <Route path="/privacidad" element={<PrivacidadPage />} />
           <Route path="/quienes-somos" element={<QuienesSomosPage />} />
           <Route path="/carta" element={<Catalog />} />
+          <Route path="/delivery" element={<Delivery />} />
 
           {/* Admin */}
           <Route
