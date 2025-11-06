@@ -8,6 +8,7 @@ import { clickActions, scrollActions, formActions, readActions, ListNavigator, m
 import voiceReduxBridge from './reduxIntegration.js';
 import homeCommands from './commands/homeCommands.js';
 import catalogCommands from './commands/catalogCommands.js';
+import cartCommands from './commands/cartCommands.js';
 
 class VoiceCommandExecutor {
   /**
@@ -121,11 +122,23 @@ class VoiceCommandExecutor {
         case 'remove_from_cart':
           return await this.removeFromCart(params.numero);
         case 'update_quantity':
+        case 'modify_quantity':
           return await this.updateQuantity(params.numero, params.cantidad);
         case 'clear_cart':
           return await this.clearCart();
         case 'checkout':
+        case 'proceed_to_checkout':
           return await this.navigateCheckout();
+        case 'select_payment_method':
+          return await this.selectPaymentMethod(params.metodo);
+        case 'activate_dictation':
+        case 'enter_data':
+          return await this.activateDictation();
+        case 'finalize_purchase':
+        case 'complete_order':
+          return await this.finalizePurchase();
+        case 'apply_coupon':
+          return await this.applyCoupon(params.cupon);
 
         // ==================== LECTURA ====================
         case 'read_products':
@@ -334,28 +347,31 @@ class VoiceCommandExecutor {
   }
 
   async removeFromCart(index) {
-    if (!index || index < 1) {
-      await this._speak('¿Qué producto quieres eliminar?');
-      return { success: false, error: 'No index provided' };
-    }
-
-    const success = await voiceReduxBridge.removeFromCartByIndex(index);
-    return { success, action: 'remove_from_cart', index };
+    return await cartCommands.removeFromCart(index, this.ttsService);
   }
 
   async updateQuantity(index, newQuantity) {
-    if (!index || index < 1 || !newQuantity) {
-      await this._speak('Especifica el producto y la nueva cantidad');
-      return { success: false, error: 'Invalid parameters' };
-    }
-
-    const success = await voiceReduxBridge.updateCartQuantity(index, newQuantity);
-    return { success, action: 'update_quantity', index, quantity: newQuantity };
+    return await cartCommands.updateCartQuantity(index, newQuantity, this.ttsService);
   }
 
   async clearCart() {
-    const success = await voiceReduxBridge.clearCart();
-    return { success, action: 'clear_cart' };
+    return await cartCommands.clearCart(this.ttsService);
+  }
+
+  async selectPaymentMethod(method) {
+    return await cartCommands.selectPaymentMethod(method, this.ttsService);
+  }
+
+  async activateDictation() {
+    return await cartCommands.activateDictationMode(this.ttsService);
+  }
+
+  async finalizePurchase() {
+    return await cartCommands.finalizePurchase(this.ttsService);
+  }
+
+  async applyCoupon(couponCode) {
+    return await cartCommands.applyCoupon(couponCode, this.ttsService);
   }
 
   // ==================== COMANDOS DE LECTURA ====================
@@ -365,13 +381,11 @@ class VoiceCommandExecutor {
   }
 
   async readCart() {
-    await voiceReduxBridge.readCart();
-    return { success: true, action: 'read_cart' };
+    return await cartCommands.readCart(this.ttsService);
   }
 
   async readCartTotal() {
-    await voiceReduxBridge.readCartTotal();
-    return { success: true, action: 'read_total' };
+    return await cartCommands.readCartTotal(this.ttsService);
   }
 
   async readPage() {
