@@ -45,14 +45,36 @@ export const VoiceProvider = ({ children, store }) => {
   } = useVoiceRecognition();
 
   // Estados del contexto
-  const [isActive, setIsActive] = useState(false); // Control general activado/desactivado
+  const [isActive, setIsActive] = useState(() => {
+    // Restaurar estado de activación desde localStorage
+    const saved = localStorage.getItem('famiglia_voice_active');
+    return saved === 'true';
+  });
   const [isProcessing, setIsProcessing] = useState(false); // Procesando comando
   const [isSpeaking, setIsSpeaking] = useState(false); // TTS hablando
-  const [ttsEnabled, setTtsEnabled] = useState(true); // TTS activado/desactivado
+  const [ttsEnabled, setTtsEnabled] = useState(() => {
+    // Restaurar preferencia de TTS
+    const saved = localStorage.getItem('famiglia_voice_tts_enabled');
+    return saved !== 'false'; // Por defecto true
+  });
   const [lastCommand, setLastCommand] = useState(''); // Último comando procesado
   const [lastResponse, setLastResponse] = useState(''); // Última respuesta TTS
   const [commandHistory, setCommandHistory] = useState([]); // Historial de comandos
   const [error, setError] = useState(null); // Error actual
+
+  // Preferencias de TTS
+  const [ttsRate, setTtsRate] = useState(() => {
+    const saved = localStorage.getItem('famiglia_voice_tts_rate');
+    return saved ? parseFloat(saved) : 1.0;
+  });
+  const [ttsVolume, setTtsVolume] = useState(() => {
+    const saved = localStorage.getItem('famiglia_voice_tts_volume');
+    return saved ? parseFloat(saved) : 1.0;
+  });
+  const [showTranscript, setShowTranscript] = useState(() => {
+    const saved = localStorage.getItem('famiglia_voice_show_transcript');
+    return saved !== 'false'; // Por defecto true
+  });
 
   // Referencias
   const processingRef = useRef(false); // Evitar procesamiento duplicado
@@ -111,6 +133,58 @@ export const VoiceProvider = ({ children, store }) => {
       setError(recognitionError);
     }
   }, [recognitionError]);
+
+  /**
+   * Persistir estado de activación en localStorage
+   */
+  useEffect(() => {
+    localStorage.setItem('famiglia_voice_active', isActive.toString());
+  }, [isActive]);
+
+  /**
+   * Persistir preferencia de TTS en localStorage
+   */
+  useEffect(() => {
+    localStorage.setItem('famiglia_voice_tts_enabled', ttsEnabled.toString());
+  }, [ttsEnabled]);
+
+  /**
+   * Persistir configuración de TTS rate
+   */
+  useEffect(() => {
+    localStorage.setItem('famiglia_voice_tts_rate', ttsRate.toString());
+  }, [ttsRate]);
+
+  /**
+   * Persistir configuración de TTS volume
+   */
+  useEffect(() => {
+    localStorage.setItem('famiglia_voice_tts_volume', ttsVolume.toString());
+  }, [ttsVolume]);
+
+  /**
+   * Persistir preferencia de mostrar transcripción
+   */
+  useEffect(() => {
+    localStorage.setItem('famiglia_voice_show_transcript', showTranscript.toString());
+  }, [showTranscript]);
+
+  /**
+   * Auto-activar asistente si estaba activo previamente
+   */
+  useEffect(() => {
+    const wasActive = localStorage.getItem('famiglia_voice_active') === 'true';
+
+    if (wasActive && isSupported && !isActive) {
+      // Activar automáticamente después de 1 segundo
+      const autoActivateTimeout = setTimeout(() => {
+        console.log('[Voice Context] Auto-activating from previous session');
+        activate();
+      }, 1000);
+
+      return () => clearTimeout(autoActivateTimeout);
+    }
+  }, [isSupported]); // Solo ejecutar una vez al montar
 
   // ==================== FUNCIONES ====================
 
@@ -371,6 +445,34 @@ export const VoiceProvider = ({ children, store }) => {
   }, [ttsEnabled]);
 
   /**
+   * Actualizar velocidad de TTS
+   */
+  const updateTTSRate = useCallback((rate) => {
+    const normalizedRate = Math.max(0.5, Math.min(2.0, rate));
+    setTtsRate(normalizedRate);
+    textToSpeechService.setRate(normalizedRate);
+    console.log('[Voice Context] TTS rate updated:', normalizedRate);
+  }, []);
+
+  /**
+   * Actualizar volumen de TTS
+   */
+  const updateTTSVolume = useCallback((volume) => {
+    const normalizedVolume = Math.max(0, Math.min(1.0, volume));
+    setTtsVolume(normalizedVolume);
+    textToSpeechService.setVolume(normalizedVolume);
+    console.log('[Voice Context] TTS volume updated:', normalizedVolume);
+  }, []);
+
+  /**
+   * Activar/desactivar transcripción visual
+   */
+  const toggleShowTranscript = useCallback(() => {
+    setShowTranscript(prev => !prev);
+    console.log('[Voice Context] Show transcript toggled:', !showTranscript);
+  }, [showTranscript]);
+
+  /**
    * Limpiar error
    */
   const clearError = useCallback(() => {
@@ -443,6 +545,11 @@ export const VoiceProvider = ({ children, store }) => {
     commandHistory,
     error,
 
+    // Preferencias
+    ttsRate,
+    ttsVolume,
+    showTranscript,
+
     // Funciones de control
     activate,
     deactivate,
@@ -456,6 +563,11 @@ export const VoiceProvider = ({ children, store }) => {
     cancelSpeech,
     repeatLast,
     toggleTTS,
+
+    // Funciones de preferencias
+    updateTTSRate,
+    updateTTSVolume,
+    toggleShowTranscript,
 
     // Utilidades
     clearError,

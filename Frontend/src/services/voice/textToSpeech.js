@@ -231,6 +231,47 @@ class TextToSpeechService {
   }
 
   /**
+   * Establecer velocidad por defecto
+   * @param {Number} rate - Velocidad (0.5 a 2.0)
+   */
+  setRate(rate) {
+    this.defaultRate = Math.max(0.5, Math.min(2.0, rate));
+    console.log('[TTS] Default rate set to:', this.defaultRate);
+  }
+
+  /**
+   * Establecer volumen por defecto
+   * @param {Number} volume - Volumen (0.0 a 1.0)
+   */
+  setVolume(volume) {
+    this.defaultVolume = Math.max(0, Math.min(1.0, volume));
+    console.log('[TTS] Default volume set to:', this.defaultVolume);
+  }
+
+  /**
+   * Establecer pitch por defecto
+   * @param {Number} pitch - Tono (0.0 a 2.0)
+   */
+  setPitch(pitch) {
+    this.defaultPitch = Math.max(0, Math.min(2.0, pitch));
+    console.log('[TTS] Default pitch set to:', this.defaultPitch);
+  }
+
+  /**
+   * Obtener configuración actual
+   * @returns {Object}
+   */
+  getSettings() {
+    return {
+      rate: this.defaultRate,
+      pitch: this.defaultPitch,
+      volume: this.defaultVolume,
+      voice: this.selectedVoice?.name,
+      lang: this.selectedVoice?.lang
+    };
+  }
+
+  /**
    * Cambiar voz manualmente
    * @param {SpeechSynthesisVoice} voice - Voz a usar
    */
