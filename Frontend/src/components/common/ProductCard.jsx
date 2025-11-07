@@ -63,14 +63,21 @@ const ProductCard = ({ product, onAddToCart }) => {
   const isBestSeller = totalVendido > 5;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 font-['Montserrat'] border border-gray-200 mb-3">
+    <div
+      className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 font-['Montserrat'] border border-gray-200 mb-3"
+      data-product-card
+      data-product-id={product.id || product._id}
+      data-product-name={name}
+      data-product-price={price}
+      data-product-category={product.categoria || product.category}
+    >
       {/* Contenedor Principal - Layout Horizontal */}
       <div className="grid grid-cols-[100px_1fr_auto] gap-4 items-center px-4 py-4">
         {/* Imagen del producto */}
         <div className="w-[100px] h-[90px] rounded-xl overflow-hidden bg-[#ffe3d9] flex items-center justify-center">
           <img
             src={image}
-            alt={name}
+            alt={`Imagen de ${name}`}
             className="w-full h-full object-cover"
             onError={handleImageError}
           />
@@ -99,7 +106,11 @@ const ProductCard = ({ product, onAddToCart }) => {
         {/* Precio y Botón */}
         <div className="flex flex-col items-end gap-2">
           {/* Precio */}
-          <div className="text-xl font-bold text-red-600">
+          <div
+            className="text-xl font-bold text-red-600"
+            data-product-price-display
+            aria-label={`Precio: ${price?.toFixed(2)} soles`}
+          >
             S/{price?.toFixed(2)}
           </div>
 
@@ -107,6 +118,8 @@ const ProductCard = ({ product, onAddToCart }) => {
           <button
             className="px-4 py-2 bg-pink-50 text-[#771919] rounded-lg hover:bg-pink-100 transition-colors duration-200 font-medium text-sm border border-pink-200"
             onClick={handleAddToCart}
+            aria-label={`Añadir ${name} al carrito`}
+            data-add-to-cart
           >
             Añadir al carrito
           </button>

@@ -107,19 +107,28 @@ export default function Catalog() {
       flexDirection: { xs: 'column', md: 'row' }
     }}>
       {/* SIDEBAR - Solo visible en desktop */}
-      <Box sx={{ 
-        width: 260,
-        position: 'sticky',
-        top: '1rem',
-        height: 'fit-content',
-        display: { xs: 'none', md: 'block' }
-      }}>
+      <Box
+        sx={{
+          width: 260,
+          position: 'sticky',
+          top: '1rem',
+          height: 'fit-content',
+          display: { xs: 'none', md: 'block' }
+        }}
+        data-section="categories"
+      >
         <Box sx={{ mb: 4 }}>
-          <Typography sx={{ color: '#8b3e3e', fontWeight: 700 }}>
+          <Typography
+            component="h2"
+            sx={{ color: '#8b3e3e', fontWeight: 700 }}
+          >
             Categorías
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 6 }}>
+        <Box
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 6 }}
+          data-section="category-filters"
+        >
           <Button
             onClick={() => setSelectedCategory(null)}
             sx={{
@@ -131,6 +140,8 @@ export default function Catalog() {
               px: 2,
               '&:hover': { backgroundColor: selectedCategory === null ? '#8b3e3e' : '#EACCCC' }
             }}
+            data-category="todos"
+            aria-label="Mostrar todos los productos"
           >
             TODOS
           </Button>
@@ -148,6 +159,8 @@ export default function Catalog() {
                 px: 2,
                 '&:hover': { backgroundColor: '#EACCCC' }
               }}
+              data-category={cat.nombre?.toLowerCase()}
+              aria-label={`Filtrar por ${cat.nombre}`}
             >
               {cat.nombre}
             </Button>
@@ -165,13 +178,14 @@ export default function Catalog() {
       </Box>
 
       {/* MAIN */}
-      <Box sx={{ flex: 1 }}>
+      <Box sx={{ flex: 1 }} data-section="products">
         {/* Título */}
         <Typography
+          component="h1"
           variant="h3"
-          sx={{ 
-            textAlign: 'center', 
-            fontWeight: 700, 
+          sx={{
+            textAlign: 'center',
+            fontWeight: 700,
             color: '#8b3e3e',
             fontSize: { xs: '1.75rem', md: '3rem' },
             mb: 4
@@ -181,7 +195,10 @@ export default function Catalog() {
         </Typography>
 
         {/* Buscador centrado */}
-        <Box sx={{ maxWidth: 700, mx: 'auto', mb: 6 }}>
+        <Box
+          sx={{ maxWidth: 700, mx: 'auto', mb: 6 }}
+          data-section="search"
+        >
           <BuscadorProductos
             value={searchTerm}
             onChange={setSearchTerm}
@@ -218,21 +235,32 @@ export default function Catalog() {
 
         {/* Productos */}
         {filteredProducts.length === 0 ? (
-          <Typography className="text-center text-gray-500 mt-12">
+          <Typography
+            className="text-center text-gray-500 mt-12"
+            role="status"
+            aria-live="polite"
+          >
             No hay productos disponibles con esos filtros.
           </Typography>
         ) : (
-          <div className="space-y-3">
+          <div
+            className="space-y-3"
+            data-section="product-list"
+            role="list"
+            aria-label={`${filteredProducts.length} productos encontrados`}
+          >
             {filteredProducts.map((p) => (
-              <ProductCard 
+              <ProductCard
                 key={p.id}
                 product={{
+                  id: p.id,
                   id_producto: p.id,
                   nombre: p.name,
                   descripcion: p.description,
                   precio: p.price,
                   url_imagen: p.image,
-                  totalVendido: p.totalVendido || 0
+                  totalVendido: p.totalVendido || 0,
+                  categoria: selectedCategory
                 }}
                 onAddToCart={(product) => {
                   dispatch(addToCartAsync(product))
