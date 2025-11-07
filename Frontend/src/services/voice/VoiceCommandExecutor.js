@@ -36,6 +36,10 @@ class VoiceCommandExecutor {
     // Navegador de listas (para productos, etc.)
     this.listNavigator = null;
 
+    // Contador de errores consecutivos
+    this.consecutiveErrors = 0;
+    this.lastErrorTime = null;
+
     console.log('[Voice Command Executor] Initialized');
   }
 
@@ -78,6 +82,108 @@ class VoiceCommandExecutor {
   }
 
   /**
+   * Manejar error y proporcionar feedback
+   * @private
+   */
+  async _handleError(error, context = {}) {
+    this.consecutiveErrors++;
+    this.lastErrorTime = Date.now();
+
+    console.error('[Voice Command Executor] Error:', {
+      message: error.message,
+      context,
+      consecutiveErrors: this.consecutiveErrors,
+      timestamp: new Date().toISOString()
+    });
+
+    // Mensajes de error específicos
+    let errorMessage = '';
+
+    if (error.message.includes('not found') || error.message.includes('No encontr')) {
+      errorMessage = 'No encontré ese elemento. ';
+    } else if (error.message.includes('page') || error.message.includes('página')) {
+      errorMessage = 'Este comando no está disponible en esta página. ';
+    } else if (error.message.includes('Navigate')) {
+      errorMessage = 'No puedo navegar a esa página. ';
+    } else {
+      errorMessage = 'Hubo un error al ejecutar el comando. ';
+    }
+
+    // Ofrecer ayuda si hay muchos errores consecutivos
+    if (this.consecutiveErrors >= 3) {
+      errorMessage += 'Parece que tienes problemas. Di "ayuda" para ver los comandos disponibles.';
+      this.consecutiveErrors = 0; // Reset
+    } else {
+      errorMessage += 'Intenta de nuevo o di "ayuda".';
+    }
+
+    await this._speak(errorMessage);
+
+    return {
+      success: false,
+      error: error.message,
+      consecutiveErrors: this.consecutiveErrors
+    };
+  }
+
+  /**
+   * Resetear contador de errores (llamar en éxito)
+   * @private
+   */
+  _resetErrors() {
+    if (this.consecutiveErrors > 0) {
+      console.log('[Voice Command Executor] Resetting error count');
+      this.consecutiveErrors = 0;
+    }
+  }
+
+  /**
+   * Verificar si el comando está disponible en la página actual
+   * @private
+   */
+  _isCommandAvailableOnPage(intent) {
+    const currentPath = window.location.pathname;
+
+    const pageRestrictions = {
+      // Comandos solo de catálogo
+      'filter_category': ['/carta', '/catalog'],
+      'filter_price_max': ['/carta', '/catalog'],
+      'filter_price_min': ['/carta', '/catalog'],
+      'next_item': ['/carta', '/catalog'],
+      'previous_item': ['/carta', '/catalog'],
+
+      // Comandos solo de carrito
+      'remove_from_cart': ['/cart', '/carrito'],
+      'update_quantity': ['/cart', '/carrito'],
+      'read_cart': ['/cart', '/carrito', '/payment'],
+
+      // Comandos solo de pago
+      'select_payment_method': ['/payment', '/pago'],
+      'finalize_purchase': ['/payment', '/pago'],
+
+      // Comandos solo de test
+      'answer_question': ['/test', '/preferencias'],
+      'read_result': ['/test', '/preferencias'],
+
+      // Comandos solo de perfil
+      'view_order_history': ['/profile', '/perfil'],
+      'read_orders': ['/profile', '/perfil'],
+
+      // Comandos solo de admin
+      'view_admin_products': ['/admin'],
+      'change_order_status': ['/admin']
+    };
+
+    const requiredPages = pageRestrictions[intent];
+
+    if (!requiredPages) {
+      return true; // Sin restricciones
+    }
+
+    return requiredPages.some(page => currentPath.includes(page));
+  }
+
+  /**
    * Ejecutar comando según intención
    * @param {String} intent - Intención detectada
    * @param {Object} params - Parámetros extraídos
@@ -86,6 +192,21 @@ class VoiceCommandExecutor {
   async executeCommand(intent, params = {}) {
     try {
       console.log('[Voice Command Executor] Executing:', intent, params);
+
+      // Verificar si el comando está disponible en la página actual
+      if (!this._isCommandAvailableOnPage(intent)) {
+        const currentPage = window.location.pathname;
+        console.warn('[Voice Command Executor] Command not available on page:', currentPage);
+
+        await this._speak(`Este comando no está disponible en esta página. Intenta ir a la página correcta primero.`);
+
+        return {
+          success: false,
+          action: 'unavailable',
+          intent,
+          reason: 'Command not available on current page'
+        };
+      }
 
       // Router de comandos
       switch (intent) {
@@ -272,14 +393,24 @@ class VoiceCommandExecutor {
         // ==================== DESCONOCIDO ====================
         default:
           console.warn('[Voice Command Executor] Unknown intent:', intent);
-          await this._speak('No entendí ese comando. Di "ayuda" para ver los comandos disponibles.');
-          return { success: false, action: 'unknown', intent };
+          this.consecutiveErrors++;
+
+          if (this.consecutiveErrors >= 3) {
+            await this._speak('Parece que no entiendo tus comandos. Di "ayuda" para ver todos los comandos disponibles.');
+            this.consecutiveErrors = 0;
+          } else {
+            await this._speak('No entendí ese comando. Di "ayuda" para ver los comandos disponibles.');
+          }
+
+          return { success: false, action: 'unknown', intent, consecutiveErrors: this.consecutiveErrors };
       }
+
+      // Si llegamos aquí, el comando fue exitoso
+      this._resetErrors();
 
     } catch (error) {
       console.error('[Voice Command Executor] Error executing command:', error);
-      await this._speak('Hubo un error al ejecutar el comando');
-      return { success: false, error: error.message };
+      return await this._handleError(error, { intent, params });
     }
   }
 
