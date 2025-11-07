@@ -33,9 +33,11 @@ const VoiceControl = ({
 }) => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [passiveListening, setPassiveListening] = useState(false);
 
   const navigate = useNavigate();
   const executorRef = useRef(null);
+  const greetedRef = useRef(false);
 
   const {
     isActive,
@@ -44,7 +46,8 @@ const VoiceControl = ({
     error,
     ttsService,
     apiClient,
-    isSupported
+    isSupported,
+    activate
   } = useVoice();
 
   // Redux state (opcional)
@@ -235,6 +238,98 @@ const VoiceControl = ({
     window.addEventListener('voiceHelpRequested', handleHelpCommand);
     return () => window.removeEventListener('voiceHelpRequested', handleHelpCommand);
   }, []);
+
+  /**
+   * Auto-greeting al cargar la página (una vez por sesión)
+   */
+  useEffect(() => {
+    if (!isSupported || greetedRef.current) {
+      return;
+    }
+
+    // Verificar si ya se saludó en esta sesión
+    const hasGreeted = sessionStorage.getItem('famiglia_voice_greeted');
+    if (hasGreeted) {
+      greetedRef.current = true;
+      return;
+    }
+
+    // Saludo automático después de 2 segundos
+    const greetingTimeout = setTimeout(async () => {
+      try {
+        await ttsService?.speak(
+          'Bienvenido a Famiglia. Presiona Alt + V o di "activar asistente" para control por voz.',
+          { rate: 0.95, volume: 0.9 }
+        );
+
+        // Marcar como saludado
+        sessionStorage.setItem('famiglia_voice_greeted', 'true');
+        greetedRef.current = true;
+
+        // Activar escucha pasiva
+        setPassiveListening(true);
+      } catch (error) {
+        console.error('[Voice Control] Error in auto-greeting:', error);
+      }
+    }, 2000);
+
+    return () => clearTimeout(greetingTimeout);
+  }, [isSupported, ttsService]);
+
+  /**
+   * Atajo de teclado global: Alt + V para activar/desactivar
+   */
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Alt + V
+      if (event.altKey && event.key.toLowerCase() === 'v') {
+        event.preventDefault();
+
+        if (isActive) {
+          // Desactivar
+          console.log('[Voice Control] Keyboard shortcut: deactivating');
+        } else {
+          // Activar
+          console.log('[Voice Control] Keyboard shortcut: activating');
+          activate();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isActive, activate]);
+
+  /**
+   * Escucha pasiva: detectar "activar asistente"
+   */
+  useEffect(() => {
+    if (!passiveListening || isActive) {
+      return;
+    }
+
+    // Escuchar transcripciones para detectar activación
+    const transcript = finalTranscript?.toLowerCase() || '';
+
+    const activationPhrases = [
+      'activar asistente',
+      'activar control',
+      'activar voz',
+      'hola famiglia',
+      'famiglia activa',
+      'hey famiglia'
+    ];
+
+    const shouldActivate = activationPhrases.some(phrase =>
+      transcript.includes(phrase)
+    );
+
+    if (shouldActivate) {
+      console.log('[Voice Control] Passive listening detected activation phrase');
+      setPassiveListening(false);
+      activate();
+    }
+  }, [finalTranscript, passiveListening, isActive, activate]);
 
   /**
    * No renderizar nada si no hay soporte
