@@ -10,6 +10,8 @@ import homeCommands from './commands/homeCommands.js';
 import catalogCommands from './commands/catalogCommands.js';
 import cartCommands from './commands/cartCommands.js';
 import testCommands from './commands/testCommands.js';
+import profileCommands from './commands/profileCommands.js';
+import adminCommands from './commands/adminCommands.js';
 
 class VoiceCommandExecutor {
   /**
@@ -234,6 +236,38 @@ class VoiceCommandExecutor {
         // ==================== AUTH ====================
         case 'logout':
           return await this.logout();
+
+        // ==================== ESPECÍFICOS DE PERFIL ====================
+        case 'view_profile':
+        case 'profile_info':
+          return await this.viewProfileInfo();
+        case 'view_order_history':
+        case 'my_orders':
+          return await this.viewOrderHistory();
+        case 'read_orders':
+          return await this.readOrderHistory();
+        case 'view_test_history':
+        case 'my_tests':
+          return await this.viewTestHistory();
+        case 'read_tests':
+          return await this.readTestHistory();
+
+        // ==================== ESPECÍFICOS DE ADMIN ====================
+        case 'view_admin_products':
+          return await this.viewAdminProducts();
+        case 'search_admin_product':
+          return await this.searchAdminProduct(params.producto);
+        case 'filter_admin_category':
+          return await this.filterAdminByCategory(params.categoria);
+        case 'view_delivered_orders':
+          return await this.viewDeliveredOrders();
+        case 'view_reserved_orders':
+        case 'view_pending_orders':
+          return await this.viewReservedOrders();
+        case 'search_order_ticket':
+          return await this.searchOrderByTicket(params.ticket);
+        case 'change_order_status':
+          return await this.changeOrderStatus(params.estado);
 
         // ==================== DESCONOCIDO ====================
         default:
@@ -631,6 +665,58 @@ class VoiceCommandExecutor {
 
   async answerTestQuestion(optionIndex) {
     return await testCommands.answerTestQuestion(optionIndex, this.ttsService);
+  }
+
+  // ==================== COMANDOS ESPECÍFICOS DE PERFIL ====================
+
+  async viewProfileInfo() {
+    return await profileCommands.viewProfileInfo(this.ttsService);
+  }
+
+  async viewOrderHistory() {
+    return await profileCommands.viewOrderHistory(this.ttsService);
+  }
+
+  async readOrderHistory() {
+    return await profileCommands.readOrderHistory(this.ttsService);
+  }
+
+  async viewTestHistory() {
+    return await profileCommands.viewTestHistory(this.ttsService);
+  }
+
+  async readTestHistory() {
+    return await profileCommands.readTestHistory(this.ttsService);
+  }
+
+  // ==================== COMANDOS ESPECÍFICOS DE ADMIN ====================
+
+  async viewAdminProducts() {
+    return await adminCommands.viewAdminProducts(this.ttsService);
+  }
+
+  async searchAdminProduct(productName) {
+    return await adminCommands.searchAdminProduct(productName, this.ttsService);
+  }
+
+  async filterAdminByCategory(category) {
+    return await adminCommands.filterAdminByCategory(category, this.ttsService);
+  }
+
+  async viewDeliveredOrders() {
+    return await adminCommands.viewDeliveredOrders(this.ttsService);
+  }
+
+  async viewReservedOrders() {
+    return await adminCommands.viewReservedOrders(this.ttsService);
+  }
+
+  async searchOrderByTicket(ticketNumber) {
+    return await adminCommands.searchOrderByTicket(ticketNumber, this.ttsService);
+  }
+
+  async changeOrderStatus(newStatus) {
+    return await adminCommands.changeOrderStatus(newStatus, this.ttsService);
   }
 }
 

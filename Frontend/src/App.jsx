@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { useDispatch } from "react-redux";
 import { LoginModalProvider } from "./context/LoginModalContext";
 import { useLoginModal } from "./context/LoginModalContext";
+import { VoiceProvider } from "./context/VoiceContext";
 import LoginForm from "./components/forms/LoginForm";
 import Home from "./pages/Home";
 import Footer from "./components/layout/Footer";
@@ -19,8 +20,10 @@ import PrivacidadPage from './pages/PrivacidadPage';
 import QuienesSomosPage from './pages/QuienesSomosPage';
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import Complaints from "./pages/Complaints";
+import VoiceControl from "./components/voice/VoiceControl";
 import { setUser, authCheckComplete } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
+import { store } from "./redux/store";
 
 // 🔹 Controla la visibilidad del Header
 function Layout() {
@@ -104,7 +107,7 @@ function Layout() {
             }
           />
           <Route path="/test" element={
-          <ProtectedRoute> 
+          <ProtectedRoute>
             <PreferencesTest />
           </ProtectedRoute>
             } />
@@ -112,6 +115,18 @@ function Layout() {
       </main>
       <Footer />
       <LoginForm isOpen={isLoginModalOpen} onClose={hideLoginModal} />
+
+      {/* Sistema de Control por Voz */}
+      <VoiceControl
+        store={store}
+        showAvatar={true}
+        showTranscript={true}
+        showOnboarding={true}
+        avatarPosition="bottom-right"
+        transcriptPosition="bottom-center"
+        micButtonPosition="bottom-right"
+        micButtonSize="large"
+      />
     </>
   );
 }
@@ -124,9 +139,11 @@ function App() {
         v7_relativeSplatPath: true
       }}
     >
-      <LoginModalProvider>
-        <Layout />
-      </LoginModalProvider>
+      <VoiceProvider store={store}>
+        <LoginModalProvider>
+          <Layout />
+        </LoginModalProvider>
+      </VoiceProvider>
     </BrowserRouter>
   );
 }
