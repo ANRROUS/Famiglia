@@ -4,7 +4,7 @@
  * Integra todos los componentes y maneja la ejecución de comandos
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -12,13 +12,15 @@ import { useVoice } from '../../context/VoiceContext';
 import VoiceCommandExecutor from '../../services/voice/VoiceCommandExecutor';
 import voiceReduxBridge from '../../services/voice/reduxIntegration';
 
-// Componentes
+// Componentes siempre visibles
 import VoiceMicButton from './VoiceMicButton';
 import VoiceAvatar from './VoiceAvatar';
 import VoiceTranscript from './VoiceTranscript';
 import VoiceAnnouncer from './VoiceAnnouncer';
-import VoiceHelp from './VoiceHelp';
-import VoiceOnboarding from './VoiceOnboarding';
+
+// Componentes lazy-loaded (solo cuando se necesitan)
+const VoiceHelp = lazy(() => import('./VoiceHelp'));
+const VoiceOnboarding = lazy(() => import('./VoiceOnboarding'));
 
 const VoiceControl = ({
   store = null,
@@ -373,21 +375,25 @@ const VoiceControl = ({
         />
       )}
 
-      {/* Modal de ayuda */}
-      <VoiceHelp
-        isOpen={helpOpen}
-        onClose={() => setHelpOpen(false)}
-        showContextualOnly={false}
-      />
-
-      {/* Onboarding - Primera visita */}
-      {showOnboarding && (
-        <VoiceOnboarding
-          autoShow={true}
-          onComplete={(dontShow) => {
-            console.log('[Voice Control] Onboarding completed, dontShow:', dontShow);
-          }}
+      {/* Modal de ayuda - Lazy loaded */}
+      <Suspense fallback={null}>
+        <VoiceHelp
+          isOpen={helpOpen}
+          onClose={() => setHelpOpen(false)}
+          showContextualOnly={false}
         />
+      </Suspense>
+
+      {/* Onboarding - Primera visita - Lazy loaded */}
+      {showOnboarding && (
+        <Suspense fallback={null}>
+          <VoiceOnboarding
+            autoShow={true}
+            onComplete={(dontShow) => {
+              console.log('[Voice Control] Onboarding completed, dontShow:', dontShow);
+            }}
+          />
+        </Suspense>
       )}
 
       <style jsx>{`

@@ -79,6 +79,8 @@ export const VoiceProvider = ({ children, store }) => {
   // Referencias
   const processingRef = useRef(false); // Evitar procesamiento duplicado
   const lastTranscriptRef = useRef(''); // Último transcript procesado
+  const commandCacheRef = useRef(new Map()); // Cache de respuestas de comandos
+  const debounceTimerRef = useRef(null); // Timer para debounce
 
   // ==================== HOOKS ====================
 
@@ -91,7 +93,25 @@ export const VoiceProvider = ({ children, store }) => {
   // ==================== EFECTOS ====================
 
   /**
-   * Monitorear transcript y procesar comandos automáticamente
+   * Limpiar cache de comandos expirados (cada minuto)
+   */
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const cache = commandCacheRef.current;
+
+      for (const [key, value] of cache.entries()) {
+        if (now - value.timestamp > 60000) { // 1 minuto
+          cache.delete(key);
+        }
+      }
+    }, 60000);
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
+  /**
+   * Monitorear transcript y procesar comandos automáticamente con debounce
    */
   useEffect(() => {
     if (!isActive || !transcript || transcript.length === 0) {
@@ -108,9 +128,22 @@ export const VoiceProvider = ({ children, store }) => {
       return;
     }
 
-    // Procesar comando
-    lastTranscriptRef.current = transcript;
-    handleProcessCommand(transcript);
+    // Limpiar timer anterior
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Debounce de 300ms
+    debounceTimerRef.current = setTimeout(() => {
+      lastTranscriptRef.current = transcript;
+      handleProcessCommand(transcript);
+    }, 300);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
 
   }, [transcript, isActive]);
 
@@ -275,8 +308,35 @@ export const VoiceProvider = ({ children, store }) => {
       // Construir contexto
       const context = buildContext();
 
-      // Enviar comando al backend para interpretación
-      const result = await voiceApiClient.processCommand(commandText, context);
+      // Crear cache key
+      const cacheKey = `${commandText.trim().toLowerCase()}_${context.currentPage}`;
+      const cache = commandCacheRef.current;
+      const now = Date.now();
+
+      // Verificar cache
+      const cached = cache.get(cacheKey);
+      let result;
+
+      if (cached && (now - cached.timestamp) < 60000) {
+        // Usar respuesta cacheada
+        console.log('[Voice Context] Using cached response');
+        result = cached.result;
+      } else {
+        // Enviar comando al backend para interpretación
+        result = await voiceApiClient.processCommand(commandText, context);
+
+        // Guardar en cache
+        cache.set(cacheKey, {
+          result,
+          timestamp: now
+        });
+
+        // Limitar tamaño del cache
+        if (cache.size > 50) {
+          const firstKey = cache.keys().next().value;
+          cache.delete(firstKey);
+        }
+      }
 
       console.log('[Voice Context] Command result:', result);
 
