@@ -30,12 +30,13 @@ export const register = async (req, res) => {
       },
     });
     logAuditoria({
-      usuarioId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
+      // usuarioId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
+      // rol: nuevoUsuario?.rol || null,
       accion: 'register',
       recurso: 'usuario',
       recursoId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
       req
-    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+    });
   } catch (error) {
     res.status(500).json({ message: "Error en el registro", error: error.message });
   }
@@ -83,13 +84,14 @@ export const login = async (req, res) => {
       },
     });
     logAuditoria({
-      usuarioId: usuario?.id_usuario || usuario?.id || null,
+      // usuarioId: usuario?.id_usuario || usuario?.id || null,
+      // rol:req.user?.rol || null,
       accion: 'login',
       recurso: 'usuario',
       recursoId: usuario?.id_usuario || usuario?.id || null,
       req,
       meta: { metodo: 'password' }
-    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+    });
   } catch (error) {
     res.status(500).json({ message: "Error al iniciar sesión", error: error.message });
   }

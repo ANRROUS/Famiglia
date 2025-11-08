@@ -13,15 +13,14 @@ export const generateTest = async (req, res) => {
       data: testData
     });
     logAuditoria({
-      usuarioId: req.user?.id || null,
-      anonimoId: req.cookies?.anon_id || null,
       accion: 'generar_test',
       recurso: 'test',
       ruta: req.originalUrl || req.url,
+      req,
       meta: {
         promptLength: String((userPrompt || '').length),
       }
-    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+    });
     
   } catch (error) {
     console.error('Error en generateTest:', error);
@@ -94,19 +93,17 @@ export const getRecommendation = async (req, res) => {
     }
 
     logAuditoria({
-      usuarioId: userId,
-      anonimoId: req.cookies?.anon_id || null,
-      req,
       accion: 'resultado_test',
       recurso: 'test',
       recursoId: testRecord ? String(testRecord.id_test) : null,
       ruta: req.originalUrl || req.url,
+      req,
       meta: {
         productoSugerido: recommendation.product.id_producto.toString(),
         url_producto: recommendation.product.url_imagen || null,
         guardadoEnBD: Boolean(testRecord)
       }
-    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr))
+    });
   
 
     res.json({

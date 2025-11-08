@@ -78,7 +78,6 @@ function Layout() {
       ruta: location.pathname + location.search,
       meta: {
         titulo: document.title || null,
-        usuarioId 
       }
     }, usuarioLogueado);
   }, [location, usuarioId]);
