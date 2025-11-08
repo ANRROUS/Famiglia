@@ -1,6 +1,5 @@
 # Famiglia - Panadería y Pastelería
 
-Sistema de gestión para panadería con autenticación, carrito de compras y recomendaciones personalizadas con IA.
 
 ## 🚀 Configuración Inicial
 
@@ -63,9 +62,42 @@ npm run dev
 El frontend estará disponible en `http://localhost:5173`
 El backend estará disponible en `http://localhost:3000`
 
-## 📦 Tecnologías
+##  Sistema de Navegación por Voz
 
-- **Frontend:** React, Redux Toolkit, Tailwind CSS, Material-UI
-- **Backend:** Node.js, Express, Prisma, PostgreSQL
-- **Auth:** JWT con cookies HTTPOnly
-- **IA:** Google Gemini AI
+El sistema incluye un avanzado módulo de reconocimiento de voz con corrección automática de transcripciones.
+
+### Características del Sistema de Voz
+
+- **280+ correcciones automáticas** en diccionario
+- **24 patrones regex** para casos complejos
+- **Análisis de 5 alternativas** por comando
+- **Scoring contextual** según página actual
+- **Audio feedback** con beeps (Web Audio API)
+- **Historial navegable** con flechas ↑↓
+- **Logs estructurados** con Winston
+- **Screenshots optimizados** (30% escala, 500KB max)
+- **Cache Gemini** con TTL de 5 minutos
+- **Retry logic** con backoff exponencial
+
+**Ejemplos rápidos:**
+
+```bash
+# Navegación
+"Da click a inicio"
+"Ve a carta"
+"Abre quiénes somos"  # ✓ Corrige automáticamente "a quién estamos"
+
+# Búsqueda y Filtros
+"Busca tortas"
+"Filtra dulces"
+"Muéstrame panes"
+
+# Carrito
+"Agrega dos galletas"
+"Elimina dona"
+"Ve al carrito"
+
+# Sesión
+"Cierra sesión"
+"Iniciar sesión"
+```

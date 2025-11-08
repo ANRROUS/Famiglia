@@ -12,6 +12,14 @@ const BuscadorProductos = ({ value, onChange, placeholder = 'Buscar productos...
       variant="outlined"
       size="small"
       fullWidth
+      name="search"
+      id="search-products"
+      type="search"
+      aria-label="Buscar productos"
+      inputProps={{
+        'aria-label': 'Buscar productos',
+        'data-testid': 'search-input'
+      }}
       InputProps={{
         startAdornment: (
           <InputAdornment position="start">

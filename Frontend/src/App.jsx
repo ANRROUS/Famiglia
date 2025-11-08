@@ -2,8 +2,10 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { LoginModalProvider } from "./context/LoginModalContext";
+import { VoiceProvider } from "./context/VoiceContext";
 import { useLoginModal } from "./context/LoginModalContext";
 import LoginForm from "./components/forms/LoginForm";
+import { VoiceAvatarFloating } from "./components/voice/VoiceAvatarFloating";
 import Home from "./pages/Home";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
@@ -15,6 +17,7 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 import Profile from "./pages/Profile";
 import Catalog from "./pages/Catalog";
 import PreferencesTest from './pages/PreferencesTest';
+import VoiceTest from './pages/VoiceTest';
 import TerminosPage from './pages/TerminosPage';
 import PrivacidadPage from './pages/PrivacidadPage';
 import QuienesSomosPage from './pages/QuienesSomosPage';
@@ -109,6 +112,7 @@ function Layout() {
           <Route path="/quienes-somos" element={<QuienesSomosPage />} />
           <Route path="/carta" element={<Catalog />} />
           <Route path="/delivery" element={<Delivery />} />
+          <Route path="/voice-test" element={<VoiceTest />} />
 
           {/* Admin */}
           <Route
@@ -139,6 +143,9 @@ function Layout() {
 
       <Footer />
       <LoginForm isOpen={isLoginModalOpen} onClose={hideLoginModal} />
+      
+      {/* Avatar flotante de voz en esquina inferior derecha */}
+      <VoiceAvatarFloating />
     </>
   );
 }
@@ -152,7 +159,9 @@ function App() {
       }}
     >
       <LoginModalProvider>
-        <Layout />
+        <VoiceProvider>
+          <Layout />
+        </VoiceProvider>
       </LoginModalProvider>
     </BrowserRouter>
   );

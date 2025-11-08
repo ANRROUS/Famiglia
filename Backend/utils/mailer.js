@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 transporter
   .verify()
   .then(() => console.log("✅ Listo para enviar correos con Gmail"))
-  .catch((err) => console.error("❌ Error verificando transporte:", err));
+  .catch((err) => console.error("Error verificando transporte:", err));
 
 export const sendContactMail = async ({ nombre, email, mensaje }) => {
   await transporter.sendMail({
