@@ -323,7 +323,11 @@ export const removeFromCart = async (req, res) => {
       recurso: 'detalle_pedido',
       recursoId: String(id),
       req,
-      meta: { pedidoId: String(idPedido), totalQuantity, totalAmount }
+      meta: { 
+        pedidoId: String(idPedido), 
+        totalQuantity, 
+        totalAmount 
+      }
     });
 
   } catch (error) {

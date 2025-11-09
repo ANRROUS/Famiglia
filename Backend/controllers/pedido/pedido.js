@@ -1,5 +1,7 @@
+import { log } from "console";
 import prisma from "../../prismaClient.js";
 import crypto from "crypto";
+import { logAuditoria } from "../../services/auditoriaService.js";
 
 const hashOrderId = (id) => {
     const hash = crypto.createHash("sha256").update(id.toString()).digest("hex");
@@ -422,8 +424,21 @@ export const updatePedidoEstadoAdmin = async (req, res) => {
                 },
             },
         });
-
         res.json(formatPedidoAdmin(pedidoActualizado));
+        logAuditoria({
+            req,
+            accion: normalizedEstado === 'entregado' ? 'Pedido entregado'
+                  : normalizedEstado === 'cancelado' ? 'Pedido cancelado'
+                  : 'restablecer pedido',
+            recurso: 'pedido',
+            recursoId: String(id_pedido),
+            meta: {
+                estadoPrevio: pedidoExistente.estado,
+                estadoNuevo: normalizedEstado,
+                usuarioPedidoId: pedidoActualizado.usuario?.id_usuario ? String(pedidoActualizado.usuario.id_usuario) : null,
+                cantidadProductos: (pedidoActualizado.detalle_pedido.length || []).length, 
+            }
+        });
     } catch (error) {
         console.error("Error al actualizar estado del pedido:", error);
         res.status(500).json({ message: "Error al actualizar el estado del pedido" });
