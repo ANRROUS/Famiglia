@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from '../../prismaClient.js';
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
+import { logAuditoria } from '../../services/auditoriaService.js';
 
 export const register = async (req, res) => {
   try {
@@ -13,12 +12,12 @@ export const register = async (req, res) => {
     }
 
     const existente = await prisma.usuario.findUnique({ where: { correo } });
-    if (existente) return res.status(400).json({ message: "El correo ya está registrado" });
+    if (existente) return res.status(409).json({ message: "El correo ya está registrado" });
 
     const hashed = await bcrypt.hash(contraseña, 10);
 
     const nuevoUsuario = await prisma.usuario.create({
-      data: { nombre, correo, contrase_a: hashed },
+      data: { nombre, correo, contrase_a: hashed, rol: "C" },
     });
 
     res.status(201).json({
@@ -27,12 +26,21 @@ export const register = async (req, res) => {
         id: Number(nuevoUsuario.id_usuario),
         nombre: nuevoUsuario.nombre,
         correo: nuevoUsuario.correo,
+        rol: nuevoUsuario.rol || "C",
       },
     });
+    logAuditoria({
+      usuarioId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
+      accion: 'register',
+      recurso: 'usuario',
+      recursoId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
+      req
+    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
   } catch (error) {
     res.status(500).json({ message: "Error en el registro", error: error.message });
   }
 };
+
 
 export const login = async (req, res) => {
   try {
@@ -42,14 +50,16 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { correo } });
-    if (!usuario) return res.status(400).json({ message: "Usuario no encontrado" });
+  const usuario = await prisma.usuario.findUnique({ where: { correo } });
+    if (!usuario) return res.status(404).json({ message: "Usuario no encontrado" });
 
     const isMatch = await bcrypt.compare(contraseña, usuario.contrase_a);
     if (!isMatch) return res.status(401).json({ message: "Contraseña incorrecta" });
 
+    const rol = usuario.rol || "C";
+
     const token = jwt.sign(
-      { id: Number(usuario.id_usuario), correo: usuario.correo },
+      { id: Number(usuario.id_usuario), correo: usuario.correo, rol },
       process.env.JWT_SECRET || "famiglia-secret",
       { expiresIn: "1d" }
     );
@@ -69,8 +79,17 @@ export const login = async (req, res) => {
         nombre: usuario.nombre,
         correo: usuario.correo,
         url_imagen: usuario.url_imagen,
+        rol,
       },
     });
+    logAuditoria({
+      usuarioId: usuario?.id_usuario || usuario?.id || null,
+      accion: 'login',
+      recurso: 'usuario',
+      recursoId: usuario?.id_usuario || usuario?.id || null,
+      req,
+      meta: { metodo: 'password' }
+    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
   } catch (error) {
     res.status(500).json({ message: "Error al iniciar sesión", error: error.message });
   }
@@ -82,7 +101,7 @@ export const getPerfil = async (req, res) => {
     
     const user = await prisma.usuario.findUnique({
       where: { id_usuario: userId },
-      select: { id_usuario: true, nombre: true, correo: true, url_imagen: true },
+      select: { id_usuario: true, nombre: true, correo: true, url_imagen: true, rol: true },
     });
 
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
@@ -94,6 +113,7 @@ export const getPerfil = async (req, res) => {
         nombre: user.nombre,
         correo: user.correo,
         url_imagen: user.url_imagen,
+        rol: user.rol || "C",
       },
     });
   } catch (error) {

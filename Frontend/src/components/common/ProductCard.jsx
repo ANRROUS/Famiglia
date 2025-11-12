@@ -1,88 +1,77 @@
 import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useLoginModal } from '../../context/LoginModalContext';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onAddToCart, showAddButton = true }) => {
   const [imageError, setImageError] = useState(false);
+  const dispatch = useDispatch();
+  const { openLoginModal } = useLoginModal();
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
-  // Validaciones básicas
-  if (!product) {
-    console.error('ProductCard: No se recibió ningún producto');
-    return null;
-  }
-
-  // Validar que el producto tenga todas las propiedades necesarias
-  if (!product.nombre || typeof product.precio !== 'number') {
-    console.error('ProductCard: Producto con datos inválidos:', product);
-    return null;
-  }
+  if (!product) return null;
 
   const {
     nombre: name,
     descripcion: description = 'Sin descripción disponible',
     precio: price,
     imagen,
-    url_imagen
+    url_imagen,
+    totalVendido = 0
   } = product;
 
-  // Usar url_imagen si existe, sino usar imagen, sino placeholder
   const image = imageError 
     ? '/images/placeholder-product.jpg' 
     : (url_imagen || imagen || '/images/placeholder-product.jpg');
 
-  // Validar que el precio sea positivo
-  if (price < 0) {
-    console.error('ProductCard: Precio inválido:', price);
-    return null;
-  }
+  const handleImageError = () => !imageError && setImageError(true);
 
-  const handleImageError = () => {
-    if (!imageError) {
-      setImageError(true);
-    }
+  const handleAddToCart = () => {
+    if (!isAuthenticated) return openLoginModal();
+    if (onAddToCart) onAddToCart(product);
   };
 
+  const isBestSeller = totalVendido > 5;
+
   return (
-    <div className="bg-white rounded-lg shadow-md border-2 border-[#b17b6b] overflow-hidden hover:shadow-lg transition-shadow duration-300 font-['Montserrat']">
-      {/* Imagen del producto */}
-      <div className="aspect-w-16 aspect-h-9 bg-[#f5e6d3]">
-        <img
-          src={image}
-          alt={name}
-          className="w-full h-48 object-cover"
-          onError={handleImageError}
-        />
-      </div>
+    <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 font-['Montserrat'] border border-red-300 mb-3">
+      <div className="grid grid-cols-[100px_1fr_auto] gap-4 items-center px-4 py-4">
+        {/* Imagen */}
+        <div className="w-[100px] h-[90px] rounded-xl overflow-hidden bg-[#ffe3d9] flex items-center justify-center">
+          <img
+            src={image}
+            alt={name}
+            className="w-full h-full object-cover"
+            onError={handleImageError}
+          />
+        </div>
 
-      {/* Contenido */}
-      <div className="p-4">
-        {/* Nombre */}
-        <h3 className="text-xl font-bold text-[#6b2c2c] mb-2">
-          {name}
-        </h3>
+        {/* Info */}
+        <div className="flex flex-col justify-center">
+          <h3 className="text-base font-bold text-black mb-1">{name}</h3>
+          <p className="text-gray-700 text-sm mb-2 line-clamp-2">{description}</p>
 
-        {/* Descripción */}
-        <p className="text-[#6b2c2c] opacity-80 text-sm mb-4 line-clamp-2">
-          {description}
-        </p>
+          {isBestSeller && (
+            <div className="inline-block bg-purple-200 text-purple-800 px-3 py-1 rounded text-xs font-medium w-fit">
+              Más comprado
+            </div>
+          )}
+        </div>
 
-        {/* Precio */}
-        <div className="flex items-center justify-between">
-          <span className="text-2xl font-bold text-[#6b2c2c]">
-            ${price?.toFixed(2)}
-          </span>
-          <button
-            className="px-4 py-2 bg-[#6b2c2c] text-white rounded-lg hover:bg-[#5a2424] transition-colors duration-200"
-            onClick={() => {
-              // Aquí puedes agregar la lógica para agregar al carrito
-              console.log('Agregar al carrito:', product);
-            }}
-          >
-            Agregar
-          </button>
+        {/* Precio y botón (solo si showAddButton=true) */}
+        <div className="flex flex-col items-end gap-2">
+          <div className="text-xl font-bold text-red-600">S/{price?.toFixed(2)}</div>
+          {showAddButton && (
+            <button
+              className="px-4 py-2 bg-pink-50 text-[#771919] rounded-lg hover:bg-pink-100 transition-colors duration-200 font-medium text-sm border border-pink-200"
+              onClick={handleAddToCart}
+            >
+              Añadir al carrito
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-// Usar React.memo para evitar re-renders innecesarios
 export default React.memo(ProductCard);

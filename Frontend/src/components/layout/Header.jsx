@@ -94,21 +94,7 @@ const Header = () => {
 
   // 🔹 Navegación
   const handleNavigation = (path) => {
-    if (path === "/delivery") {
-      // Si estamos en home, scroll a la sección
-      if (location.pathname === "/") {
-        const deliverySection = document.getElementById("delivery-section");
-        if (deliverySection) {
-          deliverySection.scrollIntoView({ behavior: "smooth" });
-        }
-      } else {
-        // Si no estamos en home, navegar a home con hash
-        navigate("/#delivery");
-      }
-    } else {
-      navigate(path);
-    }
-    setMenuOpen(false);
+    navigate(path);
   };
 
   // 🔹 Logout
@@ -233,7 +219,7 @@ const Header = () => {
                   <Button onClick={() => setShowRegister(true)} variant="contained" sx={buttonStyles.contained}>
                     Registrarse
                   </Button>
-                  <Button onClick={() => setShowLogin(true)} variant="outlined" sx={buttonStyles.outlined}>
+                  <Button onClick={() => showLoginModal()} variant="outlined" sx={buttonStyles.outlined}>
                     Iniciar Sesión
                   </Button>
                 </>
@@ -279,7 +265,7 @@ const Header = () => {
                 <Button onClick={() => { setShowRegister(true); setMenuOpen(false); }} variant="contained" sx={buttonStyles.contained}>
                   Registrarse
                 </Button>
-                <Button onClick={() => { setShowLogin(true); setMenuOpen(false); }} variant="outlined" sx={buttonStyles.outlined}>
+                <Button onClick={() => { showLoginModal(); setMenuOpen(false); }} variant="outlined" sx={buttonStyles.outlined}>
                   Iniciar Sesión
                 </Button>
               </>
@@ -294,14 +280,14 @@ const Header = () => {
         onClose={() => setShowRegister(false)}
         onSwitchToLogin={() => {
           setShowRegister(false);
-          setShowLogin(true);
+          showLoginModal();
         }}
       />
       <LoginForm
         isOpen={showLogin}
-        onClose={() => setShowLogin(false)}
+        onClose={hideLoginModal}
         onSwitchToRegister={() => {
-          setShowLogin(false);
+          hideLoginModal();
           setShowRegister(true);
         }}
       />
