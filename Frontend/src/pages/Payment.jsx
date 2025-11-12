@@ -16,15 +16,30 @@ import {
   CircularProgress,
   Alert,
 } from "@mui/material";
-import { 
-  AccountBalance as YapeIcon,
-  Phone as PlinIcon 
-} from "@mui/icons-material";
+
+// ---
+// NOTA IMPORTANTE:
+// He importado los logos basándome en la estructura de tu proyecto.
+// Si Payment.jsx está en 'src/pages/', esta ruta debería ser correcta.
+// Ajusta la ruta ('../') si es necesario.
+// ---
+import plinLogo from "../assets/images/img_plin_logo.png";
+import yapeLogo from "../assets/images/img_yapeLogo.png";
+
+// --- Paleta de Colores ---
+const palette = {
+  darkBrown: "#6B3730",
+  rustRed: "#AF442F",
+  brightRed: "#C94549",
+  orange: "#EF9D58",
+  lightPeach: "#EBBABC",
+  white: "#FFFFFF",
+};
 
 const Payment = () => {
   const navigate = useNavigate();
   const { items, totalAmount, orderId } = useSelector((state) => state.cart);
-  
+
   const [paymentMethod, setPaymentMethod] = useState("yape");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -74,23 +89,23 @@ const Payment = () => {
         medio: paymentMethod,
         numero: phoneNumber,
         cod_ver: verificationCode,
-        envio: "pendiente"
+        envio: "pendiente",
       });
 
       console.log("Pago procesado exitosamente:", response.data);
 
       // Navegar a la página de confirmación
-      navigate("/order-confirmation", { 
-        state: { 
+      navigate("/order-confirmation", {
+        state: {
           orderDetails: response.data.pedido,
-          paymentDetails: response.data.pago 
-        } 
+          paymentDetails: response.data.pago,
+        },
       });
     } catch (error) {
       console.error("Error al procesar el pago:", error);
       setApiError(
-        error.response?.data?.error || 
-        "Error al procesar el pago. Por favor, intente nuevamente."
+        error.response?.data?.error ||
+          "Error al procesar el pago. Por favor, intente nuevamente."
       );
     } finally {
       setIsLoading(false);
@@ -101,11 +116,11 @@ const Payment = () => {
     <Box
       sx={{
         minHeight: "100vh",
-        backgroundColor: "#fef7f5",
+        backgroundColor: palette.lightPeach, // Color de fondo principal
         pt: 8,
         pb: 6,
         px: 2,
-        fontFamily: "'Montserrat', sans-serif",
+        fontFamily: "'Montserrat', sans-serif", // Asegúrate de que esta fuente esté cargada
       }}
     >
       <Box sx={{ maxWidth: "1000px", margin: "0 auto" }}>
@@ -113,7 +128,7 @@ const Payment = () => {
           variant="h4"
           sx={{
             fontWeight: "700",
-            color: "#2d2d2d",
+            color: palette.darkBrown, // Título principal
             mb: 4,
             textAlign: "center",
           }}
@@ -123,7 +138,7 @@ const Payment = () => {
 
         {/* Mensaje de error de API */}
         {apiError && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error" sx={{ mb: 3, borderRadius: "8px" }}>
             {apiError}
           </Alert>
         )}
@@ -132,21 +147,22 @@ const Payment = () => {
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-            gap: 4,
+            gap: { xs: 3, md: 4 },
           }}
         >
           {/* Columna Izquierda: Método de Pago */}
           <Paper
-            elevation={2}
+            elevation={3}
             sx={{
-              p: 4,
-              borderRadius: "12px",
-              backgroundColor: "#fff",
+              p: { xs: 3, md: 4 },
+              borderRadius: "16px", // Bordes más suaves
+              backgroundColor: palette.white,
+              boxShadow: "0px 10px 25px -10px rgba(0,0,0,0.1)",
             }}
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: "600", mb: 3, color: "#2d2d2d" }}
+              sx={{ fontWeight: "600", mb: 3, color: palette.darkBrown }}
             >
               Seleccionar Método de Pago
             </Typography>
@@ -155,52 +171,84 @@ const Payment = () => {
               <RadioGroup
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
+                sx={{ gap: 2 }} // Espacio entre opciones
               >
+                {/* --- Opción Yape --- */}
                 <FormControlLabel
                   value="yape"
                   control={
                     <Radio
                       sx={{
-                        color: "#ff9c9c",
-                        "&.Mui-checked": { color: "#ff9c9c" },
+                        color: palette.orange,
+                        "&.Mui-checked": { color: palette.rustRed },
                       }}
                     />
                   }
                   label={
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <YapeIcon sx={{ color: "#752F8A" }} />
-                      <Typography sx={{ fontWeight: "500" }}>Yape</Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <Box
+                        component="img"
+                        src={yapeLogo}
+                        alt="Yape"
+                        sx={{ width: 24, height: 24 }}
+                      />
+                      <Typography sx={{ fontWeight: "500", color: palette.darkBrown }}>
+                        Yape
+                      </Typography>
                     </Box>
                   }
                   sx={{
-                    border: paymentMethod === "yape" ? "2px solid #ff9c9c" : "1px solid #ddd",
-                    borderRadius: "8px",
-                    p: 2,
-                    mb: 2,
-                    backgroundColor: paymentMethod === "yape" ? "#fff5f5" : "#fff",
+                    border:
+                      paymentMethod === "yape"
+                        ? `2px solid ${palette.rustRed}`
+                        : `1px solid #ddd`,
+                    borderRadius: "12px",
+                    p: 1.5,
+                    m: 0, // Resetear margen
+                    transition: "all 0.2s ease",
+                    backgroundColor:
+                      paymentMethod === "yape"
+                        ? `${palette.rustRed}1A` // Tinte sutil
+                        : palette.white,
                   }}
                 />
+                {/* --- Opción Plin --- */}
                 <FormControlLabel
                   value="plin"
                   control={
                     <Radio
                       sx={{
-                        color: "#ff9c9c",
-                        "&.Mui-checked": { color: "#ff9c9c" },
+                        color: palette.orange,
+                        "&.Mui-checked": { color: palette.rustRed },
                       }}
                     />
                   }
                   label={
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <PlinIcon sx={{ color: "#00A9E0" }} />
-                      <Typography sx={{ fontWeight: "500" }}>Plin</Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                       <Box
+                        component="img"
+                        src={plinLogo}
+                        alt="Plin"
+                        sx={{ width: 24, height: 24 }}
+                      />
+                      <Typography sx={{ fontWeight: "500", color: palette.darkBrown }}>
+                        Plin
+                      </Typography>
                     </Box>
                   }
                   sx={{
-                    border: paymentMethod === "plin" ? "2px solid #ff9c9c" : "1px solid #ddd",
-                    borderRadius: "8px",
-                    p: 2,
-                    backgroundColor: paymentMethod === "plin" ? "#fff5f5" : "#fff",
+                    border:
+                      paymentMethod === "plin"
+                        ? `2px solid ${palette.rustRed}`
+                        : `1px solid #ddd`,
+                    borderRadius: "12px",
+                    p: 1.5,
+                    m: 0, // Resetear margen
+                    transition: "all 0.2s ease",
+                    backgroundColor:
+                      paymentMethod === "plin"
+                        ? `${palette.rustRed}1A` // Tinte sutil
+                        : palette.white,
                   }}
                 />
               </RadioGroup>
@@ -210,7 +258,7 @@ const Payment = () => {
 
             <Typography
               variant="h6"
-              sx={{ fontWeight: "600", mb: 3, color: "#2d2d2d" }}
+              sx={{ fontWeight: "600", mb: 3, color: palette.darkBrown }}
             >
               Información de Pago
             </Typography>
@@ -231,12 +279,13 @@ const Payment = () => {
               sx={{
                 mb: 3,
                 "& .MuiOutlinedInput-root": {
+                  borderRadius: "12px",
                   "&.Mui-focused fieldset": {
-                    borderColor: "#ff9c9c",
+                    borderColor: palette.rustRed, // Color al enfocar
                   },
                 },
                 "& .MuiInputLabel-root.Mui-focused": {
-                  color: "#ff9c9c",
+                  color: palette.rustRed, // Color de label al enfocar
                 },
               }}
             />
@@ -244,7 +293,7 @@ const Payment = () => {
             <TextField
               fullWidth
               label="Código de Verificación"
-              placeholder="1234"
+              placeholder="123456"
               value={verificationCode}
               onChange={(e) => {
                 setVerificationCode(e.target.value);
@@ -257,12 +306,13 @@ const Payment = () => {
               sx={{
                 mb: 3,
                 "& .MuiOutlinedInput-root": {
+                  borderRadius: "12px",
                   "&.Mui-focused fieldset": {
-                    borderColor: "#ff9c9c",
+                    borderColor: palette.rustRed, // Color al enfocar
                   },
                 },
                 "& .MuiInputLabel-root.Mui-focused": {
-                  color: "#ff9c9c",
+                  color: palette.rustRed, // Color de label al enfocar
                 },
               }}
             />
@@ -273,25 +323,28 @@ const Payment = () => {
               onClick={handlePayment}
               disabled={isLoading}
               sx={{
-                backgroundColor: "#ff9c9c",
-                color: "#fff",
+                backgroundColor: palette.rustRed, // Botón primario
+                color: palette.white,
                 py: 1.5,
                 fontSize: "16px",
                 fontWeight: "600",
-                borderRadius: "8px",
+                borderRadius: "12px",
                 textTransform: "none",
+                boxShadow: "0px 4px 15px -5px rgba(175, 68, 47, 0.7)",
                 "&:hover": {
-                  backgroundColor: "#ff7a7a",
+                  backgroundColor: palette.darkBrown, // Hover más oscuro
+                  boxShadow: "none",
                 },
                 "&:disabled": {
-                  backgroundColor: "#ffcccc",
-                  color: "#fff",
+                  backgroundColor: palette.lightPeach, // Color deshabilitado
+                  color: palette.darkBrown,
+                  opacity: 0.7
                 },
               }}
             >
               {isLoading ? (
                 <>
-                  <CircularProgress size={20} sx={{ mr: 1, color: "#fff" }} />
+                  <CircularProgress size={20} sx={{ mr: 1, color: palette.white }} />
                   Procesando...
                 </>
               ) : (
@@ -302,17 +355,18 @@ const Payment = () => {
 
           {/* Columna Derecha: Resumen del Pedido */}
           <Paper
-            elevation={2}
+            elevation={3}
             sx={{
-              p: 4,
-              borderRadius: "12px",
-              backgroundColor: "#fff",
+              p: { xs: 3, md: 4 },
+              borderRadius: "16px",
+              backgroundColor: palette.white,
               height: "fit-content",
+              boxShadow: "0px 10px 25px -10px rgba(0,0,0,0.1)",
             }}
           >
             <Typography
               variant="h6"
-              sx={{ fontWeight: "600", mb: 3, color: "#2d2d2d" }}
+              sx={{ fontWeight: "600", mb: 2, color: palette.darkBrown }}
             >
               Resumen del Pedido
             </Typography>
@@ -323,17 +377,17 @@ const Payment = () => {
                   fontWeight: "500",
                   color: "#666",
                   fontSize: "14px",
-                  mb: 1,
                 }}
               >
-                ID del Pedido: <strong>{orderId}</strong>
+                ID del Pedido:{" "}
+                <strong style={{ color: palette.darkBrown }}>{orderId}</strong>
               </Typography>
             </Box>
 
             <Divider sx={{ my: 2 }} />
 
             {/* Lista de productos */}
-            <Box sx={{ mb: 3, maxHeight: "300px", overflowY: "auto" }}>
+            <Box sx={{ mb: 3, maxHeight: "300px", overflowY: "auto", pr: 1 }}>
               {items.map((item) => (
                 <Box
                   key={item.id_detalle}
@@ -341,22 +395,25 @@ const Payment = () => {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    mb: 2,
-                    pb: 2,
+                    py: 2,
                     borderBottom: "1px solid #f0f0f0",
+                    "&:last-child": {
+                      borderBottom: "none",
+                      pb: 0
+                    }
                   }}
                 >
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={{ fontWeight: "500", fontSize: "14px" }}>
+                  <Box sx={{ flex: 1, mr: 2 }}>
+                    <Typography sx={{ fontWeight: "600", fontSize: "15px", color: palette.darkBrown }}>
                       {item.nombre}
                     </Typography>
                     <Typography
-                      sx={{ color: "#999", fontSize: "12px", mt: 0.5 }}
+                      sx={{ color: "#888", fontSize: "13px", mt: 0.5 }}
                     >
                       Cantidad: {item.cantidad}
                     </Typography>
                   </Box>
-                  <Typography sx={{ fontWeight: "600", color: "#ff9c9c" }}>
+                  <Typography sx={{ fontWeight: "600", color: palette.rustRed, fontSize: "15px" }}>
                     S/{item.subtotal.toFixed(2)}
                   </Typography>
                 </Box>
@@ -374,14 +431,14 @@ const Payment = () => {
                 mt: 3,
               }}
             >
-              <Typography sx={{ fontWeight: "700", fontSize: "18px" }}>
+              <Typography sx={{ fontWeight: "700", fontSize: "18px", color: palette.darkBrown }}>
                 Total a Pagar:
               </Typography>
               <Typography
                 sx={{
                   fontWeight: "700",
                   fontSize: "24px",
-                  color: "#f00000",
+                  color: palette.brightRed, // Total destacado
                 }}
               >
                 S/{totalAmount.toFixed(2)}
@@ -395,11 +452,12 @@ const Payment = () => {
           <Button
             onClick={() => navigate("/cart")}
             sx={{
-              color: "#ff9c9c",
+              color: palette.rustRed, // Color de acento
               textTransform: "none",
-              fontWeight: "500",
+              fontWeight: "600",
+              borderRadius: "8px",
               "&:hover": {
-                backgroundColor: "#fff5f5",
+                backgroundColor: `${palette.rustRed}1A`, // Fondo sutil al pasar el mouse
               },
             }}
           >

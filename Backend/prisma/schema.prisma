@@ -95,13 +95,23 @@ model tienda_usuario {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model usuario {
-  id_usuario     BigInt           @id @default(autoincrement())
-  nombre         String           @db.VarChar
-  correo         String           @unique @db.VarChar
-  contrase_a     String?          @map("contraseña") @db.VarChar
-  url_imagen     String?
-  rol            String?          @db.VarChar
-  pedido         pedido[]
-  test           test[]
-  tienda_usuario tienda_usuario[]
+  id_usuario        BigInt             @id @default(autoincrement())
+  nombre            String             @db.VarChar
+  correo            String             @unique @db.VarChar
+  contrase_a        String?            @map("contraseña") @db.VarChar
+  url_imagen        String?
+  rol               String?            @db.VarChar
+  autenticacion_2fa autenticacion_2fa?
+  pedido            pedido[]
+  test              test[]
+  tienda_usuario    tienda_usuario[]
+}
+
+model autenticacion_2fa {
+  id_2fa       BigInt   @id @default(autoincrement())
+  id_usuario   BigInt   @unique(map: "autenticacion_2fa_id_usuario_unique")
+  habilitado   Boolean? @default(false)
+  secreto      String?  @db.VarChar(255)
+  temp_secreto String?  @db.VarChar(255)
+  usuario      usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, onUpdate: NoAction, map: "fk_usuario_2fa")
 }

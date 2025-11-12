@@ -23,6 +23,7 @@ import Delivery from "./pages/Delivery";
 import Complaints from "./pages/Complaints";
 import { setUser, authCheckComplete } from "./redux/slices/authSlice";
 import { authAPI } from "./services/api";
+import { SnackbarProvider } from 'notistack';
 
 import { enviarEventoAuditoria } from "./services/api/auditoriaClient.js";
 
@@ -78,6 +79,7 @@ function Layout() {
       ruta: location.pathname + location.search,
       meta: {
         titulo: document.title || null,
+        usuarioId
       }
     }, usuarioLogueado);
   }, [location, usuarioId]);
@@ -150,9 +152,11 @@ function App() {
         v7_relativeSplatPath: true
       }}
     >
-      <LoginModalProvider>
-        <Layout />
-      </LoginModalProvider>
+      <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <LoginModalProvider>
+          <Layout />
+        </LoginModalProvider>
+      </SnackbarProvider>
     </BrowserRouter>
   );
 }
