@@ -7,9 +7,8 @@ const auditoriaRouter = express.Router();
 //sin autenticacion
 auditoriaRouter.post('/', async (req, res) => {
   try {
-    const { accion, recurso, recursoId, meta, anonimoId, ruta } = req.body;
-    await logAuditoria({
-      anonimoId: anonimoId || req.cookies?.anon_id || null,
+    const { accion, recurso, recursoId, meta, ruta } = req.body;
+    logAuditoria({
       accion,
       recurso,
       recursoId,
@@ -28,9 +27,7 @@ auditoriaRouter.post('/', async (req, res) => {
 auditoriaRouter.post('/me', verifyToken, async (req, res) => {
   try {
     const { accion, recurso, recursoId, meta, ruta } = req.body;
-    await logAuditoria({ 
-      anonimoId: req.cookies?.anon_id || null,
-      usuarioId: String(req.user?.id || req.user?.id_usuario || null),
+    logAuditoria({ 
       accion,
       recurso,
       recursoId,

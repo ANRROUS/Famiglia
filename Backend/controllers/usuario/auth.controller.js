@@ -117,18 +117,26 @@ export const login = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    // ✅ AGREGAR EL TOKEN EN LA RESPUESTA
     res.json({
       message: "Login exitoso",
-      authToken: token, // ✅ NUEVO
+      authToken: token,
       usuario: {
         id: Number(usuario.id_usuario),
         nombre: usuario.nombre,
         correo: usuario.correo,
         rol,
-        autenticacion_2fa: registro2FA, // ✅ NUEVO
+        autenticacion_2fa: registro2FA,
       },
     });
+
+    logAuditoria({
+      usuarioId: usuario?.id_usuario || null,
+      accion: "login",
+      recurso: "usuario",
+      recursoId: usuario?.id_usuario || null,
+      req,
+      meta: { metodo: "password" },
+    }).catch((auditErr) => console.warn("Error en logAuditoria", auditErr));
   } catch (error) {
     res
       .status(500)
