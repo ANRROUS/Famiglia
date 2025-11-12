@@ -10,7 +10,22 @@ const axiosInstance = axios.create({
   },
 });
 
-// Interceptor de respuesta para manejar errores de autenticación
+// ✅ INTERCEPTOR DE PETICIÓN (ANTES, no después)
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      if (!config.headers) {
+        config.headers = {};
+      }
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ✅ INTERCEPTOR DE RESPUESTA (DESPUÉS)
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
