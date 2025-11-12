@@ -28,11 +28,19 @@ import {
   ArrowBack,
   ArrowForward,
 } from "@mui/icons-material";
+import defaultAvatar from "../assets/images/img-default-avatar.png";
 import { pedidoAPI, preferencesAPI } from "../services/api";
 import crypto from "crypto-js";
 
 export default function Profile() {
   const { user } = useSelector((state) => state.auth);
+
+  const defaultFoto = defaultAvatar;
+  const [foto, setFoto] = useState(() => {
+    // carga desde localStorage si existe
+    return localStorage.getItem("fotoPerfil") || user?.url_imagen || defaultFoto;
+  });
+
 
   // pagination
   const itemsPerPage = 6;
@@ -66,6 +74,15 @@ export default function Profile() {
     // reset page when tab changes
     setPage(0);
   }, [tabValue]);
+
+
+  // Guarda la foto en localStorage cuando cambia
+  useEffect(() => {
+    if (foto) {
+      localStorage.setItem("fotoPerfil", foto);
+    }
+  }, [foto]);
+
 
   const fetchPedidos = async () => {
     setLoadingPedidos(true);
@@ -127,24 +144,22 @@ export default function Profile() {
     );
 
   return (
-    <Box sx={{ minHeight: "100vh", backgroundColor: palette.pageBg, py: 6, px: { xs: 3, md: 6 } }}>
       <Box sx={{ maxWidth: "1400px", mx: "auto" }}>
         {/* Header */}
-        <Typography variant="h4" sx={{ fontWeight: 800, color: palette.dark, mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, color: palette.dark, mb: 4, mt: 4 }}>
           Mi Perfil
         </Typography>
 
-        <Box sx={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        <Box sx={{ display: "flex", gap: 4, alignItems: "flex-start", flexDirection: { xs: "column", md: "row" },}}>
           {/* LEFT PANEL - fixed width, independent height, vertically centered */}
           <Paper
             elevation={3}
             sx={{
+              bgcolor: "#fcfbf9ff",
               width: { xs: "100%", md: 340 },
               borderRadius: 2,
               p: 3,
-              alignSelf: "center", // center vertically relative to right panel content
-              position: { md: "sticky" },
-              top: { md: 24 },
+              
             }}
           >
             {/* avatar box (fixed rectangle) */}
@@ -162,31 +177,50 @@ export default function Profile() {
                 mb: 2,
               }}
             >
-              {user?.url_imagen ? (
-                // keep avatar filling same box without changing dimensions
-                <img
-                  src={user.url_imagen}
-                  alt="avatar"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <CameraAlt sx={{ fontSize: 72, color: palette.primary }} />
-              )}
+              {foto ? (
+  <img
+    src={foto || "/images/img-default-avatar.png"}
+    alt="avatar"
+    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+  />
+) : (
+  <CameraAlt sx={{ fontSize: 80, color: palette.primary }} />
+)}
 
-              <IconButton
-                size="small"
-                aria-label="Cambiar foto"
-                sx={{
-                  position: "absolute",
-                  bottom: 12,
-                  right: 12,
-                  bgcolor: palette.primary,
-                  color: "#fff",
-                  "&:hover": { bgcolor: palette.dark2 },
-                }}
-              >
-                <CameraAlt fontSize="small" />
-              </IconButton>
+{/* input oculto para subir imagen */}
+<input
+  type="file"
+  accept="image/*"
+  id="input-foto"
+  style={{ display: "none" }}
+  onChange={(e) => {
+    const archivo = e.target.files[0];
+    if (archivo) {
+      setFoto(URL.createObjectURL(archivo));
+      // Aquí podrías luego subir la imagen al backend si deseas.
+    }
+  }}
+/>
+
+{/* botón con ícono de cámara que abre el selector */}
+<label htmlFor="input-foto">
+  <IconButton
+    component="span"
+    size="small"
+    aria-label="Cambiar foto"
+    sx={{
+      position: "absolute",
+      bottom: 12,
+      right: 12,
+      bgcolor: palette.primary,
+      color: "#fff",
+      "&:hover": { bgcolor: palette.dark2 },
+    }}
+  >
+    <CameraAlt fontSize="small" />
+  </IconButton>
+</label>
+
             </Box>
 
             {/* Nombre */}
@@ -206,7 +240,7 @@ export default function Profile() {
           {/* RIGHT PANEL - flexible */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {/* Tabs panel */}
-            <Paper elevation={2} sx={{ borderRadius: 2, mb: 3 }}>
+            <Paper elevation={2} sx={{ bgcolor: "#fcfbf9ff", borderRadius: 2, mb: 3 }}>
               <Tabs
                 value={tabValue}
                 onChange={(e, v) => setTabValue(v)}
@@ -229,7 +263,7 @@ export default function Profile() {
               loadingPedidos ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
               ) : displayedPedidos.length === 0 ? (
-                <Paper sx={{ p: 6, textAlign: "center" }}>No tienes pedidos</Paper>
+                <Paper sx={{bgcolor: "#fcfbf9ff", p: 6, textAlign: "center" }}>No tienes pedidos</Paper>
               ) : (
                 <>
                   <Box
@@ -248,7 +282,7 @@ export default function Profile() {
                       // product list vertical centering when few items:
                       const fewItems = (p.items?.length || 0) <= 1;
                       return (
-                        <Card key={p.id_pedido} sx={{ borderRadius: 2, display: "flex", flexDirection: "column", height: "100%" }}>
+                        <Card key={p.id_pedido} sx={{ bgcolor: "#fcfbf9ff",borderRadius: 2, display: "flex", flexDirection: "column", height: "100%" }}>
                           {/* header */}
                           <Box sx={{ bgcolor: palette.primary, color: "#fff", px: 2, py: 1.2, display: "flex", alignItems: "center", justifyContent: "space-between", gap:2 }}>
                             <Typography fontWeight={700} sx={{ fontSize: 15 }}>
@@ -317,7 +351,7 @@ export default function Profile() {
                             {/* Footer (total) aligned to bottom via CardContent flex column) */}
                             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
                               <Typography sx={{ fontWeight: 800 }}>Total:</Typography>
-                              <Typography sx={{ fontWeight: 800, color: palette.dark }}>
+                              <Typography sx={{ fontWeight: 800, color: palette.primary }}>
                                 S/{Number(p.total).toFixed(2)}
                               </Typography>
                             </Box>
@@ -358,7 +392,7 @@ export default function Profile() {
               loadingTests ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress /></Box>
               ) : displayedTests.length === 0 ? (
-                <Paper sx={{ p: 6, textAlign: "center" }}>No tienes tests</Paper>
+                <Paper sx={{bgcolor: "#fff6eeff", p: 6, textAlign: "center" }}>No tienes tests</Paper>
               ) : (
                 <>
                   <Box
@@ -373,7 +407,7 @@ export default function Profile() {
                     }}
                   >
                     {pageData.map((t) => (
-                      <Card key={t.id} sx={{ borderRadius: 2 }}>
+                      <Card key={t.id} sx={{ bgcolor: "#fff6eeff", borderRadius: 2 }}>
                         {t.url_resultado && (
                           <img
                             src={t.url_resultado}
@@ -426,6 +460,5 @@ export default function Profile() {
           </Box>
         </Box>
       </Box>
-    </Box>
   );
 }

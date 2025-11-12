@@ -73,7 +73,7 @@ const MenuSection = () => {
     // Sólo capturamos el pointer si es touch (evita comportamientos raros con mouse)
     try {
       if (e.pointerType === "touch") slider.setPointerCapture(e.pointerId);
-    } catch (err) {}
+    } catch (err) { }
 
     // Use clientX + getBoundingClientRect para obtener posición fiable
     const rect = slider.getBoundingClientRect();
@@ -117,7 +117,7 @@ const MenuSection = () => {
     // Liberar capture si lo hemos hecho
     try {
       if (pointerTypeRef.current === "touch") slider.releasePointerCapture(e.pointerId);
-    } catch (err) {}
+    } catch (err) { }
 
     // Restaurar cursor a grab por defecto (o eliminar estilo)
     slider.style.cursor = "grab";
@@ -147,9 +147,12 @@ const MenuSection = () => {
     return () => document.removeEventListener("selectstart", preventSelect);
   }, []);
 
-  // Acción al click
   const handleCategoryClick = (categoria) => {
-    navigate("/carta")
+    // Guarda el nombre o id de la categoría en el localStorage
+    localStorage.setItem("categoriaSeleccionada", categoria);
+
+    // Luego navega a /carta
+    navigate("/carta");
   };
 
   return (
@@ -231,7 +234,7 @@ const MenuSection = () => {
                 <img
                   src={img}
                   alt={nombre}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover"
                   draggable={false}
                 />
               </Box>

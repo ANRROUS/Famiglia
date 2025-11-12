@@ -12,14 +12,22 @@ import pedidoRoutes from './routes/pedido/pedidoRoutes.js';
 import pagoRoutes from './routes/pedido/pagoRoutes.js';
 import carritoRoutes from './routes/pedido/carritoRoutes.js';
 
+import { setAnonId } from './middleware/auditoriaMiddleware.js';
+import auditoriaRouter from './routes/auditoria/auditoriaRoutes.js';
+
 const app = express();
 app.use(morgan('dev'));
 app.use(cors({
     origin: 'http://localhost:5173',
     credentials: true
 }));
-app.use(express.json());
+
 app.use(cookieParser());
+app.use(express.json());
+
+app.use(setAnonId);
+
+app.use('/auditoria', auditoriaRouter);
 
 app.use('/productos', productoRoutes);
 app.use('/categorias', categoriaRoutes);

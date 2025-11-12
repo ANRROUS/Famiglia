@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import CloseIcon from "@mui/icons-material/Close";
 import imgLogoFamiglia from "../../assets/images/img_logoFamigliawithoutBorders.png";
 import { loginStart, loginSuccess, loginFailure, clearError } from "../../redux/slices/authSlice";
 import { authAPI } from "../../services/api";
@@ -12,16 +11,17 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isLoading, error } = useSelector((state) => state.auth);
-  
+  const [fieldErrors, setFieldErrors] = useState({});
+
   const [formData, setFormData] = useState({
     correo: "",
-    contraseña: ""
+    contraseña: "",
   });
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -30,39 +30,48 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     dispatch(loginStart());
+    setFieldErrors({});
 
     try {
       const response = await authAPI.login(formData);
-  dispatch(loginSuccess(response.data));
-  const userRole = response.data?.usuario?.rol || "C";
-  const isAdmin = userRole === "A";
-  const adminDefaultPath = "/pedidos-admin";
-  const clientDefaultPath = "/carta";
-  const isAdminRedirectPath = redirectPath?.startsWith("/pedidos-admin") || redirectPath?.startsWith("/catalogo-admin");
-      
-      // Limpiar formulario y cerrar modal
+      dispatch(loginSuccess(response.data));
+
+      const userRole = response.data?.usuario?.rol || "C";
+      const isAdmin = userRole === "A";
+      const adminDefaultPath = "/pedidos-admin";
+      const clientDefaultPath = "/carta";
+      const isAdminRedirectPath =
+        redirectPath?.startsWith("/pedidos-admin") ||
+        redirectPath?.startsWith("/catalogo-admin");
+
+      // limpiar formulario y cerrar modal
       setFormData({ correo: "", contraseña: "" });
       onClose();
-      
-      let targetPath;
 
+      let targetPath;
       if (isAdmin) {
-        if (redirectPath && isAdminRedirectPath) {
-          targetPath = redirectPath;
-        } else {
-          targetPath = adminDefaultPath;
-        }
+        targetPath =
+          redirectPath && isAdminRedirectPath ? redirectPath : adminDefaultPath;
       } else {
-        if (redirectPath && !isAdminRedirectPath) {
-          targetPath = redirectPath;
-        } else {
-          targetPath = clientDefaultPath;
-        }
+        targetPath =
+          redirectPath && !isAdminRedirectPath ? redirectPath : clientDefaultPath;
       }
 
       navigate(targetPath);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Error al iniciar sesión";
+      const status = err.response?.status;
+      const data = err.response?.data;
+
+      if (status === 400 && Array.isArray(data?.errors)) {
+        const errorsByField = {};
+        data.errors.forEach((e) => {
+          errorsByField[e.field] = e.message;
+        });
+        setFieldErrors(errorsByField);
+        return;
+      }
+
+      const errorMessage = data?.message || "Error al iniciar sesión.";
       dispatch(loginFailure(errorMessage));
     }
   };
@@ -70,36 +79,40 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
   const handleClose = () => {
     dispatch(clearError());
     setFormData({ correo: "", contraseña: "" });
+    setFieldErrors({});
     onClose();
   };
+
+  // Si hay errores por campo, no mostramos el mensaje general arriba.
+  const shouldShowGeneralError =
+    error && !fieldErrors.correo && !fieldErrors.contraseña;
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="">
       <div className="flex flex-col items-center justify-center px-6 py-4">
-
-        {/* Contenedor centrado */}
         <div className="w-full max-w-md flex flex-col items-center text-center justify-center -mt-16">
-          {/* Logo */}
           <img
             src={imgLogoFamiglia}
             alt="Panadería Famiglia"
             className="w-56 -mb-6"
           />
 
-          {/* Título */}
           <h2 className="text-3xl font-semibold text-[#8B3A3A] mb-8">
             ¡Qué bueno verte aquí!
           </h2>
 
-          {/* Mensaje de error */}
-          {error && (
+          {/* solo mostrar error general si no pertenece a campos específicos */}
+          {shouldShowGeneralError && (
             <div className="w-full mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm">
               {error}
             </div>
           )}
 
-          {/* Formulario */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full text-left">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-5 w-full text-left"
+          >
+            {/* Campo Correo */}
             <div>
               <label className="block text-[#8B3A3A] text-base font-medium mb-2">
                 Correo Electrónico:
@@ -109,12 +122,19 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
                 name="correo"
                 value={formData.correo}
                 onChange={handleChange}
-                className="w-full border border-[#E3AFAF] rounded-md p-3 text-lg focus:outline-none focus:ring-2 focus:ring-[#E3AFAF]"
+                className={`w-full border ${
+                  fieldErrors.correo ? "border-red-400" : "border-[#E3AFAF]"
+                } rounded-md p-3 text-lg focus:outline-none focus:ring-2 focus:ring-[#E3AFAF]`}
                 placeholder="Ej. maria@gmail.com"
-                required
               />
+              {fieldErrors.correo && (
+                <p className="text-red-600 text-sm mt-1">
+                  {fieldErrors.correo}
+                </p>
+              )}
             </div>
 
+            {/* Campo Contraseña */}
             <div>
               <label className="block text-[#8B3A3A] text-base font-medium mb-2">
                 Contraseña:
@@ -124,10 +144,18 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
                 name="contraseña"
                 value={formData.contraseña}
                 onChange={handleChange}
-                className="w-full border border-[#E3AFAF] rounded-md p-3 text-lg focus:outline-none focus:ring-2 focus:ring-[#E3AFAF]"
+                className={`w-full border ${
+                  fieldErrors.contraseña
+                    ? "border-red-400"
+                    : "border-[#E3AFAF]"
+                } rounded-md p-3 text-lg focus:outline-none focus:ring-2 focus:ring-[#E3AFAF]`}
                 placeholder="********"
-                required
               />
+              {fieldErrors.contraseña && (
+                <p className="text-red-600 text-sm mt-1">
+                  {fieldErrors.contraseña}
+                </p>
+              )}
             </div>
 
             {/* Botón */}
@@ -140,7 +168,6 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
             </button>
           </form>
 
-          {/* Enlace inferior */}
           <p className="text-sm text-[#5A3A29] mt-5 mb-2">
             ¿No tienes una cuenta?{" "}
             <button
@@ -151,7 +178,7 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
               }}
               className="text-[#8B3A3A] font-medium hover:underline"
             >
-              Registrate aquí
+              Regístrate aquí
             </button>
           </p>
         </div>

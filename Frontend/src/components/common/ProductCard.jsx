@@ -33,7 +33,7 @@ const ProductCard = ({ product, onAddToCart, showAddButton = true }) => {
   const isBestSeller = totalVendido > 5;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 font-['Montserrat'] border border-gray-200 mb-3">
+    <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 font-['Montserrat'] border border-red-300 mb-3">
       <div className="grid grid-cols-[100px_1fr_auto] gap-4 items-center px-4 py-4">
         {/* Imagen */}
         <div className="w-[100px] h-[90px] rounded-xl overflow-hidden bg-[#ffe3d9] flex items-center justify-center">

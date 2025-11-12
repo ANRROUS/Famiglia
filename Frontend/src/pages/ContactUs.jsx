@@ -1,9 +1,28 @@
 import React, { useState } from "react";
-import { Box, Typography, TextField, Button, CircularProgress, Alert } from "@mui/material";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  CircularProgress,
+  Alert,
+  Card,
+  CardContent,
+} from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
 import EmailIcon from "@mui/icons-material/Email";
 import RoomIcon from "@mui/icons-material/Room";
 import axios from "axios";
+
+const palette = {
+  dark: "#6B3730",
+  dark2: "#AF442F",
+  accent: "#EF9D58",
+  primary: "#C94549",
+  pastel: "#EBBABC",
+  white: "#FFFFFF",
+  pageBg: "#FBF2F2",
+};
 
 const ContactUs = () => {
   const [nombre, setNombre] = useState("");
@@ -18,7 +37,11 @@ const ContactUs = () => {
     setAlert({ show: false, type: "", message: "" });
 
     try {
-      await axios.post("http://localhost:3000/contact/send-email", { nombre, email, mensaje });
+      await axios.post("http://localhost:3000/contact/send-email", {
+        nombre,
+        email,
+        mensaje,
+      });
 
       setAlert({
         show: true,
@@ -41,188 +64,243 @@ const ContactUs = () => {
 
   return (
     <Box
-      className="
-        w-full 
-        bg-white 
-        flex flex-col md:flex-row 
-        justify-center md:items-start items-center
-        gap-16 md:gap-20 
-        pt-20 pb-30 px-6 sm:px-10 md:px-16 
-        font-[Montserrat] 
-        text-[#753b3b]
-      "
       sx={{
-        boxSizing: "border-box",
-        maxWidth: "100vw",
-        overflowX: "hidden",
+        backgroundColor: palette.white,
+        width: "100%",
+        display: "flex",
+        flexDirection: { xs: "column", md: "row" },
+        justifyContent: "center",
+        alignItems: "flex-start",
+        gap: 8,
+        px: { xs: 3, md: 10 },
+        py: 10,
+        fontFamily: "Montserrat",
       }}
     >
-      {/* LEFT SIDE - CONTACT INFO */}
+      {/* ---------- IZQUIERDA: INFORMACIÓN DE CONTACTO ---------- */}
       <Box
-        className="flex-1 flex flex-col gap-10 max-w-md w-full md:items-start items-center text-center md:text-left"
-        sx={{ minWidth: 0 }}
+        className="contact-info"
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          maxWidth: 380,
+        }}
       >
         <Typography
           sx={{
             fontFamily: "'Lilita One', cursive",
             fontWeight: 700,
-            color: "#753b3b",
-            fontSize: "1.3rem",
+            color: palette.dark,
+            fontSize: "1.5rem",
             mb: 1,
           }}
         >
           Contáctanos
         </Typography>
 
-        <Box className="flex items-center justify-center md:justify-start gap-4">
-          <PhoneIcon sx={{ fontSize: 36, color: "#000" }} />
-          <Box>
-            <Typography sx={{ color: "#000", fontSize: "0.9rem", fontWeight: 600 }}>
-              Número de llamada
-            </Typography>
-            <Typography sx={{ color: "#000", fontSize: "0.8rem" }}>+51 933 043 066</Typography>
-          </Box>
-        </Box>
+        {/* CARD - Teléfono */}
+        <Card
+          sx={{
+            borderRadius: 3,
+            boxShadow: "0 3px 10px rgba(0,0,0,0.1)",
+            backgroundColor: palette.white,
+          }}
+        >
+          <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <PhoneIcon sx={{ fontSize: 36, color: palette.primary }} />
+            <Box>
+              <Typography
+                sx={{ fontWeight: 600, color: palette.dark, fontSize: "0.95rem" }}
+              >
+                Número de llamada
+              </Typography>
+              <Typography sx={{ color: palette.dark2, fontSize: "0.9rem" }}>
+                +51 933 043 066
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
 
-        <Box className="flex items-center justify-center md:justify-start gap-4">
-          <EmailIcon sx={{ fontSize: 36, color: "#000" }} />
-          <Box>
-            <Typography sx={{ color: "#000", fontSize: "0.9rem", fontWeight: 600 }}>Email</Typography>
-            <Typography sx={{ color: "#000", fontSize: "0.8rem" }}>
-              lunaromero@famiglia.com
-            </Typography>
-          </Box>
-        </Box>
+        {/* CARD - Email */}
+        <Card
+          sx={{
+            borderRadius: 3,
+            boxShadow: "0 3px 10px rgba(0,0,0,0.1)",
+            backgroundColor: palette.white,
+          }}
+        >
+          <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <EmailIcon sx={{ fontSize: 36, color: palette.primary }} />
+            <Box>
+              <Typography
+                sx={{ fontWeight: 600, color: palette.dark, fontSize: "0.95rem" }}
+              >
+                Email
+              </Typography>
+              <Typography sx={{ color: palette.dark2, fontSize: "0.9rem" }}>
+                lunaromero@famiglia.com
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
 
-        <Box className="flex items-center justify-center md:justify-start gap-4">
-          <RoomIcon sx={{ fontSize: 36, color: "#000" }} />
-          <Box>
-            <Typography sx={{ color: "#000", fontSize: "0.9rem", fontWeight: 600 }}>
-              Ubicación
-            </Typography>
-            <Typography sx={{ color: "#000", fontSize: "0.8rem" }}>
-              Av. Arenales 330 – Lima
-            </Typography>
-          </Box>
-        </Box>
+        {/* CARD - Ubicación */}
+        <Card
+          sx={{
+            borderRadius: 3,
+            boxShadow: "0 3px 10px rgba(0,0,0,0.1)",
+            backgroundColor: palette.white,
+          }}
+        >
+          <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <RoomIcon sx={{ fontSize: 36, color: palette.primary }} />
+            <Box>
+              <Typography
+                sx={{ fontWeight: 600, color: palette.dark, fontSize: "0.95rem" }}
+              >
+                Ubicación
+              </Typography>
+              <Typography sx={{ color: palette.dark2, fontSize: "0.9rem" }}>
+                Av. Arenales 330 – Lima
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
       </Box>
 
-      {/* RIGHT SIDE - CONTACT FORM */}
+      {/* ---------- DERECHA: FORMULARIO DE CONTACTO ---------- */}
       <Box
         component="form"
         onSubmit={handleSubmit}
-        className="flex-1 max-w-md w-full"
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          border: "1px solid #efb0b0",
-          borderRadius: "8px",
-          padding: "2rem 2rem",
-          backgroundColor: "#fff",
-          minWidth: 0,
-          marginTop: { xs: "1.5rem", md: 0 },
+          flex: 1,
+          maxWidth: 450,
+          backgroundColor: "#fcfbf9ff",
+          borderRadius: 3,
+          p: 4,
+          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
         }}
       >
-        <Typography sx={{ fontWeight: 700, color: "#753b3b", fontSize: "0.9rem", mb: 0.5 }}>
-          Nombre:
+        <Typography
+          sx={{
+            fontWeight: 700,
+            color: palette.primary,
+            fontSize: "1.1rem",
+            mb: 3,
+            textAlign: "center",
+          }}
+        >
+          Envíanos un mensaje
+        </Typography>
+
+        {/* Campo Nombre */}
+        <Typography sx={{ color: palette.dark, fontWeight: 600, mb: 0.5 }}>
+          Nombre
         </Typography>
         <TextField
-          variant="outlined"
           fullWidth
+          variant="outlined"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           required
           sx={{
             "& .MuiOutlinedInput-root": {
-              height: "40px",
-              "& fieldset": { borderColor: "#efb0b0" },
-              "&:hover fieldset": { borderColor: "#d47a7a" },
-              "&.Mui-focused fieldset": { borderColor: "#b25555" },
+              borderRadius: 2,
+              "& fieldset": { borderColor: palette.pastel },
+              "&:hover fieldset": { borderColor: palette.primary },
+              "&.Mui-focused fieldset": { borderColor: palette.dark2 },
             },
           }}
         />
 
-        <Typography sx={{ fontWeight: 700, color: "#753b3b", fontSize: "0.9rem", mt: 2, mb: 0.5 }}>
-          Correo:
+        {/* Campo Email */}
+        <Typography
+          sx={{ color: palette.dark, fontWeight: 600, mt: 2, mb: 0.5 }}
+        >
+          Correo electrónico
         </Typography>
         <TextField
+          fullWidth
           type="email"
           variant="outlined"
-          fullWidth
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           sx={{
             "& .MuiOutlinedInput-root": {
-              height: "40px",
-              "& fieldset": { borderColor: "#efb0b0" },
-              "&:hover fieldset": { borderColor: "#d47a7a" },
-              "&.Mui-focused fieldset": { borderColor: "#b25555" },
+              borderRadius: 2,
+              "& fieldset": { borderColor: palette.pastel },
+              "&:hover fieldset": { borderColor: palette.primary },
+              "&.Mui-focused fieldset": { borderColor: palette.dark2 },
             },
           }}
         />
 
-        <Typography sx={{ fontWeight: 700, color: "#753b3b", fontSize: "0.9rem", mt: 2, mb: 0.5 }}>
-          Mensaje:
+        {/* Campo Mensaje */}
+        <Typography
+          sx={{ color: palette.dark, fontWeight: 600, mt: 2, mb: 0.5 }}
+        >
+          Mensaje
         </Typography>
         <TextField
-          variant="outlined"
+          fullWidth
           multiline
           rows={4}
-          fullWidth
+          variant="outlined"
           value={mensaje}
           onChange={(e) => setMensaje(e.target.value)}
           required
           sx={{
             "& .MuiOutlinedInput-root": {
-              "& fieldset": { borderColor: "#efb0b0" },
-              "&:hover fieldset": { borderColor: "#d47a7a" },
-              "&.Mui-focused fieldset": { borderColor: "#b25555" },
+              borderRadius: 2,
+              "& fieldset": { borderColor: palette.pastel },
+              "&:hover fieldset": { borderColor: palette.primary },
+              "&.Mui-focused fieldset": { borderColor: palette.dark2 },
             },
           }}
         />
 
-        <Button
-          type="submit"
-          disabled={loading}
-          sx={{
-            mt: 3,
-            alignSelf: "center",
-            width: "160px",
-            height: "36px",
-            backgroundColor: "#fde3e3",
-            color: "#753b3b",
-            fontWeight: 500,
-            textTransform: "none",
-            fontSize: "0.8rem",
-            borderRadius: "6px",
-            boxShadow: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 1,
-            "&:hover": { backgroundColor: "#f9cccc" },
-          }}
-        >
-          {loading ? (
-            <>
-              <CircularProgress size={16} sx={{ color: "#753b3b" }} />
-              Enviando...
-            </>
-          ) : (
-            "Enviar Mensaje"
-          )}
-        </Button>
+        {/* Botón de envío centrado */}
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+          <Button
+            type="submit"
+            disabled={loading}
+            sx={{
+              width: "170px",
+              height: "42px",
+              backgroundColor: palette.primary,
+              color: palette.white,
+              fontWeight: 600,
+              textTransform: "none",
+              fontSize: "0.9rem",
+              borderRadius: 2,
+              boxShadow: "0 3px 6px rgba(0,0,0,0.2)",
+              "&:hover": { backgroundColor: palette.dark2 },
+            }}
+          >
+            {loading ? (
+              <>
+                <CircularProgress size={18} sx={{ color: palette.white, mr: 1 }} />
+                Enviando...
+              </>
+            ) : (
+              "Enviar Mensaje"
+            )}
+          </Button>
+        </Box>
 
+        {/* Alerta de estado */}
         {alert.show && (
           <Alert
             severity={alert.type}
             sx={{
               mt: 3,
+              borderRadius: 2,
               textAlign: "center",
-              borderRadius: "8px",
               backgroundColor:
-                alert.type === "success" ? "#f0fff0" : "#fff0f0",
+                alert.type === "success" ? "#f4fff4" : "#fff4f4",
             }}
           >
             {alert.message}

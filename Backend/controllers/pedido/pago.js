@@ -1,5 +1,6 @@
 import prisma from "../../prismaClient.js";
 import crypto from "crypto";
+import { logAuditoria } from "../../services/auditoriaService.js";
 
 // Función para generar el hash del ID del pedido
 const hashOrderId = (id) => {
@@ -87,6 +88,16 @@ export const procesarPago = async (req, res) => {
                 total: total
             }
         });
+        logAuditoria({
+            usuarioId: id_usuario,
+            accion: 'compra',
+            recurso: 'pedido',  
+            recursoId: pedido.id_pedido,
+            meta: { 
+                medio, 
+                total
+            }
+        }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
     } catch (error) {
         console.error("Error al procesar pago:", error);
         res.status(500).json({ error: "Error al procesar pago" });

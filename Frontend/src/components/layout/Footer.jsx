@@ -122,8 +122,8 @@ const Footer = () => {
               {
                 title: "Legales",
                 items: [
-                  { text: "Términos y condiciones", action: () => setOpenModal("terminos") },
-                  { text: "Política de privacidad", action: () => setOpenModal("privacidad") },
+                  { text: "Términos y condiciones", action: () => navigate("/terminos") },
+                  { text: "Política de privacidad", action: () => navigate("/privacidad") },
                 ],
               },
             ].map((section, idx) => (
@@ -199,7 +199,7 @@ const Footer = () => {
 
       {/* Pie */}
       <Box className="bg-white text-[#b63434] text-center py-4 text-sm md:text-base font-medium">
-        Pastelería Famiglia © 2025 - Todos los derechos reservados
+        Pastelería Famiglia © 2025 - Todos los derechos reservados - Grupo N°01 Pernity
       </Box>
 
       {/* 🔹 Modales dinámicos con páginas */}

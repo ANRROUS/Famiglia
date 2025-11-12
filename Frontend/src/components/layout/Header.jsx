@@ -94,21 +94,7 @@ const Header = () => {
 
   // 🔹 Navegación
   const handleNavigation = (path) => {
-    if (path === "/delivery") {
-      // Si estamos en home, scroll a la sección
-      if (location.pathname === "/") {
-        const deliverySection = document.getElementById("delivery-section");
-        if (deliverySection) {
-          deliverySection.scrollIntoView({ behavior: "smooth" });
-        }
-      } else {
-        // Si no estamos en home, navegar a home con hash
-        navigate("/#delivery");
-      }
-    } else {
-      navigate(path);
-    }
-    setMenuOpen(false);
+    navigate(path);
   };
 
   // 🔹 Logout

@@ -24,8 +24,6 @@ const HeroSection = ({
   onDeliveryTextClick,
   onTestTextClick,
   onContactanosTextClick,
-  onGroupContainerClick,
-  onGroupContainerClick1,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
