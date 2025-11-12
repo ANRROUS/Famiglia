@@ -15,6 +15,7 @@ export const logAuditoria = async (payload = {}) => {
     const {
       anonimoId = null,
       usuarioId = null,
+      rol = null,
       accion,
       recurso = null,
       recursoId = null,
@@ -28,6 +29,7 @@ export const logAuditoria = async (payload = {}) => {
     const documento = {
       usuarioId: usuarioId ? String(usuarioId) : (req?.user?.id_usuario || req?.user?.id) ? String(req.user.id_usuario || req.user.id) : null,
       anonimoId: anonimoId || req?.cookies?.anon_id || null,
+      rol: req?.user?.rol || rol || null,
       accion,
       recurso,
       recursoId: recursoId ? String(recursoId) : null,
@@ -35,7 +37,7 @@ export const logAuditoria = async (payload = {}) => {
       meta
     };
 
-    await Auditoria.create(documento);
+    await Auditoria.create(documento).catch(err => console.error('Error creando auditoría:', err));
   } catch (err) {
     console.error('logAuditoria error:', err);
   }

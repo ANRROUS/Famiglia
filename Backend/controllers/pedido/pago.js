@@ -89,15 +89,15 @@ export const procesarPago = async (req, res) => {
             }
         });
         logAuditoria({
-            usuarioId: id_usuario,
             accion: 'compra',
             recurso: 'pedido',  
             recursoId: pedido.id_pedido,
+            req,
             meta: { 
                 medio, 
                 total
             }
-        }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+        });
     } catch (error) {
         console.error("Error al procesar pago:", error);
         res.status(500).json({ error: "Error al procesar pago" });
