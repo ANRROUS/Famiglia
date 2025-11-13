@@ -113,16 +113,7 @@ const Payment = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        backgroundColor: palette.lightPeach, // Color de fondo principal
-        pt: 8,
-        pb: 6,
-        px: 2,
-        fontFamily: "'Montserrat', sans-serif", // Asegúrate de que esta fuente esté cargada
-      }}
-    >
+    
       <Box sx={{ maxWidth: "1000px", margin: "0 auto" }}>
         <Typography
           variant="h4"
@@ -130,10 +121,11 @@ const Payment = () => {
             fontWeight: "700",
             color: palette.darkBrown, // Título principal
             mb: 4,
+            pt: 4,
             textAlign: "center",
           }}
         >
-          Completar Pago
+          Método de Pago
         </Typography>
 
         {/* Mensaje de error de API */}
@@ -152,12 +144,23 @@ const Payment = () => {
         >
           {/* Columna Izquierda: Método de Pago */}
           <Paper
-            elevation={3}
+            elevation={6}
             sx={{
               p: { xs: 3, md: 4 },
-              borderRadius: "16px", // Bordes más suaves
-              backgroundColor: palette.white,
-              boxShadow: "0px 10px 25px -10px rgba(0,0,0,0.1)",
+              borderRadius: "18px",
+              background: "linear-gradient(145deg, #fefcfcff, #f2f0ed)",
+              boxShadow: `
+                8px 8px 20px rgba(0, 0, 0, 0.15), 
+                -4px -4px 10px rgba(255, 255, 255, 0.8)
+              `,
+              transition: "all 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-4px)",
+                boxShadow: `
+                  10px 10px 25px rgba(0, 0, 0, 0.2), 
+                  -5px -5px 12px rgba(255, 255, 255, 0.9)
+                `,
+              },
             }}
           >
             <Typography
@@ -355,13 +358,24 @@ const Payment = () => {
 
           {/* Columna Derecha: Resumen del Pedido */}
           <Paper
-            elevation={3}
+            elevation={6}
             sx={{
               p: { xs: 3, md: 4 },
-              borderRadius: "16px",
-              backgroundColor: palette.white,
+              borderRadius: "18px",
+              background: "linear-gradient(145deg, #fcfcfcff, #f7f4efff)",
               height: "fit-content",
-              boxShadow: "0px 10px 25px -10px rgba(0,0,0,0.1)",
+              boxShadow: `
+                8px 8px 20px rgba(0, 0, 0, 0.15), 
+                -4px -4px 10px rgba(255, 255, 255, 0.9)
+              `,
+              transition: "all 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-4px)",
+                boxShadow: `
+                  10px 10px 25px rgba(0, 0, 0, 0.2), 
+                  -5px -5px 12px rgba(255, 255, 255, 0.95)
+                `,
+              },
             }}
           >
             <Typography
@@ -456,6 +470,7 @@ const Payment = () => {
               textTransform: "none",
               fontWeight: "600",
               borderRadius: "8px",
+              mb: 4,
               "&:hover": {
                 backgroundColor: `${palette.rustRed}1A`, // Fondo sutil al pasar el mouse
               },
@@ -465,7 +480,6 @@ const Payment = () => {
           </Button>
         </Box>
       </Box>
-    </Box>
   );
 };
 
