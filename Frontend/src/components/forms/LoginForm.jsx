@@ -209,8 +209,7 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
 
           <p className="text-sm text-[#5A3A29] mt-5 mb-2">
             ¿No tienes una cuenta?{" "}
-            <button
-              type="button"
+            <span
               onClick={() => {
                 handleClose();
                 if (onSwitchToRegister) onSwitchToRegister();
@@ -218,7 +217,7 @@ export default function LoginForm({ isOpen, onClose, onSwitchToRegister }) {
               className="text-[#8B3A3A] font-medium hover:underline"
             >
               Regístrate aquí
-            </button>
+            </span>
           </p>
         </div >
       </div >
