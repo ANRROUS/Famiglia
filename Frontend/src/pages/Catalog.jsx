@@ -101,6 +101,21 @@ export default function Catalog() {
     }
   }, [categorias]);
 
+  // Escuchar eventos de navegación por voz para cambiar filtros
+  useEffect(() => {
+    const handleSetPriceRange = (event) => {
+      const { min, max } = event.detail;
+      console.log('[Catalog] Navegación por voz: cambiar rango de precio a', min, '-', max);
+      setPriceRange([min, max]);
+    };
+
+    window.addEventListener('setPriceRange', handleSetPriceRange);
+
+    return () => {
+      window.removeEventListener('setPriceRange', handleSetPriceRange);
+    };
+  }, []);
+
 
 
   // filtered results (memoized)

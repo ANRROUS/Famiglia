@@ -14,6 +14,7 @@ import carritoRoutes from './routes/pedido/carritoRoutes.js';
 
 import { setAnonId } from './middleware/auditoriaMiddleware.js';
 import auditoriaRouter from './routes/auditoria/auditoriaRoutes.js';
+import voiceRoutes from './routes/voice/voiceRoutes.js';
 
 const app = express();
 app.use(morgan('dev'));
@@ -23,7 +24,10 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
-app.use(express.json());
+
+// Aumentar límite de payload para screenshots (de 100kb default a 10MB)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.use(setAnonId);
 
@@ -37,6 +41,7 @@ app.use('/api/preferences', preferencesRoutes);
 app.use('/api/pedido/carrito', carritoRoutes);
 app.use('/api/pedido/pago', pagoRoutes);
 app.use('/pedidos', pedidoRoutes);
+app.use('/api/voice', voiceRoutes);
 
 
 export default app;

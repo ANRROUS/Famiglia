@@ -6,12 +6,14 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/selectors.test.js",
+    "test:selectors": "node tests/selectors.test.js"
   },
   "author": "famiglia",
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@modelcontextprotocol/sdk": "^1.21.1",
     "@prisma/client": "^6.18.0",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
@@ -26,6 +28,7 @@
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4",
     "uuid": "^13.0.0",
+    "winston": "^3.18.3",
     "zod": "^4.1.12"
   },
   "devDependencies": {
