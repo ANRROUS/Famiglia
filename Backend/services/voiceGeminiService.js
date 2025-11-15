@@ -2,6 +2,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 import { executeMCPPlan } from './mcpOrchestratorService.js';
 import geminiCache from './geminiCacheService.js';
+import { processWithEnsemble } from './geminiEnsembleService.js';
+import { addUserMessage, addModelResponse } from './conversationHistoryService.js';
+import { generateFinalResponse } from './responseGeneratorService.js';
 
 dotenv.config();
 
@@ -264,16 +267,21 @@ export async function interpretVoiceWithGemini(transcript, context, screenshot) 
       }
     }
 
-    // Usar el modelo más reciente y potente
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.95,
-        topK: 40,
-        maxOutputTokens: 8192,
-      }
-    });
+    // ═══════════════════════════════════════════════════════════════
+    // SISTEMA DE ENSAMBLE MULTI-MODELO (Ensemble Architecture)
+    // Procesa con 3 modelos en paralelo y combina resultados
+    // ═══════════════════════════════════════════════════════════════
+    
+    console.log('[Voice Gemini] 🔬 Iniciando procesamiento ensemble...');
+    
+    // Detectar comandos críticos que requieren ensemble completo
+    const transcriptLower = transcript.toLowerCase();
+    const isCriticalCommand = transcriptLower.includes('pago') || 
+                              transcriptLower.includes('compra') || 
+                              transcriptLower.includes('pedido') ||
+                              transcriptLower.includes('checkout');
+    
+    const useFullEnsemble = isCriticalCommand || context.isAuthenticated;
 
     // Construir el system prompt adaptado a usuario autenticado o anónimo
     const isAuthenticated = context.isAuthenticated || false;
@@ -1551,68 +1559,40 @@ Analiza y planifica los pasos necesarios.`;
       });
     }
 
-    // Iniciar chat con historial
-    const chat = model.startChat({
-      history: [
-        {
-          role: 'user',
-          parts: [{ text: systemPrompt }]
-        },
-        {
-          role: 'model',
-          parts: [{
-            text: 'Entendido. Estoy listo para interpretar comandos de voz y planificar acciones usando las herramientas MCP. Responderé únicamente en formato JSON sin markdown.'
-          }]
-        }
-      ]
+    console.log('[Gemini Service] Enviando comando con sistema ensemble...');
+    console.log(`[Gemini Service] Transcript: "${transcript}"`);
+    console.log(`[Gemini Service] Ensemble mode: ${useFullEnsemble ? 'COMPLETO (3 modelos)' : 'RÁPIDO (1 modelo)'}`);
+
+    // ═══════════════════════════════════════════════════════════════
+    // HISTORIAL DE CONVERSACIÓN
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Generar sessionId basado en userId (si está autenticado) o pathname
+    const sessionId = context.userId 
+      ? `user-${context.userId}` 
+      : `anon-${context.pathname || 'unknown'}`;
+    
+    // Agregar comando del usuario al historial
+    addUserMessage(sessionId, transcript);
+
+    // ═══════════════════════════════════════════════════════════════
+    // PROCESAMIENTO CON ENSEMBLE MULTI-MODELO
+    // ═══════════════════════════════════════════════════════════════
+    
+    const planData = await processWithEnsemble({
+      transcript,
+      context,
+      screenshot,
+      systemPrompt,
+      parts,
+      useFullEnsemble,
+      sessionId  // Incluir sessionId para historial
     });
 
-    console.log('[Gemini Service] Enviando comando a Gemini...');
-    console.log(`[Gemini Service] Transcript: "${transcript}"`);
-
-    // Enviar mensaje a Gemini
-    const geminiResult = await chat.sendMessage(parts);
-    const response = await geminiResult.response;
-    const text = response.text();
-
-    console.log('[Gemini Service] Respuesta recibida de Gemini');
-    console.log('[Gemini Service] Raw response:', text.substring(0, 200) + '...');
-
-    // Parsear respuesta JSON
-    let planData;
-    try {
-      // Limpiar respuesta (eliminar markdown si existe)
-      let cleanedResponse = text.trim();
-      if (cleanedResponse.startsWith('```json')) {
-        cleanedResponse = cleanedResponse.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
-      } else if (cleanedResponse.startsWith('```')) {
-        cleanedResponse = cleanedResponse.replace(/```\n?/g, '');
-      }
-
-      // Intentar extraer JSON
-      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        planData = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No se encontró JSON válido en la respuesta de Gemini');
-      }
-
-      console.log('[Gemini Service] Plan generado con éxito');
-      console.log(`[Gemini Service] Total de steps: ${planData.steps?.length || 0}`);
-      console.log(`[Gemini Service] Reasoning: ${planData.reasoning?.substring(0, 100)}...`);
-
-    } catch (parseError) {
-      console.error('[Gemini Service] Error parseando JSON:', parseError);
-      console.error('[Gemini Service] Respuesta raw:', text);
-
-      // Fallback: respuesta de que no se pudo interpretar
-      planData = {
-        reasoning: 'No pude interpretar correctamente el comando',
-        steps: [],
-        userFeedback: 'Lo siento, no entendí tu comando. ¿Podrías repetirlo de otra manera?',
-        expectedDuration: '0 segundos'
-      };
-    }
+    console.log('[Gemini Service] Plan recibido del ensemble');
+    console.log(`[Gemini Service] Total de steps: ${planData.steps?.length || 0}`);
+    console.log(`[Gemini Service] Modelos usados: ${planData.ensemble?.modelsUsed?.join(', ') || 'unknown'}`);
+    console.log(`[Gemini Service] Duración: ${planData.ensemble?.totalDuration || 0}ms`);
 
     // Ejecutar plan con MCP Orchestrator
     let executionResult;
@@ -1630,10 +1610,31 @@ Analiza y planifica los pasos necesarios.`;
       };
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // POST-PROCESAMIENTO: GENERAR RESPUESTA FINAL CON DATOS REALES
+    // ═══════════════════════════════════════════════════════════════
+    
+    const initialFeedback = planData.userFeedback || 'Comando procesado';
+    let finalFeedback = initialFeedback;
+    
+    // Si la ejecución fue exitosa, generar respuesta final con datos reales
+    if (executionResult.success && executionResult.results && executionResult.results.length > 0) {
+      finalFeedback = await generateFinalResponse(
+        transcript,
+        executionResult,
+        initialFeedback
+      );
+    }
+    
+    // Agregar respuesta del modelo al historial
+    addModelResponse(sessionId, finalFeedback);
+    
+    console.log(`[Gemini Service] 🗣️ Respuesta final: "${finalFeedback}"`);
+
     // Retornar resultado completo
     const result = {
       reasoning: planData.reasoning,
-      userFeedback: planData.userFeedback || 'Comando procesado',
+      userFeedback: finalFeedback,  // Usar respuesta final generada
       expectedDuration: planData.expectedDuration || 'Desconocido',
       execution: executionResult,
       success: executionResult.success,

@@ -52,7 +52,7 @@ taskkill //F //IM chrome.exe 2>nul
 timeout /t 2 /nobreak >nul
 
 REM Iniciar Chrome
-start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="%USERPROFILE%\chrome-famiglia-debug" http://localhost:5173
+start "" "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="%USERPROFILE%\chrome-famiglia-debug" http://localhost:5173
 
 echo Chrome iniciado en puerto 9222
 timeout /t 2 /nobreak >nul

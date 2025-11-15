@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useVoiceRecognition } from '../hooks/useVoiceRecognition';
+import { useTextToSpeech } from '../hooks/useTextToSpeech';
 import { processVoiceCommand, checkVoiceAvailability, captureScreenshot } from '../services/api/voiceApiClient';
 
 /**
@@ -33,6 +34,9 @@ export function VoiceProvider({ children }) {
       page: window.location.pathname
     }
   });
+
+  // Hook de Text-to-Speech
+  const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
 
   // Estado global
   const [state, setState] = useState(VoiceState.IDLE);
@@ -148,6 +152,14 @@ export function VoiceProvider({ children }) {
       const feedbackText = response.data?.userFeedback || 'Comando procesado';
       setLastResponse(feedbackText);
 
+      // 🔊 LEER LA RESPUESTA EN VOZ ALTA
+      speak(feedbackText, {
+        lang: 'es-ES',
+        rate: 1.1, // Velocidad ligeramente más rápida
+        pitch: 1.0,
+        volume: 0.9
+      });
+
       // Agregar a historial
       setCommandHistory(prev => [
         ...prev,
@@ -208,16 +220,25 @@ export function VoiceProvider({ children }) {
       console.error('[Voice Context] Error:', error);
       
       setProcessing(false);
+      const errorMessage = 'Lo siento, hubo un error al procesar tu comando';
       setError(error.message);
-      setLastResponse('Lo siento, hubo un error al procesar tu comando');
+      setLastResponse(errorMessage);
       setState(VoiceState.ERROR);
+
+      // 🔊 LEER EL MENSAJE DE ERROR EN VOZ ALTA
+      speak(errorMessage, {
+        lang: 'es-ES',
+        rate: 1.0,
+        pitch: 0.9,
+        volume: 0.9
+      });
 
       setTimeout(() => {
         setState(VoiceState.IDLE);
         voiceRecognition.resetTranscript();
       }, 3000);
     }
-  }, [voiceRecognition]);
+  }, [voiceRecognition, speak]);
 
   /**
    * Inicia la escucha de voz (sin modal)
@@ -372,6 +393,11 @@ export function VoiceProvider({ children }) {
     toggleVoice,
     clearHistory,
     navigateHistory,
+
+    // Text-to-Speech
+    speak,
+    stopSpeaking,
+    isSpeaking,
 
     // Información
     isSupported: voiceRecognition.isSupported,

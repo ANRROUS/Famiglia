@@ -161,8 +161,8 @@ const commonCorrections = {
   'muestrame': 'muestra',
   'ver': 've',
   've': 've',
-  'dame': 'muestra',
-  'dime': 'muestra',
+  'dame': 'dame', // Mantener "dame" original (diferente a "muestra")
+  // 'dime' se mantiene original - tiene significado conversacional distinto a "muestra"
   
   // ============================================
   // NAVEGACIÓN
