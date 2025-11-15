@@ -1,23 +1,42 @@
-import prisma from '../../prismaClient.js';
+import prisma from "../../prismaClient.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { logAuditoria } from '../../services/auditoriaService.js';
+import { logAuditoria } from "../../services/auditoriaService.js";
+import { authenticator } from "otplib";
 
 export const register = async (req, res) => {
   try {
     const { nombre, correo, contraseña } = req.body;
 
     if (!nombre || !correo || !contraseña) {
-      return res.status(400).json({ message: "Todos los campos son obligatorios" });
+      return res
+        .status(400)
+        .json({ message: "Todos los campos son obligatorios" });
     }
 
     const existente = await prisma.usuario.findUnique({ where: { correo } });
-    if (existente) return res.status(409).json({ message: "El correo ya está registrado" });
+    if (existente)
+      return res.status(409).json({ message: "El correo ya está registrado" });
 
     const hashed = await bcrypt.hash(contraseña, 10);
 
     const nuevoUsuario = await prisma.usuario.create({
-      data: { nombre, correo, contrase_a: hashed, rol: "C" },
+      data: {
+        nombre,
+        correo,
+        contrase_a: hashed,
+        rol: "C",
+        autenticacion_2fa: {
+          create: {
+            habilitado: false,
+            secreto: null,
+            temp_secreto: null,
+          },
+        },
+      },
+      include: {
+        autenticacion_2fa: true,
+      },
     });
 
     res.status(201).json({
@@ -27,84 +46,117 @@ export const register = async (req, res) => {
         nombre: nuevoUsuario.nombre,
         correo: nuevoUsuario.correo,
         rol: nuevoUsuario.rol || "C",
+        autenticacion_2fa: nuevoUsuario.autenticacion_2fa,
       },
     });
+
     logAuditoria({
-      usuarioId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
-      accion: 'register',
-      recurso: 'usuario',
-      recursoId: nuevoUsuario?.id_usuario || nuevoUsuario?.id || null,
-      req
-    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+      usuarioId: nuevoUsuario?.id_usuario || null,
+      accion: "register",
+      recurso: "usuario",
+      recursoId: nuevoUsuario?.id_usuario || null,
+      req,
+    }).catch((auditErr) => console.warn("Error en logAuditoria", auditErr));
   } catch (error) {
-    res.status(500).json({ message: "Error en el registro", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error en el registro", error: error.message });
   }
 };
 
-
 export const login = async (req, res) => {
   try {
-    const { correo, contraseña } = req.body;
+    const { correo, contraseña, token2fa } = req.body;
 
     if (!correo || !contraseña) {
-      return res.status(400).json({ message: "Todos los campos son obligatorios" });
+      return res
+        .status(400)
+        .json({ message: "Todos los campos son obligatorios" });
     }
 
-  const usuario = await prisma.usuario.findUnique({ where: { correo } });
-    if (!usuario) return res.status(404).json({ message: "Usuario no encontrado" });
+    const usuario = await prisma.usuario.findUnique({
+      where: { correo },
+      include: { autenticacion_2fa: true },
+    });
+
+    if (!usuario)
+      return res.status(404).json({ message: "Usuario no encontrado" });
 
     const isMatch = await bcrypt.compare(contraseña, usuario.contrase_a);
-    if (!isMatch) return res.status(401).json({ message: "Contraseña incorrecta" });
+    if (!isMatch)
+      return res.status(401).json({ message: "Contraseña incorrecta" });
+
+    const registro2FA = usuario.autenticacion_2fa;
+    if (registro2FA?.habilitado) {
+      // Si el usuario no ha enviado aún el token, pedimos el código
+      if (!token2fa) {
+        return res.status(200).json({
+          message: "Autenticación 2FA requerida",
+          twofa_required: true,
+          userId: Number(usuario.id_usuario),
+        });
+      }
+
+      // Si sí lo envió, verificamos
+      const isValid = authenticator.check(token2fa, registro2FA.secreto);
+      if (!isValid)
+        return res.status(401).json({ message: "Código 2FA incorrecto" });
+    }
 
     const rol = usuario.rol || "C";
-
     const token = jwt.sign(
       { id: Number(usuario.id_usuario), correo: usuario.correo, rol },
       process.env.JWT_SECRET || "famiglia-secret",
       { expiresIn: "1d" }
     );
 
-    // Configurar cookie HTTPOnly
     res.cookie("authToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 24 * 60 * 60 * 1000, // 1 día
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.json({
       message: "Login exitoso",
+      authToken: token,
       usuario: {
         id: Number(usuario.id_usuario),
         nombre: usuario.nombre,
         correo: usuario.correo,
-        url_imagen: usuario.url_imagen,
         rol,
+        autenticacion_2fa: registro2FA,
       },
     });
+
     logAuditoria({
-      usuarioId: usuario?.id_usuario || usuario?.id || null,
-      accion: 'login',
-      recurso: 'usuario',
-      recursoId: usuario?.id_usuario || usuario?.id || null,
+      usuarioId: usuario?.id_usuario || null,
+      accion: "login",
+      recurso: "usuario",
+      recursoId: usuario?.id_usuario || null,
       req,
-      meta: { metodo: 'password' }
-    }).catch(auditErr => console.warn('Error en logAuditoria', auditErr));
+      meta: { metodo: "password" },
+    }).catch((auditErr) => console.warn("Error en logAuditoria", auditErr));
   } catch (error) {
-    res.status(500).json({ message: "Error al iniciar sesión", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error al iniciar sesión", error: error.message });
   }
 };
 
 export const getPerfil = async (req, res) => {
   try {
     const userId = BigInt(req.user.id);
-    
+
     const user = await prisma.usuario.findUnique({
       where: { id_usuario: userId },
-      select: { id_usuario: true, nombre: true, correo: true, url_imagen: true, rol: true },
+      include: {
+        autenticacion_2fa: true,
+      },
     });
 
-    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+    if (!user)
+      return res.status(404).json({ message: "Usuario no encontrado" });
 
     res.json({
       message: "Perfil obtenido correctamente",
@@ -114,11 +166,14 @@ export const getPerfil = async (req, res) => {
         correo: user.correo,
         url_imagen: user.url_imagen,
         rol: user.rol || "C",
+        autenticacion_2fa: user.autenticacion_2fa || null,
       },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error al obtener el perfil", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error al obtener el perfil", error: error.message });
   }
 };
 
@@ -132,6 +187,8 @@ export const logout = async (req, res) => {
 
     res.json({ message: "Logout exitoso" });
   } catch (error) {
-    res.status(500).json({ message: "Error al cerrar sesión", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error al cerrar sesión", error: error.message });
   }
 };

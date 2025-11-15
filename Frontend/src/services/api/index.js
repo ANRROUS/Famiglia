@@ -14,6 +14,7 @@ export const categoriaAPI = {
 export const authAPI = {
     register: (userData) => API.post('/auth/register', userData),
     login: (credentials) => API.post('/auth/login', credentials),
+    verify2FA: (data) => API.post("/auth/verify-2fa", data),
     logout: () => API.post('/auth/logout'),
     getPerfil: () => API.get('/auth/perfil')
 }

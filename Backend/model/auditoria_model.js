@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { de, en } from 'zod/v4/locales';
 const { Schema } = mongoose;
 
 const AuditoriaSchema = new Schema({
@@ -9,7 +10,11 @@ const AuditoriaSchema = new Schema({
   anonimoId: {  //usuario no autenticado
     type: String, 
     default: null 
-  },      
+  },  
+  rol: {
+    type: String,
+    default: null
+  },
   accion: {  
     type: String, 
     required: true 

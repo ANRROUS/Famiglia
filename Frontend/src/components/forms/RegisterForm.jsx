@@ -238,8 +238,7 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
             {/* ENLACE LOGIN */}
             <p className="text-xs text-[#5A3A29] mt-3 mb-1">
               ¿Ya tienes una cuenta?{" "}
-              <button
-                type="button"
+              <span
                 onClick={() => {
                   handleClose();
                   if (onSwitchToLogin) onSwitchToLogin();
@@ -247,7 +246,7 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }) {
                 className="text-[#8B3A3A] font-medium hover:underline"
               >
                 Ingresa aquí
-              </button>
+              </span>
             </p>
           </div>
         </div>

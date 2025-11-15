@@ -100,6 +100,8 @@ const Header = () => {
   // 🔹 Logout
   const handleLogout = async () => {
     try {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
       await authAPI.logout();
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
