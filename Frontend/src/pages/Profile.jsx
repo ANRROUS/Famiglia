@@ -236,7 +236,6 @@ export default function Profile() {
             <Typography sx={{ color: palette.dark, fontWeight: 800, fontSize: 18 }}>
               {user?.nombre || "—"}
             </Typography>
-            <Edit sx={{ color: palette.primary, cursor: "pointer" }} />
           </Box>
 
           {/* Correo */}
@@ -381,7 +380,13 @@ export default function Profile() {
         </Paper>
 
         {/* RIGHT PANEL - flexible */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ flex: 1,
+                  minWidth: 0,
+                  minHeight: "600px", // 👈 evita que se encoja
+                  display: "flex",
+                  flexDirection: "column",
+                  transition: "all 0.3s ease",
+                }}>
           {/* Tabs panel */}
           <Paper elevation={2} sx={{ bgcolor: "#fcfbf9ff", borderRadius: 2, mb: 3 }}>
             <Tabs
@@ -574,7 +579,7 @@ export default function Profile() {
                 </Box>
 
                 {/* Pagination for tests */}
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 4, mb: 6 }}>
                   <Button
                     startIcon={<ArrowBack />}
                     onClick={() => setPage((s) => Math.max(0, s - 1))}
