@@ -1,11 +1,12 @@
 /**
  * Corrector de transcripciones de voz
- * Corrige errores comunes de la Web Speech API en español
+ * DESHABILITADO: Ya NO hace conversiones, solo normaliza el texto
+ * Gemini procesa el comando completo sin filtros intermedios
  */
 
 /**
- * Diccionario de correcciones comunes
- * Mapea errores frecuentes a la versión correcta
+ * Diccionario de correcciones comunes - DESHABILITADO
+ * Se eliminaron todas las conversiones para que Gemini procese texto RAW
  */
 const commonCorrections = {
   // ============================================

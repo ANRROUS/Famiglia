@@ -4,10 +4,14 @@ import { ProductosAPI, categoriaAPI } from '../services/api';
 import BuscadorProductos from '../components/common/BuscadorProductos';
 import FiltroPrecio from '../components/common/FiltroPrecio';
 import ProductCard from '../components/common/ProductCard';
+import { useVoice } from '../context/VoiceContext';
 
 export default function CatalogoAdmin() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Hook de voz
+  const { speak, registerCommands, unregisterCommands } = useVoice();
 
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -74,6 +78,111 @@ export default function CatalogoAdmin() {
       return true;
     });
   }, [productos, priceRange, selectedCategory, searchTerm]);
+
+  // Comandos de voz para CatalogoAdmin
+  useEffect(() => {
+    const voiceCommands = {
+      // Búsqueda
+      'buscar (.+)': (query) => {
+        setSearchTerm(query);
+        speak(`Buscando ${query}`);
+      },
+      'limpiar búsqueda': () => {
+        setSearchTerm('');
+        speak('Búsqueda limpiada');
+      },
+
+      // Filtrado por categoría
+      'filtrar por (.+)': (categoria) => {
+        const categoriaEncontrada = categorias.find(
+          (cat) => cat.nombre.toLowerCase() === categoria.toLowerCase()
+        );
+        if (categoriaEncontrada) {
+          setSelectedCategory(categoriaEncontrada.id_categoria);
+          speak(`Filtrando por ${categoriaEncontrada.nombre}`);
+        } else {
+          speak(`No se encontró la categoría ${categoria}`);
+        }
+      },
+      'mostrar todas las categorías': () => {
+        setSelectedCategory(null);
+        speak('Mostrando todas las categorías');
+      },
+      'mostrar todos los productos': () => {
+        setSelectedCategory(null);
+        setSearchTerm('');
+        setPriceRange(priceBounds);
+        speak('Mostrando todos los productos');
+      },
+
+      // Control de precio
+      'precio mínimo (.+)': (precio) => {
+        const precioNum = parseInt(precio);
+        if (!isNaN(precioNum)) {
+          setPriceRange([precioNum, priceRange[1]]);
+          speak(`Precio mínimo establecido en ${precioNum} soles`);
+        } else {
+          speak('Precio no válido');
+        }
+      },
+      'precio máximo (.+)': (precio) => {
+        const precioNum = parseInt(precio);
+        if (!isNaN(precioNum)) {
+          setPriceRange([priceRange[0], precioNum]);
+          speak(`Precio máximo establecido en ${precioNum} soles`);
+        } else {
+          speak('Precio no válido');
+        }
+      },
+      'restablecer precios': () => {
+        setPriceRange(priceBounds);
+        speak('Rango de precios restablecido');
+      },
+
+      // Consultas de información
+      'cuántos productos hay': () => {
+        speak(`Hay ${filteredProducts.length} productos en el catálogo`);
+      },
+      'qué categoría está activa': () => {
+        if (selectedCategory) {
+          const cat = categorias.find(c => c.id_categoria === selectedCategory);
+          speak(`Categoría activa: ${cat?.nombre || 'Desconocida'}`);
+        } else {
+          speak('Todas las categorías están activas');
+        }
+      },
+      'listar categorías': () => {
+        const nombres = categorias.map(c => c.nombre).join(', ');
+        speak(`Categorías disponibles: ${nombres}`);
+      },
+
+      // Navegación
+      'ir al inicio': () => {
+        window.location.href = '/';
+      },
+      'ir al catálogo público': () => {
+        window.location.href = '/carta';
+      },
+    };
+
+    registerCommands(voiceCommands);
+    console.log('[CatalogoAdmin] ✅ Comandos registrados:', Object.keys(voiceCommands).length);
+
+    return () => {
+      unregisterCommands();
+      console.log('[CatalogoAdmin] 🗑️ Comandos eliminados');
+    };
+  }, [
+    categorias,
+    selectedCategory,
+    searchTerm,
+    priceRange,
+    priceBounds,
+    filteredProducts,
+    speak,
+    // NO incluir registerCommands ni unregisterCommands para evitar loop infinito
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ]);
 
   if (loading) {
     return (

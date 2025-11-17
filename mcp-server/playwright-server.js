@@ -513,7 +513,31 @@ const toolHandlers = {
     const p = await initBrowser();
     const fullUrl = url.startsWith('http') ? url : `${APP_URL}${url}`;
 
-    await p.goto(fullUrl, { waitUntil: 'networkidle' });
+    // NO usar page.goto() - esto recarga toda la página y pierde el estado de React
+    // En su lugar, usar el router de React via JavaScript
+    
+    // Si la URL es completa (con http), navegar normalmente
+    if (url.startsWith('http')) {
+      await p.goto(fullUrl, { waitUntil: 'networkidle' });
+    } else {
+      // Para rutas relativas, usar React Router sin recargar
+      // Ejecutar código JS que llame a window.__navigateViaReactRouter
+      await p.evaluate((route) => {
+        // Usar React Router sin recargar la página
+        // El frontend debe exponer esta función en window
+        if (window.__navigateViaReactRouter) {
+          window.__navigateViaReactRouter(route);
+        } else {
+          // Fallback: usar history API (menos óptimo pero funciona)
+          window.history.pushState({}, '', route);
+          // Disparar evento popstate para que React Router detecte el cambio
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }
+      }, url);
+      
+      // Esperar a que el DOM se actualice
+      await p.waitForTimeout(500);
+    }
 
     return {
       success: true,
@@ -544,23 +568,38 @@ const toolHandlers = {
         effectiveSelector = SELECTORS.HEADER_SELECTORS?.user?.carrito || selector;
       } else if (selectorText.includes('perfil') || selectorText === 'profile') {
         effectiveSelector = SELECTORS.HEADER_SELECTORS?.user?.perfil || selector;
+      } else if (selectorText.includes('continuar')) {
+        effectiveSelector = SELECTORS.CART_SELECTORS?.continuar || selector;
       }
       
       console.error(`[click] Selector enriquecido: ${selector} → ${effectiveSelector}`);
     }
 
-    try {
-      await p.click(effectiveSelector, { timeout });
-      return { success: true, clicked: effectiveSelector };
-    } catch (error) {
-      // Intentar con texto si el selector falla
+    // Estrategias de click (en orden de prioridad)
+    const strategies = [
+      effectiveSelector,                    // Selector original o enriquecido
+      `text="${selector}"`,                 // Texto exacto con comillas
+      `text=${selector}`,                   // Texto exacto sin comillas
+      `text=/.*${selector}.*/i`,            // Texto parcial (case-insensitive)
+      `[role="button"]:has-text("${selector}")`, // Role button con texto
+      `button:has-text("${selector}")`,     // Button con texto
+      `[data-testid*="${selector.toLowerCase().replace(/\s+/g, '-')}"]`, // data-testid
+    ];
+
+    let lastError;
+    for (const strategy of strategies) {
       try {
-        await p.click(`text=${selector}`, { timeout });
-        return { success: true, clicked: `text=${selector}` };
-      } catch (e) {
-        throw new Error(`No se pudo hacer clic en: ${selector}`);
+        await p.click(strategy, { timeout: 2000 }); // Timeout más corto por estrategia
+        console.error(`[click] ✅ Click exitoso con estrategia: ${strategy}`);
+        return { success: true, clicked: strategy };
+      } catch (error) {
+        lastError = error;
+        console.error(`[click] ❌ Estrategia falló: ${strategy}`);
+        continue;
       }
     }
+
+    throw new Error(`No se pudo hacer clic en: ${selector} (probadas ${strategies.length} estrategias)`);
   },
 
   async fill({ selector, text }) {

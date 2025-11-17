@@ -21,6 +21,7 @@ import BuscadorProductos from "../components/common/BuscadorProductos";
 import FiltroPrecio from "../components/common/FiltroPrecio";
 import ProductCard from "../components/common/ProductCard";
 import { useLocation } from "react-router-dom";
+import { useVoice } from "../context/VoiceContext";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -30,6 +31,9 @@ export default function Catalog() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [openFilters, setOpenFilters] = useState(false);
   const location = useLocation();
+
+  // Hook de voz
+  const { speak, registerCommands, unregisterCommands } = useVoice();
 
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -183,6 +187,190 @@ export default function Catalog() {
     },
     [dispatch]
   );
+
+  // ============================================
+  // COMANDOS DE VOZ ESPECÍFICOS DE CATÁLOGO
+  // ============================================
+  useEffect(() => {
+    const voiceCommands = {
+      // Agregar producto al carrito
+      'agregar al carrito': () => {
+        if (currentPageProducts.length > 0) {
+          const firstProduct = currentPageProducts[0];
+          handleAddToCart(firstProduct);
+          speak(`Agregando ${firstProduct.nombre} al carrito`);
+        } else {
+          speak('No hay productos disponibles para agregar');
+        }
+      },
+
+      // Agregar producto por índice (primero, segundo, tercero)
+      'agregar el primero': () => {
+        if (currentPageProducts[0]) {
+          handleAddToCart(currentPageProducts[0]);
+          speak(`Agregando ${currentPageProducts[0].nombre} al carrito`);
+        } else {
+          speak('No hay productos disponibles');
+        }
+      },
+      'agregar el segundo': () => {
+        if (currentPageProducts[1]) {
+          handleAddToCart(currentPageProducts[1]);
+          speak(`Agregando ${currentPageProducts[1].nombre} al carrito`);
+        } else {
+          speak('No hay un segundo producto disponible');
+        }
+      },
+      'agregar el tercero': () => {
+        if (currentPageProducts[2]) {
+          handleAddToCart(currentPageProducts[2]);
+          speak(`Agregando ${currentPageProducts[2].nombre} al carrito`);
+        } else {
+          speak('No hay un tercer producto disponible');
+        }
+      },
+
+      // Agregar producto por nombre (NUEVO - CRÍTICO)
+      'agregar (.+) al carrito': (nombreProducto) => {
+        const productoEncontrado = filteredProducts.find(
+          (p) => p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
+        );
+        if (productoEncontrado) {
+          handleAddToCart(productoEncontrado);
+          speak(`Agregando ${productoEncontrado.nombre} al carrito`);
+        } else {
+          speak(`No se encontró el producto ${nombreProducto}`);
+        }
+      },
+
+      // Filtrar por categoría (con parámetro)
+      'filtrar por (.+)': (categoria) => {
+        const categoriaEncontrada = categorias.find(
+          (cat) => cat.nombre.toLowerCase() === categoria?.toLowerCase()
+        );
+        if (categoriaEncontrada) {
+          toggleCategory(categoriaEncontrada.id_categoria);
+          speak(`Filtrando por ${categoriaEncontrada.nombre}`);
+        } else {
+          speak(`No se encontró la categoría ${categoria}`);
+        }
+      },
+
+      // Buscar productos (con parámetro)
+      'buscar (.+)': (query) => {
+        setSearchTerm(query || '');
+        setPage(1);
+        speak(query ? `Buscando ${query}` : 'Limpiando búsqueda');
+      },
+
+      // Limpiar filtros
+      'mostrar todos los productos': () => {
+        handleClearFilters();
+        speak('Mostrando todos los productos');
+      },
+      'limpiar filtros': () => {
+        handleClearFilters();
+        speak('Filtros eliminados');
+      },
+
+      // Control de precio por voz (NUEVO)
+      'precio mínimo (.+)': (precio) => {
+        const precioNum = parseInt(precio);
+        if (!isNaN(precioNum)) {
+          setPriceRange([precioNum, priceRange[1]]);
+          speak(`Precio mínimo establecido en ${precioNum} soles`);
+        } else {
+          speak('Precio no válido');
+        }
+      },
+      'precio máximo (.+)': (precio) => {
+        const precioNum = parseInt(precio);
+        if (!isNaN(precioNum)) {
+          setPriceRange([priceRange[0], precioNum]);
+          speak(`Precio máximo establecido en ${precioNum} soles`);
+        } else {
+          speak('Precio no válido');
+        }
+      },
+      'restablecer precios': () => {
+        setPriceRange(priceBounds);
+        speak('Rango de precios restablecido');
+      },
+
+      // Navegación de páginas
+      'siguiente página': () => {
+        if (page < totalPages) {
+          setPage(page + 1);
+          speak(`Página ${page + 1} de ${totalPages}`);
+        } else {
+          speak('Ya estás en la última página');
+        }
+      },
+      'página anterior': () => {
+        if (page > 1) {
+          setPage(page - 1);
+          speak(`Página ${page - 1} de ${totalPages}`);
+        } else {
+          speak('Ya estás en la primera página');
+        }
+      },
+      'primera página': () => {
+        setPage(1);
+        speak('Primera página');
+      },
+      'última página': () => {
+        setPage(totalPages);
+        speak(`Última página, página ${totalPages}`);
+      },
+
+      // Consultas de información (NUEVO)
+      'cuántos productos hay': () => {
+        speak(`Hay ${filteredProducts.length} productos disponibles`);
+      },
+      'qué filtros están activos': () => {
+        const activos = [];
+        if (selectedCategories.length > 0) {
+          const nombresCateg = selectedCategories.map(id => 
+            categorias.find(c => String(c.id_categoria) === id)?.nombre
+          ).filter(Boolean);
+          activos.push(`Categorías: ${nombresCateg.join(', ')}`);
+        }
+        if (searchTerm) activos.push(`Búsqueda: ${searchTerm}`);
+        if (priceRange[0] !== priceBounds[0] || priceRange[1] !== priceBounds[1]) {
+          activos.push(`Precio: ${priceRange[0]} a ${priceRange[1]}`);
+        }
+        if (activos.length === 0) {
+          speak('No hay filtros activos');
+        } else {
+          speak(`Filtros activos: ${activos.join('. ')}`);
+        }
+      },
+      'en qué página estoy': () => {
+        speak(`Estás en la página ${page} de ${totalPages}`);
+      },
+    };
+
+    // Registrar comandos para esta página
+    registerCommands(voiceCommands);
+    console.log('[Catalog] ✅ Comandos de voz registrados:', Object.keys(voiceCommands).length);
+
+    // Cleanup: eliminar comandos al desmontar
+    return () => {
+      unregisterCommands();
+      console.log('[Catalog] 🗑️ Comandos de voz eliminados');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    currentPageProducts,
+    categorias,
+    handleAddToCart,
+    handleClearFilters,
+    toggleCategory,
+    page,
+    totalPages,
+    speak,
+    // NO incluir registerCommands ni unregisterCommands para evitar loop infinito
+  ]);
 
   if (loading) {
     return (

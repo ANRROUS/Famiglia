@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useSnackbar } from "notistack";
+import { useVoice } from "../context/VoiceContext";
 import {
   Box,
   Typography,
@@ -37,6 +38,7 @@ import * as crypto from "crypto-js";
 export default function Profile() {
   const { user } = useSelector((state) => state.auth);
   const { enqueueSnackbar } = useSnackbar();
+  const { speak, registerCommands, unregisterCommands, isAuthenticated } = useVoice();
 
   const defaultFoto = defaultAvatar;
   const [foto, setFoto] = useState(() => {
@@ -90,6 +92,91 @@ export default function Profile() {
       localStorage.setItem("fotoPerfil", foto);
     }
   }, [foto]);
+
+  // ============================================
+  // COMANDOS DE VOZ ESPECÍFICOS DE PROFILE
+  // ============================================
+  useEffect(() => {
+    const voiceCommands = {
+      'ir a mis pedidos': () => {
+        setTabValue(0);
+        speak('Mostrando tus pedidos');
+      },
+      'ir a mis tests': () => {
+        setTabValue(1);
+        speak('Mostrando tus tests de preferencias');
+      },
+      'cambiar a pedidos': () => {
+        setTabValue(0);
+        speak('Mostrando tus pedidos');
+      },
+      'cambiar a tests': () => {
+        setTabValue(1);
+        speak('Mostrando tus tests de preferencias');
+      },
+      'página siguiente': () => {
+        const maxPage = Math.ceil(totalItems / itemsPerPage) - 1;
+        if (page < maxPage) {
+          setPage((s) => s + 1);
+          speak('Siguiente página');
+        } else {
+          speak('Ya estás en la última página');
+        }
+      },
+      'página anterior': () => {
+        if (page > 0) {
+          setPage((s) => Math.max(0, s - 1));
+          speak('Página anterior');
+        } else {
+          speak('Ya estás en la primera página');
+        }
+      },
+      'primera página': () => {
+        setPage(0);
+        speak('Primera página');
+      },
+      'activar dos fa': async () => {
+        if (twofaEnabled) {
+          speak('La autenticación de dos factores ya está activada');
+          return;
+        }
+        speak('Activando autenticación de dos factores');
+        try {
+          const res = await twofaAPI.setup();
+          setQrImageUrl(res.data.qrImageUrl);
+          speak('Escanea el código QR que aparece en pantalla');
+        } catch (err) {
+          speak('Error al activar dos FA');
+          console.error(err);
+        }
+      },
+      'desactivar dos fa': async () => {
+        if (!twofaEnabled) {
+          speak('La autenticación de dos factores no está activada');
+          return;
+        }
+        speak('Desactivando autenticación de dos factores');
+        try {
+          await twofaAPI.disable();
+          setTwofaEnabled(false);
+          speak('Autenticación de dos factores desactivada');
+          window.location.reload();
+        } catch (err) {
+          speak('Error al desactivar dos FA');
+          console.error(err);
+        }
+      },
+    };
+
+    registerCommands(voiceCommands);
+    console.log('[Profile] ✅ Comandos de voz registrados:', Object.keys(voiceCommands).length);
+
+    return () => {
+      unregisterCommands();
+      console.log('[Profile] 🗑️ Comandos de voz eliminados');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabValue, page, twofaEnabled, speak]);
 
 
   const fetchPedidos = async () => {

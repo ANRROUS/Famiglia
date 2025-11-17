@@ -44,17 +44,10 @@ const ProductCard = ({ product, onAddToCart, showAddButton = true }) => {
             onError={handleImageError}
           />
         </div>
-
         {/* Info */}
         <div className="flex flex-col justify-center">
           <h3 className="text-base font-bold text-black mb-1">{name}</h3>
           <p className="text-gray-700 text-sm mb-2 line-clamp-2">{description}</p>
-
-          {isBestSeller && (
-            <div className="inline-block bg-purple-200 text-purple-800 px-3 py-1 rounded text-xs font-medium w-fit">
-              Más comprado
-            </div>
-          )}
         </div>
 
         {/* Precio y botón (solo si showAddButton=true) */}

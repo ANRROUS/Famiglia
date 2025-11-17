@@ -1,17 +1,16 @@
 import { interpretVoiceWithGemini } from '../services/voiceGeminiService.js';
-import { detectIntent, getSelectorForIntent, isValidSelectorForContext } from '../utils/selectorHelper.js';
-import { executeToolDirectly } from '../services/mcpOrchestratorService.js';
 import { logVoiceCommand, logVoiceError, createModuleLogger } from '../utils/logger.js';
 
 const logger = createModuleLogger('voiceController');
 
 /**
  * Procesa un comando de voz del usuario
+ * ENFOQUE SIMPLIFICADO: TODO pasa directamente a Gemini sin conversiones intermedias
  * @param {Object} req - Request con transcript, context y screenshot
  * @param {Object} res - Response
  */
 export const processVoiceCommand = async (req, res) => {
-  const startTime = Date.now(); // Mover al inicio para que esté disponible en el catch
+  const startTime = Date.now();
   
   try {
     const { transcript, context, screenshot } = req.body;
@@ -27,11 +26,11 @@ export const processVoiceCommand = async (req, res) => {
     // Enriquecer contexto con datos del usuario (autenticado o anónimo)
     const enrichedContext = {
       ...context,
-      isAuthenticated: req.isAuthenticated || false,
-      userId: req.user?.id_usuario || null,
-      userName: req.user?.nombre || null,
+      isAuthenticated: context.isAuthenticated ?? (req.isAuthenticated || false),
+      userId: context.user?.id || req.user?.id_usuario || null,
+      userName: context.user?.nombre || req.user?.nombre || null,
       userEmail: req.user?.correo || null,
-      userRole: req.user?.rol || 'guest',
+      userRole: context.user?.rol || req.user?.rol || 'guest',
       savedAddress: req.user?.direccion || null,
       userPhone: req.user?.telefono || null
     };
@@ -39,7 +38,6 @@ export const processVoiceCommand = async (req, res) => {
     logger.info('Voice command received', {
       transcript,
       user: req.user?.nombre || 'Anónimo',
-      userId: req.user?.id_usuario,
       authenticated: enrichedContext.isAuthenticated,
       pathname: context?.currentUrl || context?.pathname,
     });
@@ -51,108 +49,15 @@ export const processVoiceCommand = async (req, res) => {
     console.log(`[Voice Controller] Comando: "${transcript}"`);
     console.log(`[Voice Controller] URL actual: ${context?.currentUrl || context?.pathname || 'Unknown'}`);
     console.log(`[Voice Controller] ═══════════════════════════════════════`);
+    console.log(`[Voice Controller] 🤖 Enviando comando completo a Gemini (sin conversiones)`);
 
-    // Detectar intención del comando
-    const detectedIntent = detectIntent(transcript);
-    
-    if (detectedIntent) {
-      console.log(`[Voice Controller] 🎯 Intención detectada: ${detectedIntent}`);
-      enrichedContext.detectedIntent = detectedIntent;
-
-      // Para intenciones simples, ejecutar directamente sin Gemini
-      if (isSimpleNavigationIntent(detectedIntent)) {
-        console.log(`[Voice Controller] 🚀 Ejecución directa de intención simple`);
-        
-        const action = getActionForIntent(detectedIntent);
-        
-        if (action) {
-          // Para navegación, no necesitamos selector
-          const isNavigation = action.tool === 'navigate';
-          
-          if (isNavigation) {
-            // Navegación directa - no requiere validación de selector
-            try {
-              const result = await executeToolDirectly(action.tool, action.params(null));
-              
-              console.log(`[Voice Controller] ✓ Navegación directa exitosa`);
-              console.log(`[Voice Controller] Resultado:`, result);
-              
-              return res.json({
-                success: true,
-                data: {
-                  reasoning: `Navegación directa a ${detectedIntent}`,
-                  userFeedback: getFeedbackForIntent(detectedIntent),
-                  execution: {
-                    success: result.success !== false,
-                    stepsCompleted: 1,
-                    stepsFailed: result.success === false ? 1 : 0,
-                    totalSteps: 1,
-                    results: [result]
-                  },
-                  fastPath: true
-                }
-              });
-            } catch (error) {
-              console.warn(`[Voice Controller] ⚠️ Navegación directa falló:`, error.message);
-              // Si falla, continuar con Gemini
-            }
-          } else {
-            // Click en elemento - necesita selector y validación
-            const selector = getSelectorForIntent(detectedIntent, enrichedContext);
-            
-            if (selector && isValidSelectorForContext(selector, enrichedContext)) {
-              try {
-                const result = await executeToolDirectly(action.tool, action.params(selector));
-                
-                console.log(`[Voice Controller] ✓ Click directo exitoso`);
-                
-                return res.json({
-                  success: true,
-                  data: {
-                    reasoning: `Acción directa: ${detectedIntent}`,
-                    userFeedback: getFeedbackForIntent(detectedIntent),
-                    execution: {
-                      success: result.success !== false,
-                      stepsCompleted: 1,
-                      stepsFailed: result.success === false ? 1 : 0,
-                      totalSteps: 1,
-                      results: [result]
-                    },
-                    fastPath: true
-                  }
-                });
-              } catch (error) {
-                console.warn(`[Voice Controller] ⚠️ Click directo falló:`, error.message);
-                // Si falla, continuar con Gemini
-              }
-            } else {
-              console.warn(`[Voice Controller] ⚠️ Selector no válido para contexto`);
-              // Continuar con Gemini
-            }
-          }
-        }
-      }
-    }
-
-    console.log(`[Voice Controller] 🤖 Usando Gemini para comando complejo`);
-    console.log(`[Voice Controller] Comando: "${transcript}"`);
-    console.log(`[Voice Controller] URL actual: ${context?.currentUrl || 'Unknown'}`);
-
-    // Interpretar con Gemini y ejecutar plan con MCP (con timeout de 30s)
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('TIMEOUT: El comando tardó más de 30 segundos'));
-      }, 30000); // 30 segundos
-    });
-
-    const commandPromise = interpretVoiceWithGemini(
+    // TODO pasa directamente a Gemini Ensemble (3 modelos)
+    // Sin filtros, sin INTENT_MAPPING, sin conversiones de palabras
+    const result = await interpretVoiceWithGemini(
       transcript,
       enrichedContext,
       screenshot
     );
-
-    // Race entre comando y timeout
-    const result = await Promise.race([commandPromise, timeoutPromise]);
 
     // Log del resultado
     console.log(`[Voice Controller] ═══════════════════════════════════════`);
@@ -194,14 +99,13 @@ export const processVoiceCommand = async (req, res) => {
     let isTimeout = false;
     let errorType = 'unknown';
 
-    // Detectar error de cuota excedida de Gemini
     if (error.status === 429 || error.message.includes('429') || error.message.includes('quota')) {
-      errorMessage = 'Has alcanzado el límite de comandos por hoy (50 comandos gratis/día). Por favor, espera unas horas o intenta mañana.';
-      statusCode = 429; // Too Many Requests
+      errorMessage = 'Has alcanzado el límite de comandos por hoy. Por favor, espera unas horas.';
+      statusCode = 429;
       errorType = 'quota_exceeded';
     } else if (error.message.includes('TIMEOUT')) {
-      errorMessage = 'La operación tardó demasiado tiempo (más de 30 segundos). Por favor, intenta con un comando más simple o verifica tu conexión.';
-      statusCode = 408; // Request Timeout
+      errorMessage = 'La operación tardó demasiado tiempo. Intenta con un comando más simple.';
+      statusCode = 408;
       isTimeout = true;
       errorType = 'timeout';
     } else if (error.message.includes('Gemini')) {
@@ -218,14 +122,13 @@ export const processVoiceCommand = async (req, res) => {
       errorType = 'timeout';
     }
 
-    // Log estructurado del error
     logVoiceError({
-      transcript,
+      transcript: req.body.transcript,
       user: req.user?.nombre || 'anonymous',
       error: errorMessage,
       errorType,
       stack: error.stack,
-      pathname: context?.currentUrl || context?.pathname,
+      pathname: req.body.context?.currentUrl || req.body.context?.pathname,
       duration: `${duration}ms`,
     });
 
@@ -238,68 +141,3 @@ export const processVoiceCommand = async (req, res) => {
     });
   }
 };
-
-/**
- * Helper: Determina si una intención es de navegación simple
- */
-function isSimpleNavigationIntent(intent) {
-  const simpleIntents = [
-    'goToHome', 'goToCatalog', 'goToCart', 'goToProfile', 'goToContact',
-    'goToTerms', 'goToPrivacy', 'goToComplaints', 'goToAbout',
-    'login', 'register', 'logout'
-  ];
-  return simpleIntents.includes(intent);
-}
-
-/**
- * Helper: Obtiene la acción MCP apropiada para una intención
- */
-function getActionForIntent(intent) {
-  const navigationIntents = ['goToHome', 'goToCatalog', 'goToCart', 'goToProfile', 'goToContact'];
-  const clickIntents = ['login', 'register', 'logout', 'goToTerms', 'goToPrivacy', 'goToComplaints', 'goToAbout'];
-
-  if (navigationIntents.includes(intent)) {
-    const routeMap = {
-      goToHome: '/',
-      goToCatalog: '/carta',
-      goToCart: '/cart',
-      goToProfile: '/profile',
-      goToContact: '/contact-us'
-    };
-    return {
-      tool: 'navigate',
-      params: (selector) => ({ url: routeMap[intent] })
-    };
-  }
-
-  if (clickIntents.includes(intent)) {
-    return {
-      tool: 'click',
-      params: (selector) => ({ selector })
-    };
-  }
-
-  return null;
-}
-
-/**
- * Helper: Obtiene feedback amigable para una intención
- */
-function getFeedbackForIntent(intent) {
-  const feedbackMap = {
-    goToHome: 'Te llevo al inicio',
-    goToCatalog: 'Te muestro nuestro catálogo',
-    goToCart: 'Aquí está tu carrito',
-    goToProfile: 'Abriendo tu perfil',
-    goToContact: 'Te llevo a la página de contacto',
-    login: 'Abriendo formulario de inicio de sesión',
-    register: 'Abriendo formulario de registro',
-    logout: 'Cerrando tu sesión',
-    goToTerms: 'Mostrando términos y condiciones',
-    goToPrivacy: 'Mostrando política de privacidad',
-    goToComplaints: 'Abriendo libro de reclamaciones',
-    goToAbout: 'Te muestro información sobre nosotros'
-  };
-
-  return feedbackMap[intent] || 'Procesando tu comando';
-}

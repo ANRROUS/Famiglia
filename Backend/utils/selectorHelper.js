@@ -288,10 +288,25 @@ const INTENT_MAPPING = {
   'salir': 'logout',
   'logout': 'logout',
 
-  // Acciones de carrito
+  // Acciones de carrito (ordenadas de más específica a menos específica)
   'agregar al carrito': 'addToCart',
   'añadir al carrito': 'addToCart',
+  'agrega al carrito': 'addToCart',
+  'agregue al carrito': 'addToCart',
+  'agregues al carrito': 'addToCart',
+  'añade al carrito': 'addToCart',
+  'añada al carrito': 'addToCart',
+  'añadas al carrito': 'addToCart',
+  'agregar': 'addToCart',
+  'agrega': 'addToCart',
+  'agregue': 'addToCart',
+  'agregues': 'addToCart',
+  'añadir': 'addToCart',
+  'añade': 'addToCart',
+  'añada': 'addToCart',
+  'añadas': 'addToCart',
   'comprar': 'addToCart',
+  'quiero comprar': 'addToCart',
   'aumentar': 'increaseQuantity',
   'aumentar cantidad': 'increaseQuantity',
   'más': 'increaseQuantity',
@@ -322,13 +337,24 @@ const INTENT_MAPPING = {
 export function detectIntent(command) {
   const lowerCommand = command.toLowerCase().trim();
 
-  // Búsqueda exacta
+  // Búsqueda exacta primero
   if (INTENT_MAPPING[lowerCommand]) {
     return INTENT_MAPPING[lowerCommand];
   }
 
-  // Búsqueda parcial (comando contiene la clave)
-  for (const [key, intent] of Object.entries(INTENT_MAPPING)) {
+  // Palabras de acción que indican agregar al carrito
+  const addToCartVerbs = ['agrega', 'agregue', 'agregues', 'agregar', 'añade', 'añada', 'añadas', 'añadir', 'compra', 'comprar'];
+  const hasAddVerb = addToCartVerbs.some(verb => lowerCommand.includes(verb));
+  
+  // Si menciona "carrito" con verbo de acción, es addToCart
+  if (hasAddVerb && lowerCommand.includes('carrito')) {
+    return 'addToCart';
+  }
+
+  // Búsqueda parcial - ordenar por longitud DESC para priorizar frases más específicas
+  const sortedEntries = Object.entries(INTENT_MAPPING).sort((a, b) => b[0].length - a[0].length);
+  
+  for (const [key, intent] of sortedEntries) {
     if (lowerCommand.includes(key)) {
       return intent;
     }

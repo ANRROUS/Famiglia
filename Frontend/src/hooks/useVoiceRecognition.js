@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { correctTranscription, getBestAlternative } from '../utils/transcriptionCorrector';
 
 /**
  * Hook para reconocimiento de voz usando Web Speech API
  * Soporta español (es-ES) por defecto
+ * NO hace conversiones - envía texto RAW a Gemini
  *
  * @param {Object} options - Opciones de configuración
  * @param {string} options.language - Idioma (default: 'es-ES')
@@ -72,9 +72,8 @@ export function useVoiceRecognition(options = {}) {
           }
 
           if (result.isFinal) {
-            // Obtener la mejor alternativa usando contexto
-            const bestText = getBestAlternative(resultAlternatives, context);
-            finalText += bestText;
+            // NO usar getBestAlternative - tomar la primera alternativa RAW
+            finalText += result[0].transcript;
             alternatives = resultAlternatives;
           } else {
             // Para interim, usar la primera alternativa
@@ -83,18 +82,15 @@ export function useVoiceRecognition(options = {}) {
         }
 
         if (finalText) {
-          // Aplicar correcciones al texto final
-          const correctedText = correctTranscription(finalText);
+          // NO aplicar correcciones - enviar texto RAW a Gemini
+          const rawText = finalText.trim();
           
-          console.log('[Voice Recognition] Resultado original:', finalText);
-          if (correctedText !== finalText.toLowerCase()) {
-            console.log('[Voice Recognition] Resultado corregido:', correctedText);
-          }
+          console.log('[Voice Recognition] Resultado RAW (sin conversiones):', rawText);
           console.log('[Voice Recognition] Alternativas:', alternatives.map((a, i) => 
             `${i + 1}. "${a.transcript}" (${(a.confidence * 100).toFixed(1)}%)`
           ).join(', '));
           
-          setTranscript(correctedText);
+          setTranscript(rawText);
           setInterimTranscript('');
         } else if (interimText) {
           console.log('[Voice Recognition] Resultado interim:', interimText);

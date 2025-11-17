@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { pagoAPI } from "../services/api";
+import { useVoice } from "../context/VoiceContext";
 import {
   Box,
   Typography,
@@ -39,6 +40,9 @@ const palette = {
 const Payment = () => {
   const navigate = useNavigate();
   const { items, totalAmount, orderId } = useSelector((state) => state.cart);
+
+  // Hook de voz
+  const { speak, registerCommands, unregisterCommands, requireAuth } = useVoice();
 
   const [paymentMethod, setPaymentMethod] = useState("yape");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -111,6 +115,159 @@ const Payment = () => {
       setIsLoading(false);
     }
   };
+
+  // ============================================
+  // COMANDOS DE VOZ ESPECÍFICOS DE PAGO
+  // ============================================
+  useEffect(() => {
+    const voiceCommands = {
+      // Seleccionar método de pago
+      'seleccionar yape': () => {
+        setPaymentMethod('yape');
+        speak('Método de pago cambiado a Yape');
+      },
+      'seleccionar plin': () => {
+        setPaymentMethod('plin');
+        speak('Método de pago cambiado a Plin');
+      },
+      'pagar con yape': () => {
+        setPaymentMethod('yape');
+        speak('Método de pago cambiado a Yape');
+      },
+      'pagar con plin': () => {
+        setPaymentMethod('plin');
+        speak('Método de pago cambiado a Plin');
+      },
+
+      // Llenar teléfono (acepta número)
+      'teléfono (.+)': (numero) => {
+        // Limpiar el número (remover espacios, guiones, etc.)
+        const cleanNumber = numero.replace(/\D/g, '');
+        setPhoneNumber(cleanNumber);
+        speak(`Número de teléfono ingresado: ${cleanNumber}`);
+      },
+      'número (.+)': (numero) => {
+        const cleanNumber = numero.replace(/\D/g, '');
+        setPhoneNumber(cleanNumber);
+        speak(`Número de teléfono ingresado: ${cleanNumber}`);
+      },
+
+      // Llenar código de verificación
+      'código (.+)': (codigo) => {
+        const cleanCode = codigo.replace(/\D/g, '');
+        setVerificationCode(cleanCode);
+        speak(`Código de verificación ingresado: ${cleanCode}`);
+      },
+      'verificación (.+)': (codigo) => {
+        const cleanCode = codigo.replace(/\D/g, '');
+        setVerificationCode(cleanCode);
+        speak(`Código de verificación ingresado: ${cleanCode}`);
+      },
+
+      // Confirmar pago (🔐 requiere autenticación)
+      'confirmar pago': () => {
+        if (isLoading) {
+          speak('Ya se está procesando un pago');
+          return;
+        }
+        requireAuth(
+          () => {
+            speak('Procesando pago');
+            handlePayment();
+          },
+          'Debes iniciar sesión para confirmar el pago'
+        );
+      },
+      'procesar pago': () => {
+        if (isLoading) {
+          speak('Ya se está procesando un pago');
+          return;
+        }
+        requireAuth(
+          () => {
+            speak('Procesando pago');
+            handlePayment();
+          },
+          'Debes iniciar sesión para procesar el pago'
+        );
+      },
+
+      // Navegación
+      'volver al carrito': () => {
+        navigate('/cart');
+        speak('Volviendo al carrito');
+      },
+      'cancelar': () => {
+        navigate('/cart');
+        speak('Pago cancelado, volviendo al carrito');
+      },
+
+      // Información
+      'cuánto es el total': () => {
+        speak(`El total a pagar es ${totalAmount.toFixed(2)} soles`);
+      },
+      'cuál es el total': () => {
+        speak(`El total a pagar es ${totalAmount.toFixed(2)} soles`);
+      },
+      'cuál es el método seleccionado': () => {
+        if (!paymentMethod) {
+          speak('No has seleccionado un método de pago todavía');
+          return;
+        }
+        const metodo = paymentMethod === 'yape' ? 'Yape' : 'Plin';
+        speak(`El método seleccionado es ${metodo}`);
+      },
+      'qué método tengo': () => {
+        if (!paymentMethod) {
+          speak('No has seleccionado un método de pago');
+          return;
+        }
+        const metodo = paymentMethod === 'yape' ? 'Yape' : 'Plin';
+        speak(`Tienes seleccionado ${metodo}`);
+      },
+
+      // Validación de campos (NUEVO)
+      'qué campos faltan': () => {
+        const faltantes = [];
+        if (!paymentMethod) faltantes.push('método de pago');
+        if (!phoneNumber) faltantes.push('número de teléfono');
+        if (!verificationCode) faltantes.push('código de verificación');
+        
+        if (faltantes.length === 0) {
+          speak('Todos los campos están completos. Puedes confirmar el pago');
+        } else {
+          speak(`Faltan los siguientes campos: ${faltantes.join(', ')}`);
+        }
+      },
+
+      // Limpiar campos (NUEVO)
+      'limpiar teléfono': () => {
+        setPhoneNumber('');
+        speak('Teléfono limpiado');
+      },
+      'limpiar código': () => {
+        setVerificationCode('');
+        speak('Código de verificación limpiado');
+      },
+      'limpiar todo': () => {
+        setPhoneNumber('');
+        setVerificationCode('');
+        setApiError('');
+        speak('Todos los campos limpiados');
+      },
+    };
+
+    // Registrar comandos para esta página
+    registerCommands(voiceCommands);
+    console.log('[Payment] ✅ Comandos de voz registrados:', Object.keys(voiceCommands).length);
+
+    // Cleanup: eliminar comandos al desmontar
+    return () => {
+      unregisterCommands();
+      console.log('[Payment] 🗑️ Comandos de voz eliminados');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod, phoneNumber, verificationCode, totalAmount, isLoading, speak]);
 
   return (
     

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { LoginModalProvider } from "./context/LoginModalContext";
 import { VoiceProvider } from "./context/VoiceContext";
@@ -37,12 +37,25 @@ import CatalogoAdmin from './pages/CatalogoAdmin';
 
 function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { role } = useSelector((state) => state.auth);
   const { isLoginModalOpen, hideLoginModal } = useLoginModal();
 
   const usuario = useSelector(state => state.auth.user);
   const usuarioId = usuario?.id || usuario?.id_usuario || null;
+
+  // Exponer función de navegación para MCP Playwright
+  useEffect(() => {
+    window.__navigateViaReactRouter = (route) => {
+      console.log('[React Router] Navegando via MCP:', route);
+      navigate(route);
+    };
+    
+    return () => {
+      delete window.__navigateViaReactRouter;
+    };
+  }, [navigate]);
 
   // Verificar autenticación al cargar la app (SOLO UNA VEZ)
   // Determinar si es una ruta admin

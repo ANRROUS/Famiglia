@@ -1,8 +1,63 @@
+import { useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import imgRappiLogo from "../assets/images/img_rappiLogo.png";
 import imgWhatsappLogo from "../assets/images/img_wspLogo.png";
+import { useVoice } from "../context/VoiceContext";
 
 const Delivery = ({ id }) => {
+  const { speak, registerCommands, unregisterCommands } = useVoice();
+
+  // Comandos de voz para Delivery
+  useEffect(() => {
+    const voiceCommands = {
+      // Información
+      'información de delivery': () => {
+        speak('Tenemos dos opciones de delivery: Rappi con envío gratis, y WhatsApp a los números 949978664 o 949870092');
+      },
+      'cuáles son las opciones de delivery': () => {
+        speak('Puedes pedir por Rappi con envío gratis, o por WhatsApp');
+      },
+      'delivery gratis': () => {
+        speak('Sí, el delivery por Rappi es completamente gratis. Aprovecha nuestros combos y ofertas online');
+      },
+
+      // Números de contacto
+      'cuál es el número de whatsapp': () => {
+        speak('Puedes escribirnos a 949978664 o 949870092');
+      },
+      'número de whatsapp': () => {
+        speak('949978664 o 949870092');
+      },
+      'dime el whatsapp': () => {
+        speak('Los números son 949978664 y 949870092');
+      },
+
+      // Rappi
+      'cómo pido por rappi': () => {
+        speak('Haz click en el botón de Rappi para ver nuestros combos y ofertas. El envío es completamente gratis');
+      },
+      'rappi': () => {
+        speak('Envío gratis por Rappi. Haz click en el botón naranja para empezar');
+      },
+
+      // Horarios y disponibilidad
+      'horarios de delivery': () => {
+        speak('Puedes hacer tu pedido en cualquier momento. Para productos personalizados, se requiere al menos 24 horas de anticipación');
+      },
+      'cuánto demora el delivery': () => {
+        speak('El tiempo de entrega depende del método. Por Rappi es inmediato, por WhatsApp coordinamos contigo');
+      },
+    };
+
+    registerCommands(voiceCommands);
+    console.log('[Delivery] ✅ Comandos registrados:', Object.keys(voiceCommands).length);
+
+    return () => {
+      unregisterCommands();
+      console.log('[Delivery] 🗑️ Comandos eliminados');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speak]);
   return (
     <Box
       id={id}

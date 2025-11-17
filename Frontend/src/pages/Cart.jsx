@@ -15,6 +15,7 @@ import { Add, Remove } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import SentimentDissatisfiedOutlinedIcon from '@mui/icons-material/SentimentDissatisfiedOutlined';
 import imgMilhojasFresa from "../assets/images/img_milhojasFresa.png";
+import { useVoice } from "../context/VoiceContext";
 
 // Selector de cantidad compacto tipo checkbox
 const QuantitySelector = ({ value, onChange }) => {
@@ -79,8 +80,14 @@ const Cart = () => {
   const dispatch = useDispatch();
   const { items: products, totalAmount, isLoading } = useSelector((state) => state.cart);
 
+  // Hook de voz con autenticación
+  const { speak, registerCommands, unregisterCommands, requireAuth, isAuthenticated } = useVoice();
+
   // Estado local para las cantidades mientras el usuario edita
   const [localQuantities, setLocalQuantities] = useState({});
+  
+  // Estado para confirmación de vaciar carrito
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   
   // Refs para los temporizadores de debounce
   const debounceTimers = useRef({});
@@ -165,6 +172,249 @@ const Cart = () => {
 
   const localTotal = calculateLocalTotal();
   const isCartEmpty = products.length === 0;
+
+  // ============================================
+  // FUNCIÓN PARA VACIAR CARRITO
+  // ============================================
+  const handleClearCart = useCallback(() => {
+    // Eliminar todos los productos uno por uno
+    products.forEach((product) => {
+      dispatch(removeFromCartAsync(product.id_detalle));
+    });
+    speak('Carrito vaciado exitosamente');
+    setAwaitingConfirmation(false);
+  }, [products, dispatch, speak]);
+
+  // ============================================
+  // COMANDOS DE VOZ ESPECÍFICOS DE CARRITO
+  // ============================================
+  useEffect(() => {
+    const voiceCommands = {
+      // Aumentar cantidad de producto
+      'aumentar (.+)': (nombreProducto) => {
+        const producto = products.find(p => 
+          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
+        );
+        if (producto) {
+          const newQty = (localQuantities[producto.id_detalle] || producto.cantidad) + 1;
+          handleQuantityChange(producto.id_detalle, newQty);
+          speak(`Aumentando ${producto.nombre} a ${newQty} unidades`);
+        } else {
+          speak(`No encontré ${nombreProducto} en el carrito`);
+        }
+      },
+
+      // Disminuir cantidad de producto
+      'disminuir (.+)': (nombreProducto) => {
+        const producto = products.find(p => 
+          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
+        );
+        if (producto) {
+          const currentQty = localQuantities[producto.id_detalle] || producto.cantidad;
+          if (currentQty > 1) {
+            const newQty = currentQty - 1;
+            handleQuantityChange(producto.id_detalle, newQty);
+            speak(`Disminuyendo ${producto.nombre} a ${newQty} unidades`);
+          } else {
+            speak(`${producto.nombre} ya está en una unidad. Di "eliminar ${producto.nombre}" para quitarlo del carrito`);
+          }
+        } else {
+          speak(`No encontré ${nombreProducto} en el carrito`);
+        }
+      },
+
+      // Eliminar producto del carrito
+      'eliminar (.+)': (nombreProducto) => {
+        const producto = products.find(p => 
+          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
+        );
+        if (producto) {
+          handleRemoveProduct(producto.id_detalle);
+          speak(`Eliminando ${producto.nombre} del carrito`);
+        } else {
+          speak(`No encontré ${nombreProducto} en el carrito`);
+        }
+      },
+
+      // Eliminar por posición (primero, segundo, tercero)
+      'eliminar el primero': () => {
+        if (products[0]) {
+          handleRemoveProduct(products[0].id_detalle);
+          speak(`Eliminando ${products[0].nombre} del carrito`);
+        } else {
+          speak('No hay productos en el carrito');
+        }
+      },
+      'eliminar el segundo': () => {
+        if (products[1]) {
+          handleRemoveProduct(products[1].id_detalle);
+          speak(`Eliminando ${products[1].nombre} del carrito`);
+        } else {
+          speak('No hay un segundo producto en el carrito');
+        }
+      },
+      'eliminar el tercero': () => {
+        if (products[2]) {
+          handleRemoveProduct(products[2].id_detalle);
+          speak(`Eliminando ${products[2].nombre} del carrito`);
+        } else {
+          speak('No hay un tercer producto en el carrito');
+        }
+      },
+
+      // VACIAR CARRITO - Primera confirmación
+      'vaciar carrito': () => {
+        if (products.length === 0) {
+          speak('El carrito ya está vacío');
+          return;
+        }
+        setAwaitingConfirmation(true);
+        speak('¿Estás seguro de vaciar completamente el carrito? Di "confirmar vaciar carrito" para continuar, o "cancelar" para abortar');
+      },
+
+      // VACIAR CARRITO - Segunda confirmación (doble confirmación)
+      'confirmar vaciar carrito': () => {
+        if (!awaitingConfirmation) {
+          speak('Primero debes decir "vaciar carrito"');
+          return;
+        }
+        handleClearCart();
+      },
+
+      // Cancelar vaciar carrito
+      'cancelar': () => {
+        if (awaitingConfirmation) {
+          setAwaitingConfirmation(false);
+          speak('Acción cancelada');
+        }
+      },
+
+      // Proceder al pago (🔐 requiere autenticación)
+      'proceder al pago': () => {
+        if (products.length === 0) {
+          speak('No puedes proceder al pago con el carrito vacío');
+          return;
+        }
+        
+        // Validar autenticación antes de proceder
+        requireAuth(
+          () => {
+            navigate('/payment');
+            speak('Yendo a la página de pago');
+          },
+          'Debes iniciar sesión para proceder al pago'
+        );
+      },
+
+      // Continuar comprando / volver al catálogo
+      'volver al catálogo': () => {
+        navigate('/carta');
+        speak('Volviendo al catálogo');
+      },
+      'seguir comprando': () => {
+        navigate('/carta');
+        speak('Volviendo al catálogo');
+      },
+
+      // Ver total
+      'cuánto es el total': () => {
+        speak(`El total es ${localTotal.toFixed(2)} soles`);
+      },
+      'cuál es el total': () => {
+        speak(`El total es ${localTotal.toFixed(2)} soles`);
+      },
+
+      // Listar productos en el carrito
+      'qué hay en el carrito': () => {
+        if (products.length === 0) {
+          speak('El carrito está vacío');
+          return;
+        }
+        const lista = products.map((p, idx) => 
+          `${idx + 1}. ${p.nombre}, ${localQuantities[p.id_detalle] || p.cantidad} unidades`
+        ).join(', ');
+        speak(`Tienes ${products.length} productos: ${lista}`);
+      },
+      'listar productos': () => {
+        if (products.length === 0) {
+          speak('El carrito está vacío');
+          return;
+        }
+        const lista = products.map((p, idx) => 
+          `${idx + 1}. ${p.nombre}`
+        ).join(', ');
+        speak(`Productos en el carrito: ${lista}`);
+      },
+
+      // Cambiar cantidad directamente (NUEVO)
+      'cambiar cantidad del (.+) a (.+)': (nombreProducto, cantidad) => {
+        const producto = products.find(p => 
+          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
+        );
+        const cantidadNum = parseInt(cantidad);
+        
+        if (!producto) {
+          speak(`No encontré ${nombreProducto} en el carrito`);
+          return;
+        }
+        if (isNaN(cantidadNum) || cantidadNum < 1) {
+          speak('Cantidad no válida. Debe ser un número mayor a cero');
+          return;
+        }
+        
+        handleQuantityChange(producto.id_detalle, cantidadNum);
+        speak(`Cantidad de ${producto.nombre} cambiada a ${cantidadNum}`);
+      },
+      'establecer (.+) en (.+)': (nombreProducto, cantidad) => {
+        const producto = products.find(p => 
+          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
+        );
+        const cantidadNum = parseInt(cantidad);
+        
+        if (!producto) {
+          speak(`No encontré ${nombreProducto} en el carrito`);
+          return;
+        }
+        if (isNaN(cantidadNum) || cantidadNum < 1) {
+          speak('Cantidad no válida');
+          return;
+        }
+        
+        handleQuantityChange(producto.id_detalle, cantidadNum);
+        speak(`${producto.nombre} establecido en ${cantidadNum} unidades`);
+      },
+
+      // Cuántos productos hay (NUEVO)
+      'cuántos productos hay en el carrito': () => {
+        if (products.length === 0) {
+          speak('El carrito está vacío');
+        } else {
+          const totalItems = products.reduce((sum, p) => 
+            sum + (localQuantities[p.id_detalle] || p.cantidad), 0
+          );
+          speak(`Tienes ${products.length} productos diferentes, con un total de ${totalItems} unidades`);
+        }
+      },
+    };
+
+    // Registrar comandos para esta página
+    registerCommands(voiceCommands);
+    console.log('[Cart] ✅ Comandos de voz registrados:', Object.keys(voiceCommands).length);
+
+    // Cleanup: eliminar comandos al desmontar
+    return () => {
+      unregisterCommands();
+      setAwaitingConfirmation(false); // Resetear confirmación
+      console.log('[Cart] 🗑️ Comandos de voz eliminados');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    products,
+    localQuantities,
+    localTotal,
+    awaitingConfirmation,
+    // NO incluir registerCommands ni unregisterCommands para evitar loop infinito
+  ]);
 
   return (
     <Box
@@ -296,6 +546,9 @@ const Cart = () => {
               {/* BOTÓN CONTINUAR */}
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
                 <Box
+                  data-testid="cart-continue-button"
+                  role="button"
+                  aria-label="Continuar al pago"
                   onClick={handleContinue}
                   sx={{
                     backgroundColor: "#ffe5e5",

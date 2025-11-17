@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { useVoice } from '../context/VoiceContext';
 import {
   generateTest,
   getRecommendation,
@@ -17,6 +18,7 @@ import ProductCard from '../components/common/ProductCard';
 const PreferencesTest = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { speak, registerCommands, unregisterCommands } = useVoice();
   
   const {
     questions,
@@ -81,6 +83,130 @@ const PreferencesTest = () => {
   const isAnswered = () => {
     return answers[currentQuestion] !== undefined;
   };
+
+  // ============================================
+  // COMANDOS DE VOZ ESPECÍFICOS DE PREFERENCES TEST
+  // ============================================
+  useEffect(() => {
+    const voiceCommands = {
+      'iniciar test': () => {
+        if (questions.length === 0 && !isGeneratingTest) {
+          handleStartTest();
+          speak('Iniciando test de preferencias');
+        } else {
+          speak('El test ya está en curso');
+        }
+      },
+      'responder (.+)': (opcion) => {
+        if (questions.length === 0) {
+          speak('Primero debes iniciar el test');
+          return;
+        }
+        if (testCompleted) {
+          speak('El test ya ha sido completado');
+          return;
+        }
+        const currentQ = questions[currentQuestion];
+        if (!currentQ || !currentQ.opciones) {
+          speak('No hay opciones disponibles');
+          return;
+        }
+        
+        // Buscar opción por número o texto
+        const opcionLower = opcion.toLowerCase();
+        let selectedAnswer = null;
+        
+        if (opcionLower === 'uno' || opcionLower === '1' || opcionLower === 'primero') {
+          selectedAnswer = currentQ.opciones[0];
+        } else if (opcionLower === 'dos' || opcionLower === '2' || opcionLower === 'segundo') {
+          selectedAnswer = currentQ.opciones[1];
+        } else if (opcionLower === 'tres' || opcionLower === '3' || opcionLower === 'tercero') {
+          selectedAnswer = currentQ.opciones[2];
+        } else {
+          // Buscar por texto
+          selectedAnswer = currentQ.opciones.find(opt => 
+            opt.toLowerCase().includes(opcionLower)
+          );
+        }
+        
+        if (selectedAnswer) {
+          handleAnswerSelect(selectedAnswer);
+          speak(`Opción seleccionada: ${selectedAnswer}`);
+        } else {
+          speak('No se encontró esa opción');
+        }
+      },
+      'opción uno': () => {
+        if (questions[currentQuestion]?.opciones?.[0]) {
+          handleAnswerSelect(questions[currentQuestion].opciones[0]);
+          speak(`Opción uno seleccionada`);
+        }
+      },
+      'opción dos': () => {
+        if (questions[currentQuestion]?.opciones?.[1]) {
+          handleAnswerSelect(questions[currentQuestion].opciones[1]);
+          speak(`Opción dos seleccionada`);
+        }
+      },
+      'opción tres': () => {
+        if (questions[currentQuestion]?.opciones?.[2]) {
+          handleAnswerSelect(questions[currentQuestion].opciones[2]);
+          speak(`Opción tres seleccionada`);
+        }
+      },
+      'siguiente pregunta': () => {
+        if (testCompleted) {
+          speak('El test ya ha sido completado');
+          return;
+        }
+        if (!isAnswered()) {
+          speak('Primero debes responder la pregunta actual');
+          return;
+        }
+        handleNext();
+        if (currentQuestion < questions.length - 1) {
+          speak('Siguiente pregunta');
+        } else {
+          speak('Obteniendo tu recomendación personalizada');
+        }
+      },
+      'pregunta anterior': () => {
+        if (currentQuestion > 0) {
+          handlePrevious();
+          speak('Pregunta anterior');
+        } else {
+          speak('Ya estás en la primera pregunta');
+        }
+      },
+      'reiniciar test': () => {
+        handleRestart();
+        speak('Test reiniciado');
+      },
+      'ir al catálogo': () => {
+        handleGoToCatalog();
+        speak('Yendo al catálogo');
+      },
+      'ver recomendación': () => {
+        if (testCompleted && recommendation) {
+          speak('Mostrando tu recomendación personalizada');
+        } else if (!testCompleted) {
+          speak('Debes completar el test primero');
+        } else {
+          speak('Obteniendo tu recomendación');
+          dispatch(getRecommendation());
+        }
+      },
+    };
+
+    registerCommands(voiceCommands);
+    console.log('[PreferencesTest] ✅ Comandos de voz registrados:', Object.keys(voiceCommands).length);
+
+    return () => {
+      unregisterCommands();
+      console.log('[PreferencesTest] 🗑️ Comandos de voz eliminados');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions, currentQuestion, answers, testCompleted, recommendation, isGeneratingTest]);
 
   if (isLoading && !questions.length) {
     return (

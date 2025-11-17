@@ -109,6 +109,9 @@ export const CART_SELECTORS = {
 
   // Resumen
   total: '.text-2xl.font-bold',
+  
+  // Botones de acción
+  continuar: '[data-testid="cart-continue-button"], [role="button"]:has-text("Continuar"), text=Continuar',
   procederAlPago: 'button:has-text("Proceder al pago")',
 
   // Estado vacío
@@ -245,20 +248,95 @@ export const CATALOG_SELECTORS = {
 /**
  * Selectores del Footer (Común a todas las páginas)
  */
-export const FOOTER_SELECTORS = {
-  // Links importantes (usar text= para auto-scroll en Playwright)
-  terminos: 'text="Términos y condiciones"',
-  privacidad: 'text="Política de privacidad"',
-  libroReclamaciones: 'text="Libro de Reclamaciones"',
-  quienesSomos: 'text="Quiénes somos"',
-  ubicacion: 'text="Ubicación"',
-  contacto: 'text="Contacto"',
+export const FOOTER_SELECTORS_OLD = {
+  logo: 'img[alt="Logo Famiglia"]',
+  copyright: 'text="© 2024 FAMIGLIA. Todos los derechos reservados."',
+  
+  links: {
+    quienesSomos: 'a:has-text("Quiénes Somos")',
+    terminos: 'a:has-text("Términos y Condiciones")',
+    privacidad: 'a:has-text("Política de Privacidad")',
+    contacto: 'a:has-text("Contacto")',
+  },
 
-  // Redes sociales
-  redes: {
-    facebook: 'svg[data-testid="FacebookIcon"]',
-    instagram: 'svg[data-testid="InstagramIcon"]',
-    whatsapp: 'svg[data-testid="WhatsAppIcon"]',
+  social: {
+    facebook: 'a[href*="facebook"]',
+    instagram: 'a[href*="instagram"]',
+    twitter: 'a[href*="twitter"]',
+  },
+};
+
+/**
+ * Selectores de PreferencesTest (/test)
+ */
+export const PREFERENCES_TEST_SELECTORS = {
+  // Título y descripción
+  title: 'h1:has-text("Test de Preferencias")',
+  description: 'p:has-text("Responde las siguientes preguntas")',
+
+  // Inicio del test
+  startTest: {
+    prompt: 'textarea[placeholder*="Por ejemplo"]',
+    startButton: 'button:has-text("Comenzar Test")',
+  },
+
+  // Barra de progreso
+  progress: {
+    container: '.w-full.bg-\\[\\#f5e6d3\\].rounded-full',
+    bar: '.bg-\\[\\#6b2c2c\\].h-2.rounded-full',
+    questionText: 'span:text-matches("Pregunta \\d+ de \\d+")',
+    percentage: 'span:text-matches("\\d+%")',
+  },
+
+  // Pregunta actual
+  question: {
+    title: 'h2.text-lg.sm\\:text-xl.font-semibold.text-\\[\\#6b2c2c\\]',
+    
+    // Opciones de respuesta
+    options: {
+      container: '.space-y-3.sm\\:space-y-4.mb-6',
+      button: 'button.w-full.text-left.p-3',
+      selected: 'button.border-\\[\\#6b2c2c\\].bg-\\[\\#f5e6d3\\]',
+      label: '.font-medium.text-\\[\\#6b2c2c\\]',
+      description: '.text-xs.sm\\:text-sm.text-\\[\\#6b2c2c\\].opacity-70',
+      
+      // Selectores por índice (0-based)
+      first: 'button.w-full.text-left:nth-of-type(1)',
+      second: 'button.w-full.text-left:nth-of-type(2)',
+      third: 'button.w-full.text-left:nth-of-type(3)',
+    },
+  },
+
+  // Navegación
+  navigation: {
+    previous: 'button:has-text("← Regresar")',
+    next: 'button:has-text("Siguiente →")',
+    finish: 'button:has-text("Finalizar")',
+  },
+
+  // Loading states
+  loading: {
+    generating: 'p:has-text("Generando tu test personalizado")',
+    analyzing: 'p:has-text("Analizando tus preferencias")',
+    spinner: '.animate-spin.rounded-full',
+  },
+
+  // Recomendación (después de completar test)
+  recommendation: {
+    container: '.bg-white.rounded-lg.shadow-md.border',
+    title: 'h2:has-text("Tu Recomendación Personalizada")',
+    productCard: '[class*="ProductCard"]',
+    reasoning: 'p.text-sm.sm\\:text-base.text-\\[\\#6b2c2c\\]',
+    
+    // Botones de acción
+    goToCatalog: 'button:has-text("Ver Catálogo Completo")',
+    restartTest: 'button:has-text("Hacer Test Nuevamente")',
+  },
+
+  // Mensaje de error
+  error: {
+    container: '.mb-4.sm\\:mb-6.bg-\\[\\#f5e6d3\\].border.border-\\[\\#b17b6b\\]',
+    message: '.text-\\[\\#6b2c2c\\]',
   },
 };
 
@@ -327,6 +405,61 @@ export const ROUTES = {
   terminos: '/terminos',
   privacidad: '/privacidad',
   complaints: '/complaints',
+  delivery: '/delivery',
+  catalogoAdmin: '/catalogo-admin',
+};
+
+/**
+ * Selectores de Complaints (/complaints)
+ */
+export const COMPLAINTS_SELECTORS = {
+  form: {
+    nombre: 'input[placeholder="Ej. María López"]',
+    correo: 'input[type="email"][placeholder="Ej. maria@gmail.com"]',
+    motivo: 'textarea[placeholder="Describe brevemente el motivo de tu reclamo"]',
+    submit: 'button[type="submit"]:has-text("Enviar Reclamo")',
+  },
+  alert: {
+    success: '.MuiAlert-standardSuccess',
+    error: '.MuiAlert-standardError',
+  },
+};
+
+/**
+ * Selectores de Delivery (/delivery)
+ */
+export const DELIVERY_SELECTORS = {
+  rappi: {
+    logo: 'img[alt="Rappi Logo"]',
+    button: 'button:has-text("Haz click aquí")',
+  },
+  whatsapp: {
+    logo: 'img[alt="WhatsApp Logo"]',
+    numero1: 'div:has-text("949978664")',
+    numero2: 'div:has-text("949870092")',
+  },
+  title: 'h2:has-text("RESERVAS DE PEDIDOS & DELIVERY")',
+};
+
+/**
+ * Selectores de CatalogoAdmin (/catalogo-admin)
+ */
+export const CATALOGO_ADMIN_SELECTORS = {
+  title: 'h3:has-text("Catálogo Administrativo")',
+  search: {
+    input: 'input[placeholder*="Buscar productos"]',
+  },
+  filters: {
+    categoryButtons: 'button:has-text("TODOS"), button:has-text("TORTAS"), button:has-text("SANGUCHES")',
+    todos: 'button:has-text("TODOS")',
+    priceSlider: '.MuiSlider-root',
+  },
+  products: {
+    card: '.space-y-3 > div',
+    nombre: '.font-semibold.text-lg',
+    precio: '.text-xl.font-bold',
+    imagen: 'img[alt*="imagen"]',
+  },
 };
 
 /**
@@ -350,6 +483,22 @@ export function getSelector(element, currentUrl = '/') {
   } else if (currentUrl.includes('/profile')) {
     if (parts[0] === 'profile') {
       return getNestedValue(PROFILE_SELECTORS, parts.slice(1));
+    }
+  } else if (currentUrl.includes('/test')) {
+    if (parts[0] === 'test' || parts[0] === 'preferences') {
+      return getNestedValue(PREFERENCES_TEST_SELECTORS, parts.slice(1));
+    }
+  } else if (currentUrl.includes('/catalogo-admin')) {
+    if (parts[0] === 'catalogoAdmin') {
+      return getNestedValue(CATALOGO_ADMIN_SELECTORS, parts.slice(1));
+    }
+  } else if (currentUrl.includes('/complaints')) {
+    if (parts[0] === 'complaints') {
+      return getNestedValue(COMPLAINTS_SELECTORS, parts.slice(1));
+    }
+  } else if (currentUrl.includes('/delivery')) {
+    if (parts[0] === 'delivery') {
+      return getNestedValue(DELIVERY_SELECTORS, parts.slice(1));
     }
   } else if (currentUrl.includes('/carta')) {
     if (parts[0] === 'catalog') {
@@ -385,7 +534,11 @@ export default {
   PAYMENT_SELECTORS,
   PROFILE_SELECTORS,
   CATALOG_SELECTORS,
-  FOOTER_SELECTORS,
+  PREFERENCES_TEST_SELECTORS,
+  COMPLAINTS_SELECTORS,
+  DELIVERY_SELECTORS,
+  CATALOGO_ADMIN_SELECTORS,
+  FOOTER_SELECTORS: FOOTER_SELECTORS_OLD,
   SELECTOR_GENERATORS,
   SELECTOR_UTILS,
   ROUTES,

@@ -1,7 +1,11 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../redux/slices/authSlice';
 import { useVoiceRecognition } from '../hooks/useVoiceRecognition';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
 import { processVoiceCommand, checkVoiceAvailability, captureScreenshot } from '../services/api/voiceApiClient';
+import { useLoginModal } from './LoginModalContext';
+import { authAPI } from '../services/api';
 
 /**
  * Contexto global para el sistema de navegación por voz
@@ -24,6 +28,11 @@ export const VoiceState = {
  * Provider del contexto de voz
  */
 export function VoiceProvider({ children }) {
+  // 🔐 Estado de autenticación desde Redux
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const { openLoginModal } = useLoginModal();
+  
   // Hooks de voz con contexto de página actual
   const voiceRecognition = useVoiceRecognition({
     language: 'es-ES',
@@ -31,7 +40,9 @@ export function VoiceProvider({ children }) {
     interimResults: true,
     context: {
       pathname: window.location.pathname,
-      page: window.location.pathname
+      page: window.location.pathname,
+      isAuthenticated, // 🆕 Incluir estado de auth en contexto
+      user: user ? { id: user.id, nombre: user.nombre, rol: user.rol } : null
     }
   });
 
@@ -57,6 +68,10 @@ export function VoiceProvider({ children }) {
   });
   const [historyIndex, setHistoryIndex] = useState(-1); // -1 = no navegando historial
   const [isEnabled, setIsEnabled] = useState(true);
+
+  // Estado para comandos registrados por página
+  const [registeredCommands, setRegisteredCommands] = useState({});
+  const currentPath = window.location.pathname;
 
   // Guardar historial en localStorage cuando cambie
   useEffect(() => {
@@ -124,7 +139,92 @@ export function VoiceProvider({ children }) {
 
     try {
       console.log('[Voice Context] Procesando comando:', transcript);
+      const normalizedTranscript = transcript.toLowerCase().trim();
 
+      // 🔐 COMANDOS GLOBALES DE AUTENTICACIÓN (prioridad máxima)
+      const globalAuthCommands = {
+        'iniciar sesión': () => {
+          if (isAuthenticated) {
+            speak('Ya has iniciado sesión');
+          } else {
+            speak('Abriendo formulario de inicio de sesión');
+            openLoginModal();
+          }
+          return true;
+        },
+        'cerrar sesión': () => {
+          if (!isAuthenticated) {
+            speak('No has iniciado sesión');
+          } else {
+            speak(`Hasta luego${user?.nombre ? ', ' + user.nombre : ''}`);
+            // Ejecutar logout
+            handleVoiceLogout();
+          }
+          return true;
+        },
+        'estoy logueado': () => {
+          if (isAuthenticated) {
+            speak(`Sí, has iniciado sesión como ${user?.nombre || 'usuario'}`);
+          } else {
+            speak('No has iniciado sesión');
+          }
+          return true;
+        },
+        'quién soy': () => {
+          if (isAuthenticated) {
+            const rol = user?.rol === 'A' ? 'administrador' : 'cliente';
+            speak(`Eres ${user?.nombre || 'usuario'}, registrado como ${rol}`);
+          } else {
+            speak('No has iniciado sesión');
+          }
+          return true;
+        },
+      };
+
+      // Verificar comandos globales de autenticación
+      for (const [command, handler] of Object.entries(globalAuthCommands)) {
+        if (normalizedTranscript === command) {
+          handler();
+          setState(VoiceState.IDLE);
+          setLastCommand(transcript);
+          return;
+        }
+      }
+
+      // NUEVO: Primero intentar con comandos locales registrados
+      const currentPageCommands = registeredCommands[currentPath];
+      if (currentPageCommands) {
+        const normalizedTranscript = transcript.toLowerCase().trim();
+        
+        // Buscar comando exacto
+        for (const [commandPattern, handler] of Object.entries(currentPageCommands)) {
+          const normalizedPattern = commandPattern.toLowerCase().trim();
+          
+          // Coincidencia exacta
+          if (normalizedTranscript === normalizedPattern) {
+            console.log('[Voice Context] Ejecutando comando local:', commandPattern);
+            await handler();
+            setState(VoiceState.IDLE);
+            setLastCommand(transcript);
+            return; // No enviar al backend si se ejecutó localmente
+          }
+          
+          // Comandos con parámetros (pattern con (.+))
+          if (normalizedPattern.includes('(.+)')) {
+            const regex = new RegExp(normalizedPattern.replace(/\(\.\+\)/g, '(.+)'), 'i');
+            const match = normalizedTranscript.match(regex);
+            if (match) {
+              console.log('[Voice Context] Ejecutando comando local con parámetro:', commandPattern, match[1]);
+              await handler(match[1]);
+              setState(VoiceState.IDLE);
+              setLastCommand(transcript);
+              return;
+            }
+          }
+        }
+      }
+
+      // Si no hay comando local, enviar al backend (comportamiento original)
       setState(VoiceState.PROCESSING);
       setProcessing(true);
       
@@ -141,7 +241,14 @@ export function VoiceProvider({ children }) {
       const response = await processVoiceCommand(
         transcript,
         {
-          page: window.location.pathname
+          page: window.location.pathname,
+          pathname: window.location.pathname,
+          isAuthenticated, // 🔐 Incluir estado de autenticación
+          user: user ? { 
+            id: user.id, 
+            nombre: user.nombre, 
+            rol: user.rol 
+          } : null
         },
         screenshot
       );
@@ -238,7 +345,23 @@ export function VoiceProvider({ children }) {
         voiceRecognition.resetTranscript();
       }, 3000);
     }
-  }, [voiceRecognition, speak]);
+  }, [voiceRecognition, speak, registeredCommands, currentPath, isAuthenticated, user, dispatch]);
+
+  /**
+   * 🔐 Maneja el cierre de sesión por voz
+   */
+  const handleVoiceLogout = useCallback(async () => {
+    try {
+      await authAPI.logout();
+      localStorage.clear();
+      sessionStorage.clear();
+      dispatch(logout());
+      window.location.href = '/';
+    } catch (err) {
+      console.error('[Voice Context] Error al cerrar sesión:', err);
+      speak('Error al cerrar sesión');
+    }
+  }, [dispatch, speak]);
 
   /**
    * Inicia la escucha de voz (sin modal)
@@ -371,6 +494,94 @@ export function VoiceProvider({ children }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state, navigateHistory, handleVoiceCommand]);
 
+  /**
+   * Registra comandos de voz específicos para la página actual
+   * @param {Object} commands - Objeto con pares comando: handler
+   */
+  const registerCommands = useCallback((commands) => {
+    const path = window.location.pathname;
+    console.log('[Voice Context] Registrando comandos para', path, ':', Object.keys(commands));
+    
+    setRegisteredCommands(prev => ({
+      ...prev,
+      [path]: { ...(prev[path] || {}), ...commands }
+    }));
+  }, []);
+
+  /**
+   * Elimina comandos registrados para la página actual
+   */
+  const unregisterCommands = useCallback(() => {
+    const path = window.location.pathname;
+    console.log('[Voice Context] Eliminando comandos de', path);
+    
+    setRegisteredCommands(prev => {
+      const newCommands = { ...prev };
+      delete newCommands[path];
+      return newCommands;
+    });
+  }, []);
+
+  /**
+   * Obtiene los comandos disponibles para la página actual
+   */
+  const getAvailableCommands = useCallback(() => {
+    const path = window.location.pathname;
+    const pageCommands = registeredCommands[path] || {};
+    const commandNames = Object.keys(pageCommands);
+    
+    // Comandos globales siempre disponibles
+    const globalCommands = [
+      'ir al inicio',
+      'ir al catálogo',
+      'ir al carrito',
+      'ir al perfil',
+      'ir a contacto',
+      'ayuda',
+      'qué puedo decir'
+    ];
+    
+    return {
+      page: commandNames,
+      global: globalCommands,
+      all: [...commandNames, ...globalCommands]
+    };
+  }, [registeredCommands]);
+
+  /**
+   * 🔐 Verifica si el usuario está autenticado
+   * @returns {boolean} true si está autenticado
+   */
+  const checkAuthentication = useCallback(() => {
+    return isAuthenticated;
+  }, [isAuthenticated]);
+
+  /**
+   * 🔐 Ejecuta una acción solo si el usuario está autenticado
+   * Si no lo está, abre el modal de login y da feedback por voz
+   * @param {Function} action - Acción a ejecutar si está autenticado
+   * @param {string} requirementMessage - Mensaje personalizado (opcional)
+   * @returns {boolean} true si se ejecutó la acción
+   */
+  const requireAuth = useCallback((action, requirementMessage = 'Necesitas iniciar sesión para realizar esta acción') => {
+    if (!isAuthenticated) {
+      speak(requirementMessage);
+      openLoginModal();
+      return false;
+    }
+    
+    action();
+    return true;
+  }, [isAuthenticated, speak, openLoginModal]);
+
+  /**
+   * 🔐 Obtiene información del usuario actual
+   * @returns {Object|null} Información del usuario o null
+   */
+  const getCurrentUser = useCallback(() => {
+    return user;
+  }, [user]);
+
   const value = {
     // Estado
     state,
@@ -381,6 +592,10 @@ export function VoiceProvider({ children }) {
     commandHistory,
     historyIndex,
     isEnabled,
+
+    // 🔐 Estado de autenticación
+    isAuthenticated,
+    user,
 
     // Hooks
     voiceRecognition,
@@ -393,6 +608,16 @@ export function VoiceProvider({ children }) {
     toggleVoice,
     clearHistory,
     navigateHistory,
+
+    // Registro de comandos por página
+    registerCommands,
+    unregisterCommands,
+    getAvailableCommands,
+
+    // 🔐 Funciones de autenticación
+    checkAuthentication,
+    requireAuth,
+    getCurrentUser,
 
     // Text-to-Speech
     speak,

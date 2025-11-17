@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Typography, TextField, Button, CircularProgress, Alert } from "@mui/material";
+import { useVoice } from "../context/VoiceContext";
 
 const Complaints = () => {
   const [nombre, setNombre] = useState("");
@@ -7,6 +8,9 @@ const Complaints = () => {
   const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
+
+  // Hook de voz
+  const { speak, registerCommands, unregisterCommands } = useVoice();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -21,6 +25,7 @@ const Complaints = () => {
           type: "success",
           message: "Tu reclamo fue enviado correctamente. ¡Gracias por tu tiempo!",
         });
+        speak("Tu reclamo fue enviado correctamente");
         setNombre("");
         setCorreo("");
         setMotivo("");
@@ -30,10 +35,93 @@ const Complaints = () => {
           type: "error",
           message: "Ocurrió un error al enviar tu reclamo. Revisa los campos e intenta nuevamente.",
         });
+        speak("Faltan campos por completar");
       }
       setLoading(false);
     }, 1000);
   };
+
+  // Comandos de voz para Complaints
+  useEffect(() => {
+    const voiceCommands = {
+      // Llenar campos del formulario
+      'llenar nombre (.+)': (nombreVoz) => {
+        setNombre(nombreVoz);
+        speak(`Nombre establecido como ${nombreVoz}`);
+      },
+      'nombre (.+)': (nombreVoz) => {
+        setNombre(nombreVoz);
+        speak(`Nombre establecido`);
+      },
+
+      'llenar correo (.+)': (correoVoz) => {
+        setCorreo(correoVoz);
+        speak(`Correo establecido`);
+      },
+      'correo (.+)': (correoVoz) => {
+        setCorreo(correoVoz);
+        speak(`Correo establecido`);
+      },
+
+      'llenar motivo (.+)': (motivoVoz) => {
+        setMotivo(motivoVoz);
+        speak(`Motivo establecido`);
+      },
+      'motivo (.+)': (motivoVoz) => {
+        setMotivo(motivoVoz);
+        speak(`Motivo agregado`);
+      },
+
+      // Enviar y limpiar
+      'enviar reclamo': () => {
+        if (!nombre || !correo || !motivo) {
+          speak('Por favor completa todos los campos antes de enviar');
+          return;
+        }
+        const event = new Event('submit', { bubbles: true, cancelable: true });
+        document.querySelector('form')?.dispatchEvent(event);
+      },
+      'enviar': () => {
+        if (!nombre || !correo || !motivo) {
+          speak('Por favor completa todos los campos antes de enviar');
+          return;
+        }
+        const submitBtn = document.querySelector('button[type="submit"]');
+        submitBtn?.click();
+      },
+
+      'limpiar formulario': () => {
+        setNombre('');
+        setCorreo('');
+        setMotivo('');
+        setAlert({ show: false, type: '', message: '' });
+        speak('Formulario limpiado');
+      },
+
+      // Consultas
+      'qué campos faltan': () => {
+        const faltantes = [];
+        if (!nombre) faltantes.push('nombre');
+        if (!correo) faltantes.push('correo');
+        if (!motivo) faltantes.push('motivo');
+        
+        if (faltantes.length === 0) {
+          speak('Todos los campos están completos');
+        } else {
+          speak(`Faltan los siguientes campos: ${faltantes.join(', ')}`);
+        }
+      },
+    };
+
+    registerCommands(voiceCommands);
+    console.log('[Complaints] ✅ Comandos registrados:', Object.keys(voiceCommands).length);
+
+    return () => {
+      unregisterCommands();
+      console.log('[Complaints] 🗑️ Comandos eliminados');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nombre, correo, motivo, speak]);
 
   return (
     <Box

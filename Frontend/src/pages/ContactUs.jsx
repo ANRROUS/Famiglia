@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useVoice } from "../context/VoiceContext";
 import {
   Box,
   Typography,
@@ -25,11 +26,62 @@ const palette = {
 };
 
 const ContactUs = () => {
+  const { speak, registerCommands, unregisterCommands } = useVoice();
+  
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
+
+  // ============================================
+  // COMANDOS DE VOZ ESPECÍFICOS DE CONTACTO
+  // ============================================
+  useEffect(() => {
+    const voiceCommands = {
+      'llenar nombre (.+)': (nombreVoz) => {
+        setNombre(nombreVoz);
+        speak(`Nombre ingresado: ${nombreVoz}`);
+      },
+      'llenar email (.+)': (emailVoz) => {
+        setEmail(emailVoz);
+        speak(`Email ingresado: ${emailVoz}`);
+      },
+      'llenar mensaje (.+)': (mensajeVoz) => {
+        setMensaje(mensajeVoz);
+        speak(`Mensaje ingresado`);
+      },
+      'enviar mensaje': () => {
+        if (!nombre || !email || !mensaje) {
+          speak('Por favor completa todos los campos antes de enviar');
+          return;
+        }
+        if (loading) {
+          speak('Ya se está enviando el mensaje');
+          return;
+        }
+        speak('Enviando mensaje');
+        // Simular submit
+        const form = document.querySelector('form');
+        if (form) form.requestSubmit();
+      },
+      'limpiar formulario': () => {
+        setNombre('');
+        setEmail('');
+        setMensaje('');
+        speak('Formulario limpiado');
+      },
+    };
+
+    registerCommands(voiceCommands);
+    console.log('[ContactUs] ✅ Comandos de voz registrados:', Object.keys(voiceCommands).length);
+
+    return () => {
+      unregisterCommands();
+      console.log('[ContactUs] 🗑️ Comandos de voz eliminados');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nombre, email, mensaje, loading, speak]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
