@@ -17,6 +17,131 @@ import SentimentDissatisfiedOutlinedIcon from '@mui/icons-material/SentimentDiss
 import imgMilhojasFresa from "../assets/images/img_milhojasFresa.png";
 import { useVoice } from "../context/VoiceContext";
 
+// ============================================
+// FUNCIÓN DE BÚSQUEDA INTELIGENTE DE PRODUCTOS
+// ============================================
+/**
+ * Calcula la similitud entre dos strings usando distancia de Levenshtein
+ * Retorna un valor entre 0 (completamente diferente) y 1 (idéntico)
+ */
+const calculateSimilarity = (str1, str2) => {
+  const s1 = str1.toLowerCase().trim();
+  const s2 = str2.toLowerCase().trim();
+
+  if (s1 === s2) return 1;
+  if (s1.length === 0 || s2.length === 0) return 0;
+
+  // Levenshtein distance
+  const matrix = [];
+  for (let i = 0; i <= s2.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= s1.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= s2.length; i++) {
+    for (let j = 1; j <= s1.length; j++) {
+      if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  const distance = matrix[s2.length][s1.length];
+  const maxLength = Math.max(s1.length, s2.length);
+  return 1 - distance / maxLength;
+};
+
+/**
+ * Busca un producto en el carrito usando búsqueda inteligente
+ * @param {Array} products - Lista de productos en el carrito
+ * @param {string} searchTerm - Término de búsqueda del usuario
+ * @returns {Object} { product, confidence, alternatives }
+ */
+const findProductInCart = (products, searchTerm) => {
+  if (!searchTerm || products.length === 0) {
+    return { product: null, confidence: 0, alternatives: [] };
+  }
+
+  const normalizedSearch = searchTerm.toLowerCase().trim();
+
+  // Calcular similitud para cada producto
+  const matches = products.map(product => {
+    const productName = product.nombre.toLowerCase();
+
+    // 1. Coincidencia exacta (máxima prioridad)
+    if (productName === normalizedSearch) {
+      return { product, score: 1.0, matchType: 'exact' };
+    }
+
+    // 2. Contiene el término completo
+    if (productName.includes(normalizedSearch)) {
+      return { product, score: 0.9, matchType: 'contains' };
+    }
+
+    // 3. El término contiene el nombre del producto
+    if (normalizedSearch.includes(productName)) {
+      return { product, score: 0.85, matchType: 'reverse-contains' };
+    }
+
+    // 4. Coincidencia por palabras clave (ignorar palabras comunes)
+    const stopWords = ['de', 'del', 'la', 'el', 'y', 'con', 'a', 'en'];
+    const searchWords = normalizedSearch.split(' ').filter(w => !stopWords.includes(w));
+    const productWords = productName.split(' ').filter(w => !stopWords.includes(w));
+
+    const wordMatches = searchWords.filter(sw =>
+      productWords.some(pw => pw.includes(sw) || sw.includes(pw))
+    );
+
+    if (wordMatches.length > 0) {
+      const wordScore = wordMatches.length / Math.max(searchWords.length, productWords.length);
+      if (wordScore > 0.5) {
+        return { product, score: 0.7 + (wordScore * 0.1), matchType: 'keywords' };
+      }
+    }
+
+    // 5. Similitud de Levenshtein (fuzzy matching)
+    const similarity = calculateSimilarity(productName, normalizedSearch);
+    return { product, score: similarity * 0.6, matchType: 'fuzzy' };
+  });
+
+  // Ordenar por score descendente
+  matches.sort((a, b) => b.score - a.score);
+
+  const bestMatch = matches[0];
+  const threshold = 0.5; // Umbral mínimo de confianza
+
+  // Si el mejor match no supera el umbral, no hay coincidencia
+  if (bestMatch.score < threshold) {
+    return { product: null, confidence: 0, alternatives: [] };
+  }
+
+  // Buscar alternativas similares con umbral más estricto para ambigüedad
+  const alternatives = matches
+    .slice(1)
+    .filter(m => m.score >= bestMatch.score * 0.8 && m.score >= threshold) // 80% del mejor match
+    .slice(0, 4) // Máximo 4 alternativas
+    .map(m => ({ product: m.product, score: m.score, matchType: m.matchType }));
+
+  // Detectar ambigüedad: si hay alternativas con score muy cercano al mejor
+  const isAmbiguous = alternatives.length > 0 && alternatives[0].score >= bestMatch.score * 0.9;
+
+  return {
+    product: bestMatch.product,
+    confidence: bestMatch.score,
+    matchType: bestMatch.matchType,
+    alternatives,
+    isAmbiguous
+  };
+};
+
 // Selector de cantidad compacto tipo checkbox
 const QuantitySelector = ({ value, onChange }) => {
   const handleIncrease = () => onChange(value + 1);
@@ -85,10 +210,14 @@ const Cart = () => {
 
   // Estado local para las cantidades mientras el usuario edita
   const [localQuantities, setLocalQuantities] = useState({});
-  
+
   // Estado para confirmación de vaciar carrito
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
-  
+
+  // Estado para desambiguación de productos
+  const [pendingAction, setPendingAction] = useState(null);
+  const [ambiguousProducts, setAmbiguousProducts] = useState([]);
+
   // Refs para los temporizadores de debounce
   const debounceTimers = useRef({});
 
@@ -189,51 +318,195 @@ const Cart = () => {
   // COMANDOS DE VOZ ESPECÍFICOS DE CARRITO
   // ============================================
   useEffect(() => {
-    const voiceCommands = {
-      // Aumentar cantidad de producto
-      'aumentar (.+)': (nombreProducto) => {
-        const producto = products.find(p => 
-          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
-        );
-        if (producto) {
-          const newQty = (localQuantities[producto.id_detalle] || producto.cantidad) + 1;
-          handleQuantityChange(producto.id_detalle, newQty);
-          speak(`Aumentando ${producto.nombre} a ${newQty} unidades`);
-        } else {
-          speak(`No encontré ${nombreProducto} en el carrito`);
-        }
-      },
+    // 🎯 FUNCIÓN HELPER PARA AUMENTAR CANTIDAD (usada por múltiples comandos)
+    const aumentarProducto = (nombreProducto) => {
+      const nombreLimpio = nombreProducto.trim();
+      const result = findProductInCart(products, nombreLimpio);
 
-      // Disminuir cantidad de producto
-      'disminuir (.+)': (nombreProducto) => {
-        const producto = products.find(p => 
-          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
-        );
-        if (producto) {
+      if (!result.product) {
+        speak(`No encontré ningún producto similar a ${nombreLimpio} en el carrito`);
+        return;
+      }
+
+      // Si hay ambigüedad, pedir aclaración
+      if (result.isAmbiguous && result.alternatives.length > 0) {
+        const allOptions = [result.product, ...result.alternatives.map(a => a.product)];
+        setAmbiguousProducts(allOptions);
+        setPendingAction({ type: 'aumentar', searchTerm: nombreLimpio });
+
+        const opciones = allOptions.map((p, idx) => `${idx + 1}. ${p.nombre}`).join(', ');
+        speak(`Encontré varios productos similares: ${opciones}. Di el número de la opción que quieres`);
+        return;
+      }
+
+      // Ejecutar acción sin ambigüedad
+      const producto = result.product;
+      const currentQty = localQuantities[producto.id_detalle] || producto.cantidad;
+      const newQty = currentQty + 1;
+
+      handleQuantityChange(producto.id_detalle, newQty);
+      speak(`Aumentando ${producto.nombre} a ${newQty} unidad${newQty > 1 ? 'es' : ''}`);
+    };
+
+    // 🎯 FUNCIÓN HELPER PARA DISMINUIR CANTIDAD
+    const disminuirProducto = (nombreProducto) => {
+      const nombreLimpio = nombreProducto.trim();
+      const result = findProductInCart(products, nombreLimpio);
+
+      if (!result.product) {
+        speak(`No encontré ningún producto similar a ${nombreLimpio} en el carrito`);
+        return;
+      }
+
+      // Si hay ambigüedad, pedir aclaración
+      if (result.isAmbiguous && result.alternatives.length > 0) {
+        const allOptions = [result.product, ...result.alternatives.map(a => a.product)];
+        setAmbiguousProducts(allOptions);
+        setPendingAction({ type: 'disminuir', searchTerm: nombreLimpio });
+
+        const opciones = allOptions.map((p, idx) => `${idx + 1}. ${p.nombre}`).join(', ');
+        speak(`Encontré varios productos similares: ${opciones}. Di el número de la opción que quieres`);
+        return;
+      }
+
+      const producto = result.product;
+      const currentQty = localQuantities[producto.id_detalle] || producto.cantidad;
+
+      if (currentQty > 1) {
+        const newQty = currentQty - 1;
+        handleQuantityChange(producto.id_detalle, newQty);
+        speak(`Disminuyendo ${producto.nombre} a ${newQty} unidad${newQty > 1 ? 'es' : ''}`);
+      } else {
+        speak(`${producto.nombre} ya está en una unidad. Di "eliminar ${producto.nombre}" para quitarlo del carrito`);
+      }
+    };
+
+    const voiceCommands = {
+      // Aumentar cantidad - VARIANTES
+      'aumentar (.+)': aumentarProducto,
+      'agregar (.+) más': (nombreProducto) => aumentarProducto(nombreProducto),
+      'agrega (.+) más': (nombreProducto) => aumentarProducto(nombreProducto),
+      'añadir (.+) más': (nombreProducto) => aumentarProducto(nombreProducto),
+      'añade (.+) más': (nombreProducto) => aumentarProducto(nombreProducto),
+      'agregar un (.+) más': (nombreProducto) => aumentarProducto(nombreProducto),
+      'agrega un (.+) más': (nombreProducto) => aumentarProducto(nombreProducto),
+      'más (.+)': (nombreProducto) => aumentarProducto(nombreProducto),
+
+      // Disminuir cantidad - VARIANTES
+      'disminuir (.+)': disminuirProducto,
+      'quitar (.+)': disminuirProducto,
+      'quita (.+)': disminuirProducto,
+      'reducir (.+)': disminuirProducto,
+      'reduce (.+)': disminuirProducto,
+      'menos (.+)': disminuirProducto,
+
+      // COMANDOS DE DESAMBIGUACIÓN - Selección por número
+      'opción (.+)': (numero) => {
+        if (!pendingAction || ambiguousProducts.length === 0) {
+          speak('No hay ninguna selección pendiente');
+          return;
+        }
+
+        const idx = parseInt(numero) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= ambiguousProducts.length) {
+          speak(`Opción inválida. Di un número entre 1 y ${ambiguousProducts.length}`);
+          return;
+        }
+
+        const producto = ambiguousProducts[idx];
+        const action = pendingAction.type;
+
+        // Ejecutar la acción pendiente con el producto seleccionado
+        if (action === 'aumentar') {
+          const currentQty = localQuantities[producto.id_detalle] || producto.cantidad;
+          const newQty = currentQty + 1;
+          handleQuantityChange(producto.id_detalle, newQty);
+          speak(`Aumentando ${producto.nombre} a ${newQty} unidad${newQty > 1 ? 'es' : ''}`);
+        } else if (action === 'disminuir') {
           const currentQty = localQuantities[producto.id_detalle] || producto.cantidad;
           if (currentQty > 1) {
             const newQty = currentQty - 1;
             handleQuantityChange(producto.id_detalle, newQty);
-            speak(`Disminuyendo ${producto.nombre} a ${newQty} unidades`);
+            speak(`Disminuyendo ${producto.nombre} a ${newQty} unidad${newQty > 1 ? 'es' : ''}`);
           } else {
-            speak(`${producto.nombre} ya está en una unidad. Di "eliminar ${producto.nombre}" para quitarlo del carrito`);
+            speak(`${producto.nombre} ya está en una unidad`);
           }
-        } else {
-          speak(`No encontré ${nombreProducto} en el carrito`);
-        }
-      },
-
-      // Eliminar producto del carrito
-      'eliminar (.+)': (nombreProducto) => {
-        const producto = products.find(p => 
-          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
-        );
-        if (producto) {
+        } else if (action === 'eliminar') {
           handleRemoveProduct(producto.id_detalle);
           speak(`Eliminando ${producto.nombre} del carrito`);
-        } else {
-          speak(`No encontré ${nombreProducto} en el carrito`);
         }
+
+        // Limpiar estado de desambiguación
+        setPendingAction(null);
+        setAmbiguousProducts([]);
+      },
+
+      'el (.+)': (numero) => {
+        // Alias para "opción": "el uno", "el dos", etc.
+        const numeros = { 'uno': '1', 'dos': '2', 'tres': '3', 'cuatro': '4', 'cinco': '5' };
+        const numStr = numeros[numero.toLowerCase()] || numero;
+
+        if (!pendingAction || ambiguousProducts.length === 0) {
+          speak('No hay ninguna selección pendiente');
+          return;
+        }
+
+        const idx = parseInt(numStr) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= ambiguousProducts.length) {
+          speak(`Opción inválida. Di un número entre 1 y ${ambiguousProducts.length}`);
+          return;
+        }
+
+        const producto = ambiguousProducts[idx];
+        const action = pendingAction.type;
+
+        if (action === 'aumentar') {
+          const currentQty = localQuantities[producto.id_detalle] || producto.cantidad;
+          const newQty = currentQty + 1;
+          handleQuantityChange(producto.id_detalle, newQty);
+          speak(`Aumentando ${producto.nombre} a ${newQty} unidad${newQty > 1 ? 'es' : ''}`);
+        } else if (action === 'disminuir') {
+          const currentQty = localQuantities[producto.id_detalle] || producto.cantidad;
+          if (currentQty > 1) {
+            const newQty = currentQty - 1;
+            handleQuantityChange(producto.id_detalle, newQty);
+            speak(`Disminuyendo ${producto.nombre} a ${newQty} unidad${newQty > 1 ? 'es' : ''}`);
+          } else {
+            speak(`${producto.nombre} ya está en una unidad`);
+          }
+        } else if (action === 'eliminar') {
+          handleRemoveProduct(producto.id_detalle);
+          speak(`Eliminando ${producto.nombre} del carrito`);
+        }
+
+        setPendingAction(null);
+        setAmbiguousProducts([]);
+      },
+
+      // Eliminar producto del carrito (CON BÚSQUEDA INTELIGENTE)
+      'eliminar (.+)': (nombreProducto) => {
+        const nombreLimpio = nombreProducto.trim();
+        const result = findProductInCart(products, nombreLimpio);
+
+        if (!result.product) {
+          speak(`No encontré ningún producto similar a ${nombreLimpio} en el carrito`);
+          return;
+        }
+
+        // Si hay ambigüedad, pedir aclaración
+        if (result.isAmbiguous && result.alternatives.length > 0) {
+          const allOptions = [result.product, ...result.alternatives.map(a => a.product)];
+          setAmbiguousProducts(allOptions);
+          setPendingAction({ type: 'eliminar', searchTerm: nombreLimpio });
+
+          const opciones = allOptions.map((p, idx) => `${idx + 1}. ${p.nombre}`).join(', ');
+          speak(`Encontré varios productos similares: ${opciones}. Di el número de la opción que quieres eliminar`);
+          return;
+        }
+
+        const producto = result.product;
+        handleRemoveProduct(producto.id_detalle);
+        speak(`Eliminando ${producto.nombre} del carrito`);
       },
 
       // Eliminar por posición (primero, segundo, tercero)
@@ -346,42 +619,41 @@ const Cart = () => {
         speak(`Productos en el carrito: ${lista}`);
       },
 
-      // Cambiar cantidad directamente (NUEVO)
+      // Cambiar cantidad directamente (CON BÚSQUEDA INTELIGENTE)
       'cambiar cantidad del (.+) a (.+)': (nombreProducto, cantidad) => {
-        const producto = products.find(p => 
-          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
-        );
+        const result = findProductInCart(products, nombreProducto);
         const cantidadNum = parseInt(cantidad);
-        
-        if (!producto) {
-          speak(`No encontré ${nombreProducto} en el carrito`);
+
+        if (!result.product) {
+          speak(`No encontré ningún producto similar a ${nombreProducto} en el carrito`);
           return;
         }
         if (isNaN(cantidadNum) || cantidadNum < 1) {
           speak('Cantidad no válida. Debe ser un número mayor a cero');
           return;
         }
-        
+
+        const producto = result.product;
         handleQuantityChange(producto.id_detalle, cantidadNum);
-        speak(`Cantidad de ${producto.nombre} cambiada a ${cantidadNum}`);
+        speak(`Cantidad de ${producto.nombre} cambiada a ${cantidadNum} unidad${cantidadNum > 1 ? 'es' : ''}`);
       },
+
       'establecer (.+) en (.+)': (nombreProducto, cantidad) => {
-        const producto = products.find(p => 
-          p.nombre.toLowerCase().includes(nombreProducto.toLowerCase())
-        );
+        const result = findProductInCart(products, nombreProducto);
         const cantidadNum = parseInt(cantidad);
-        
-        if (!producto) {
-          speak(`No encontré ${nombreProducto} en el carrito`);
+
+        if (!result.product) {
+          speak(`No encontré ningún producto similar a ${nombreProducto} en el carrito`);
           return;
         }
         if (isNaN(cantidadNum) || cantidadNum < 1) {
-          speak('Cantidad no válida');
+          speak('Cantidad no válida. Debe ser un número mayor a cero');
           return;
         }
-        
+
+        const producto = result.product;
         handleQuantityChange(producto.id_detalle, cantidadNum);
-        speak(`${producto.nombre} establecido en ${cantidadNum} unidades`);
+        speak(`${producto.nombre} establecido en ${cantidadNum} unidad${cantidadNum > 1 ? 'es' : ''}`);
       },
 
       // Cuántos productos hay (NUEVO)

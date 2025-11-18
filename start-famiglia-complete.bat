@@ -51,11 +51,33 @@ REM Cerrar Chrome si está abierto
 taskkill //F //IM chrome.exe 2>nul
 timeout /t 2 /nobreak >nul
 
-REM Iniciar Chrome
-start "" "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="%USERPROFILE%\chrome-famiglia-debug" http://localhost:5173
+REM Detectar ubicación de Chrome
+set CHROME_PATH=
+if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
+    set CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
+) else if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" (
+    set CHROME_PATH=C:\Program Files ^(x86^)\Google\Chrome\Application\chrome.exe
+) else if exist "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" (
+    set CHROME_PATH=%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe
+)
 
-echo Chrome iniciado en puerto 9222
-timeout /t 2 /nobreak >nul
+REM Verificar si se encontró Chrome
+if not defined CHROME_PATH (
+    echo.
+    echo ERROR: No se encontro Google Chrome!
+    echo Por favor instala Chrome o ejecuta manualmente:
+    echo chrome.exe --remote-debugging-port=9222 --user-data-dir="%TEMP%\chrome-famiglia" http://localhost:5173
+    echo.
+    pause
+    exit /b 1
+)
+
+REM Iniciar Chrome con debugging
+echo Usando Chrome en: %CHROME_PATH%
+start "" "%CHROME_PATH%" --remote-debugging-port=9222 --user-data-dir="%TEMP%\chrome-famiglia" --disable-gpu --no-first-run --no-default-browser-check http://localhost:5173
+
+echo Chrome iniciado en puerto 9222 con CDP habilitado
+timeout /t 3 /nobreak >nul
 
 REM =================================================================
 REM PASO 3: Iniciar Backend (Puerto 3000)

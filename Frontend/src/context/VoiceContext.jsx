@@ -214,8 +214,10 @@ export function VoiceProvider({ children }) {
             const regex = new RegExp(normalizedPattern.replace(/\(\.\+\)/g, '(.+)'), 'i');
             const match = normalizedTranscript.match(regex);
             if (match) {
-              console.log('[Voice Context] Ejecutando comando local con parámetro:', commandPattern, match[1]);
-              await handler(match[1]);
+              // Extraer todos los parámetros capturados (match[1], match[2], etc.)
+              const params = match.slice(1); // Eliminar match[0] que es el texto completo
+              console.log('[Voice Context] Ejecutando comando local con parámetros:', commandPattern, params);
+              await handler(...params); // Pasar todos los parámetros al handler
               setState(VoiceState.IDLE);
               setLastCommand(transcript);
               return;
