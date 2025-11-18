@@ -471,6 +471,7 @@ const Cart = () => {
               {products.map((product) => (
                 <Box
                   key={product.id_detalle}
+                  data-item-id={product.id_detalle}
                   sx={{
                     display: "grid",
                     gridTemplateColumns: "auto minmax(250px, 1fr) 0.6fr 0.6fr 0.6fr",

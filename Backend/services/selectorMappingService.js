@@ -52,8 +52,8 @@ export const LOGIN_FORM_SELECTORS = {
   correo: 'input[name="correo"], input[type="email"]',
   contraseña: 'input[name="contraseña"], input[type="password"]',
 
-  // Botones
-  ingresar: 'button[type="submit"]:has-text("Ingresar")',
+  // Botones - Múltiples selectores para mayor robustez
+  ingresar: 'button[type="submit"]:not([disabled]), button:has-text("INICIAR SESIÓN"), button:has-text("VERIFICAR CÓDIGO")',
   registrarseLink: 'span:has-text("Regístrate aquí")',
 
   // Mensajes de error
@@ -71,25 +71,23 @@ export const LOGIN_FORM_SELECTORS = {
  * Selectores del Register Form (Modal)
  */
 export const REGISTER_FORM_SELECTORS = {
-  // Campos personales
+  // Campos personales (solo los que existen en el formulario actual)
   nombre: 'input[name="nombre"]',
-  apellidoPaterno: 'input[name="apellido_paterno"]',
-  apellidoMaterno: 'input[name="apellido_materno"]',
   correo: 'input[name="correo"], input[type="email"]',
-  telefono: 'input[name="telefono"], input[type="tel"]',
-  dni: 'input[name="dni"]',
-
-  // Contraseñas
   contraseña: 'input[name="contraseña"], input[type="password"]',
-  confirmarContraseña: 'input[name="confirmar_contraseña"]',
 
-  // Checkbox términos
-  checkboxTerminos: 'input[type="checkbox"][name="terminos"]',
-  labelTerminos: 'label:has-text("Acepto los términos y condiciones")',
+  // Checkbox términos y condiciones
+  checkboxTerminos: 'input[type="checkbox"]',
+  labelTerminos: 'p:has-text("Estoy de acuerdo")',
 
-  // Botones
-  registrarse: 'button[type="submit"]:has-text("Registrarse")',
-  iniciarSesionLink: 'span:has-text("Inicia sesión aquí")',
+  // Links dentro del checkbox
+  privacidadLink: 'span:has-text("política de privacidad")',
+  terminosLink: 'span:has-text("términos y condiciones")',
+
+  // Botones - Selector directo sin :has-text
+  registrarse: 'button[type="submit"]',  // Es el único botón submit en el modal
+  crearCuenta: 'button[type="submit"]',  // Alias
+  iniciarSesionLink: 'span:has-text("Ingresa aquí")',
 };
 
 /**

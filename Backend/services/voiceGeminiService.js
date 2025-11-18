@@ -162,15 +162,114 @@ const MCP_TOOLS_SCHEMA = [
   },
   {
     name: 'getCartState',
-    description: 'Obtiene el estado actual del carrito de compras',
+    description: 'Obtiene el estado completo del carrito: productos, precios individuales, cantidades, totales parciales, resumen de compra (ID, envío, total general) y botones disponibles',
     parameters: {
       type: 'OBJECT',
       properties: {}
     }
   },
   {
+    name: 'updateCartQuantity',
+    description: 'Actualiza la cantidad específica de un item en el carrito a un valor exacto (NO incrementa, sino que ESTABLECE la cantidad)',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        itemId: {
+          type: 'STRING',
+          description: 'ID del item en el carrito (obtenido desde getCartState)'
+        },
+        quantity: {
+          type: 'NUMBER',
+          description: 'Nueva cantidad exacta a establecer'
+        },
+        productName: {
+          type: 'STRING',
+          description: 'Nombre del producto para fallback en caso de ID incorrecto'
+        }
+      },
+      required: ['itemId', 'quantity', 'productName']
+    }
+  },
+  {
     name: 'checkout',
     description: 'Navega a la página de checkout/pago',
+    parameters: {
+      type: 'OBJECT',
+      properties: {}
+    }
+  },
+  {
+    name: 'proceedToPayment',
+    description: 'Hace click en el botón Continuar/Proceder al pago desde el carrito actual',
+    parameters: {
+      type: 'OBJECT',
+      properties: {}
+    }
+  },
+  {
+    name: 'removeFromCart',
+    description: 'Elimina un producto específico del carrito',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        itemId: {
+          type: 'STRING',
+          description: 'ID del item a eliminar (obtenido desde getCartState)'
+        },
+        productName: {
+          type: 'STRING',
+          description: 'Nombre del producto para fallback en caso de ID incorrecto'
+        }
+      },
+      required: ['itemId', 'productName']
+    }
+  },
+  {
+    name: 'selectPaymentMethod',
+    description: 'Selecciona método de pago (Yape o Plin) en la página de pago',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        method: {
+          type: 'STRING',
+          description: 'Método de pago',
+          enum: ['yape', 'plin']
+        }
+      },
+      required: ['method']
+    }
+  },
+  {
+    name: 'fillPhoneNumber',
+    description: 'Llena el campo de número de teléfono en el formulario de pago',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        phoneNumber: {
+          type: 'STRING',
+          description: 'Número de teléfono (9 dígitos empezando con 9)'
+        }
+      },
+      required: ['phoneNumber']
+    }
+  },
+  {
+    name: 'fillVerificationCode',
+    description: 'Llena el campo de código de verificación en el formulario de pago',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        verificationCode: {
+          type: 'STRING',
+          description: 'Código de verificación (mínimo 4 dígitos)'
+        }
+      },
+      required: ['verificationCode']
+    }
+  },
+  {
+    name: 'debugCartDOM',
+    description: 'TEMP: Analiza la estructura DOM del carrito para debugging',
     parameters: {
       type: 'OBJECT',
       properties: {}
@@ -236,6 +335,54 @@ const MCP_TOOLS_SCHEMA = [
     parameters: {
       type: 'OBJECT',
       properties: {}
+    }
+  },
+  {
+    name: 'getProductsData',
+    description: 'Obtiene datos detallados de los productos actualmente visibles (nombre, precio, descripción, etc.) - USAR ESTA EN LUGAR DE getProducts',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        limit: {
+          type: 'NUMBER',
+          description: 'Número máximo de productos a obtener (default: 10)'
+        }
+      }
+    }
+  },
+  {
+    name: 'searchProducts',
+    description: 'Busca productos específicos y retorna datos detallados de los resultados',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        searchTerm: {
+          type: 'STRING',
+          description: 'Término de búsqueda para encontrar productos'
+        }
+      },
+      required: ['searchTerm']
+    }
+  },
+  {
+    name: 'addProductToCart',
+    description: 'Agrega un producto específico al carrito por su nombre (más preciso que addToCart genérico)',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        productName: {
+          type: 'STRING',
+          description: 'Nombre del producto a agregar'
+        },
+        productId: {
+          type: 'STRING',
+          description: 'ID del producto (alternativa al nombre)'
+        },
+        quantity: {
+          type: 'NUMBER',
+          description: 'Cantidad a agregar (default: 1)'
+        }
+      }
     }
   }
 ];
@@ -385,6 +532,50 @@ Ejemplos:
 - "agregar al carrito", "añadir al carrito", "agregar", "añadir", "comprar", "quiero comprar", "agrégalo", "añádelo", "ponlo en el carrito", "lo quiero", "me lo llevo"
   → Primero buscar producto, luego click(button:has-text("Añadir al carrito"))
 
+### GESTIÓN DE CANTIDADES EN CARRITO:
+- **ESTABLECER CANTIDAD ESPECÍFICA**: "quiero que [producto] sean [número]", "cambia [producto] a [número]", "establece [producto] en [número]", "[producto] que sean [número]", "pon [número] de [producto]"
+  → getCartState() + updateCartQuantity(itemId, cantidad_exacta, productName)
+
+- **INCREMENTAR**: "aumenta [producto]", "más [producto]", "agrega uno más de [producto]"
+  → click(button + en el producto específico)
+
+- **DECREMENTAR**: "disminuye [producto]", "menos [producto]", "quita uno de [producto]"
+  → click(button - en el producto específico)
+
+Ejemplos de cantidades específicas:
+- "quiero que torta de chocolate sean 3" → updateCartQuantity(itemId: id_torta, quantity: 3, productName: "torta de chocolate")
+- "cambia la baguette a 4 unidades" → updateCartQuantity(itemId: id_baguette, quantity: 4, productName: "baguette")
+- "establece empanada de carne en 5" → updateCartQuantity(itemId: id_empanada, quantity: 5, productName: "empanada de carne")
+- "empanada de pollo que sean 2" → updateCartQuantity(itemId: id_empanada_pollo, quantity: 2, productName: "empanada de pollo")
+
+### ELIMINAR PRODUCTOS DEL CARRITO:
+- **ELIMINAR PRODUCTO ESPECÍFICO**: "eliminar [producto]", "quitar [producto]", "elimina [producto]", "quita [producto]", "saca [producto]", "borra [producto]"
+  → getCartState() + removeFromCart(itemId, productName)
+
+Ejemplos:
+- "eliminar baguette" → removeFromCart(itemId: id_baguette, productName: "baguette")
+- "quitar empanada de carne" → removeFromCart(itemId: id_empanada, productName: "empanada de carne")
+- "saca la torta" → removeFromCart(itemId: id_torta, productName: "torta")
+
+### GESTIÓN DE PAGO:
+- **SELECCIONAR MÉTODO DE PAGO**: "seleccionar yape", "seleccionar plin", "pagar con yape", "pagar con plin", "usar yape", "usar plin", "método yape", "método plin"
+  → selectPaymentMethod(method: "yape"|"plin")
+
+- **LLENAR NÚMERO DE TELÉFONO**: "teléfono [número]", "número [número]", "mi teléfono es [número]", "ingresa teléfono [número]"
+  → fillPhoneNumber(phoneNumber: "número_limpio")
+
+- **LLENAR CÓDIGO DE VERIFICACIÓN**: "código [código]", "verificación [código]", "mi código es [código]", "ingresa código [código]"
+  → fillVerificationCode(verificationCode: "código_limpio")
+
+- **CONFIRMAR PAGO**: "confirmar pago", "procesar pago", "finalizar pago", "pagar ahora", "confirmar", "procesar"
+  → confirmPayment()
+
+Ejemplos de pago:
+- "seleccionar yape" → selectPaymentMethod(method: "yape")
+- "teléfono 987654321" → fillPhoneNumber(phoneNumber: "987654321")
+- "código 123456" → fillVerificationCode(verificationCode: "123456")
+- "confirmar pago" → confirmPayment()
+
 ### INFORMACIÓN:
 - **QUIÉNES SOMOS**: "quiénes somos", "sobre nosotros", "acerca de", "información", "quién es famiglia", "historia"
   → scroll + click en footer o navigate("/quienes-somos")
@@ -449,20 +640,18 @@ Ejemplos:
 ### Formulario de Login (Modal):
 - **Input Correo**: input[name="correo"], input[type="email"]
 - **Input Contraseña**: input[name="contraseña"], input[type="password"]
-- **Botón Ingresar**: button[type="submit"]:has-text("Ingresar")
+- **Botón Ingresar**: button[type="submit"]:has-text("INICIAR SESIÓN")
 - **Link Registro**: span:has-text("Regístrate aquí")
 
 ### Formulario de Registro (Modal):
+**IMPORTANTE**: El formulario simplificado solo tiene 3 campos: nombre, correo y contraseña
 - **Nombre**: input[name="nombre"]
-- **Apellido Paterno**: input[name="apellido_paterno"]
-- **Apellido Materno**: input[name="apellido_materno"]
-- **Correo**: input[name="correo"]
-- **Teléfono**: input[name="telefono"]
-- **DNI**: input[name="dni"]
-- **Contraseña**: input[name="contraseña"]
-- **Confirmar**: input[name="confirmar_contraseña"]
-- **Checkbox Términos**: input[type="checkbox"][name="terminos"]
-- **Botón Registrarse**: button[type="submit"]:has-text("Registrarse")
+- **Correo**: input[name="correo"], input[type="email"]
+- **Contraseña**: input[name="contraseña"], input[type="password"]
+- **Checkbox Términos**: input[type="checkbox"] (sin name, es el único checkbox)
+- **Botón Crear Cuenta**: button[type="submit"]:has-text("CREAR CUENTA")
+- **Link Iniciar Sesión**: span:has-text("Ingresa aquí")
+**SINÓNIMOS**: "registrarse", "crear cuenta", "registrarme" = mismo botón
 
 ### Carrito (/cart):
 - **Botón +** (aumentar): button:has(svg[data-testid="AddIcon"])
@@ -571,7 +760,10 @@ ${MCP_TOOLS_SCHEMA.map(t => `- ${t.name}: ${t.description}`).join('\n')}
 
 ### 5. AGREGAR AL CARRITO:
 - Usuario debe estar autenticado
-- Flujo: buscar producto → esperar resultados → click("Añadir al carrito")
+- Usa 'addProductToCart' con el nombre exacto del producto
+- **NO NAVEGUES AUTOMÁTICAMENTE** al carrito después de agregar productos
+- Solo navega al carrito si el usuario dice explícitamente "ir al carrito", "ver carrito", "mi carrito"
+- Para múltiples productos: usa wait(300) entre cada addProductToCart
 - Si no autenticado → Sugerir: "Necesitas iniciar sesión para agregar productos"
 
 ### 6. NAVEGACIÓN SIMPLE:
@@ -618,7 +810,22 @@ ${MCP_TOOLS_SCHEMA.map(t => `- ${t.name}: ${t.description}`).join('\n')}
 - Playwright hace scroll automáticamente al elemento antes de hacer click
 - **NO uses herramienta scroll** - no existe, Playwright lo hace automático
 
-### 12. EFICIENCIA:
+### 12. GESTIÓN DE CANTIDADES EN CARRITO:
+- **IMPORTANTE**: Para comandos como "quiero que X sean Y", "cambia X a Y", etc. → USA updateCartQuantity()
+- **PROCESO CORRECTO**:
+  1. getCartState() para obtener IDs actuales de items
+  2. updateCartQuantity(itemId, nueva_cantidad, productName) para cada producto
+- **NO USES click() múltiples** para establecer cantidades específicas
+- **Comandos de cantidad exacta**:
+  - "quiero que torta sean 3" → updateCartQuantity(id_torta, 3, "torta")
+  - "cambia baguette a 4" → updateCartQuantity(id_baguette, 4, "baguette")
+  - "establece empanada en 5" → updateCartQuantity(id_empanada, 5, "empanada")
+- **Para múltiples productos en UN comando**:
+  1. getCartState() una vez
+  2. updateCartQuantity(itemId, quantity, productName) para cada producto mencionado
+  3. wait(300) entre cada updateCartQuantity()
+
+### 13. EFICIENCIA:
 - Usa el menor número de pasos posible
 - NO uses wait() después de navigate() (Playwright ya espera)
 - Si algo no es posible, explícalo claramente en userFeedback
@@ -1121,10 +1328,35 @@ Respuesta:
         { "selector": "input[type='email'], input[name='email']", "text": "admin@test.com" },
         { "selector": "input[type='password'], input[name='password']", "text": "123456" }
       ]}, "reason": "Llenar formulario de login" },
-    { "tool": "click", "params": { "selector": "button[type='submit']:has-text('Ingresar')" }, "reason": "Enviar formulario" }
+    { "tool": "click", "params": { "selector": "button[type='submit']:has-text('INICIAR SESIÓN')" }, "reason": "Enviar formulario" }
   ],
   "userFeedback": "Iniciaré sesión con admin@test.com",
   "expectedDuration": "3-4 segundos"
+}
+
+Usuario: "Crea mi cuenta" o "Quiero registrarme" o "Crear cuenta" o "Regístrame"
+Contexto: Ya está en el modal de registro con datos listos
+Respuesta:
+{
+  "reasoning": "Usuario quiere hacer clic en crear cuenta. El formulario ya debe estar lleno.",
+  "steps": [
+    { "tool": "check", "params": { "selector": "input[type='checkbox']" }, "reason": "Marcar términos si no está marcado" },
+    { "tool": "click", "params": { "selector": "button[type='submit']:has-text('CREAR CUENTA')" }, "reason": "Crear cuenta" }
+  ],
+  "userFeedback": "Crearé tu cuenta",
+  "expectedDuration": "2 segundos"
+}
+
+Usuario: "Sí quiero iniciar sesión" o "Iniciar sesión" o "Ingresar" 
+Contexto: Ya está en el modal de login, los campos pueden estar llenos o vacíos
+Respuesta:
+{
+  "reasoning": "Usuario quiere hacer clic en el botón de iniciar sesión. Si los campos están vacíos, necesitaré llenar con datos de ejemplo.",
+  "steps": [
+    { "tool": "click", "params": { "selector": "button[type='submit']:not([disabled])" }, "reason": "Hacer clic en botón iniciar sesión" }
+  ],
+  "userFeedback": "Procederé a iniciar sesión",
+  "expectedDuration": "1-2 segundos"
 }
 
 Usuario: "Regístrate con jorge@gmail.com, nombre Jorge, contraseña MiPass123"
@@ -1136,25 +1368,26 @@ Respuesta:
     { "tool": "click", "params": { "selector": "button:has-text('Registrarse')" }, "reason": "Abrir modal de registro" },
     { "tool": "wait", "params": { "ms": 500 }, "reason": "Esperar modal" },
     { "tool": "fillForm", "params": { "fields": [
-        { "selector": "input[name='nombre'], input[placeholder*='Nombre']", "text": "Jorge" },
-        { "selector": "input[type='email'], input[name='email']", "text": "jorge@gmail.com" },
-        { "selector": "input[type='password'], input[name='password']", "text": "MiPass123" }
+        { "selector": "input[name='nombre']", "text": "Jorge" },
+        { "selector": "input[name='correo']", "text": "jorge@gmail.com" },
+        { "selector": "input[name='contraseña']", "text": "MiPass123" }
       ]}, "reason": "Llenar formulario de registro" },
-    { "tool": "click", "params": { "selector": "button[type='submit']:has-text('Registrarse')" }, "reason": "Enviar formulario" }
+    { "tool": "check", "params": { "selector": "input[type='checkbox']" }, "reason": "Aceptar términos" },
+    { "tool": "click", "params": { "selector": "button[type='submit']:has-text('CREAR CUENTA')" }, "reason": "Crear cuenta" }
   ],
   "userFeedback": "Te registraré con jorge@gmail.com",
-  "expectedDuration": "3-4 segundos"
+  "expectedDuration": "4-5 segundos"
 }
 
-Usuario: "Acepta los términos y condiciones"
-Contexto: En formulario de registro o pago
+Usuario: "Acepta los términos y condiciones" o "marca el checkbox" o "estoy de acuerdo"
+Contexto: En formulario de registro
 Respuesta:
 {
   "reasoning": "Usuario quiere marcar el checkbox de términos y condiciones.",
   "steps": [
-    { "tool": "check", "params": { "selector": "input[type='checkbox'][name*='terminos'], input[type='checkbox'][name*='terms']" }, "reason": "Marcar checkbox de términos" }
+    { "tool": "check", "params": { "selector": "input[type='checkbox']" }, "reason": "Marcar checkbox de términos" }
   ],
-  "userFeedback": "Aceptaré los términos y condiciones",
+  "userFeedback": "Marcaré que estás de acuerdo con los términos",
   "expectedDuration": "1 segundo"
 }
 
@@ -1261,6 +1494,86 @@ Respuesta:
   "expectedDuration": "1-2 segundos"
 }
 
+### EJEMPLOS DE DATOS DE PRODUCTOS (NUEVAS HERRAMIENTAS):
+
+Usuario: "¿Cuáles son los primeros 5 productos?" o "Muéstrame los productos disponibles"
+Contexto: En /carta (catálogo)
+Respuesta:
+{
+  "reasoning": "Usuario quiere ver los productos actualmente visibles. Uso getProductsData para obtener información detallada.",
+  "steps": [
+    { "tool": "getProductsData", "params": { "limit": 5 }, "reason": "Obtener datos de los primeros 5 productos" }
+  ],
+  "userFeedback": "Te muestro los primeros 5 productos disponibles",
+  "expectedDuration": "1-2 segundos"
+}
+
+Usuario: "Filtra por panes y muéstrame los 5 primeros" o "Busca panes y dime cuáles hay"
+Contexto: En /carta
+Respuesta:
+{
+  "reasoning": "Usuario quiere filtrar por categoría específica y ver los resultados. Primero filtro, luego obtengo los datos.",
+  "steps": [
+    { "tool": "filterByCategory", "params": { "category": "Panes" }, "reason": "Filtrar por categoría Panes" },
+    { "tool": "wait", "params": { "ms": 1000 }, "reason": "Esperar que se aplique el filtro" },
+    { "tool": "getProductsData", "params": { "limit": 5 }, "reason": "Obtener los primeros 5 panes" }
+  ],
+  "userFeedback": "Filtraré por panes y te muestro los primeros 5",
+  "expectedDuration": "3-4 segundos"
+}
+
+Usuario: "Busca croissant" o "¿Hay croissants disponibles?"
+Contexto: En /carta
+Respuesta:
+{
+  "reasoning": "Usuario busca un producto específico. Uso searchProducts para buscar y obtener resultados.",
+  "steps": [
+    { "tool": "searchProducts", "params": { "searchTerm": "croissant" }, "reason": "Buscar productos con 'croissant'" }
+  ],
+  "userFeedback": "Buscaré croissants para ti",
+  "expectedDuration": "2-3 segundos"
+}
+
+Usuario: "Agrega pan francés al carrito" o "Quiero agregar baguette"
+Contexto: En /carta
+Respuesta:
+{
+  "reasoning": "Usuario quiere agregar un producto específico al carrito por nombre. Uso addProductToCart con el nombre.",
+  "steps": [
+    { "tool": "addProductToCart", "params": { "productName": "pan francés", "quantity": 1 }, "reason": "Agregar pan francés al carrito" }
+  ],
+  "userFeedback": "Agregaré pan francés a tu carrito",
+  "expectedDuration": "2-3 segundos"
+}
+
+Usuario: "Agrega 3 empanadas al carrito"
+Contexto: En /carta
+Respuesta:
+{
+  "reasoning": "Usuario quiere agregar cantidad específica de un producto. Uso addProductToCart con cantidad.",
+  "steps": [
+    { "tool": "addProductToCart", "params": { "productName": "empanada", "quantity": 3 }, "reason": "Agregar 3 empanadas al carrito" }
+  ],
+  "userFeedback": "Agregaré 3 empanadas a tu carrito",
+  "expectedDuration": "2-3 segundos"
+}
+
+Usuario: "quiero que agregues esos tres productos al carrito" o "agrega los productos que me mencionaste"
+Contexto: En /carta (después de mostrar productos)
+Respuesta:
+{
+  "reasoning": "Usuario quiere agregar múltiples productos mencionados anteriormente. Agrego cada producto individualmente con wait entre ellos. NO navego al carrito automáticamente.",
+  "steps": [
+    { "tool": "addProductToCart", "params": { "productName": "Torta rectangular de frutas con borde de hojaldre", "quantity": 1 }, "reason": "Agregar primer producto" },
+    { "tool": "wait", "params": { "ms": 300 }, "reason": "Esperar entre adiciones" },
+    { "tool": "addProductToCart", "params": { "productName": "Torta chantilly borde hojaldrado", "quantity": 1 }, "reason": "Agregar segundo producto" },
+    { "tool": "wait", "params": { "ms": 300 }, "reason": "Esperar entre adiciones" },
+    { "tool": "addProductToCart", "params": { "productName": "Torta chantilly con borde de merengue", "quantity": 1 }, "reason": "Agregar tercer producto" }
+  ],
+  "userFeedback": "Perfecto, agregaré esos tres productos a tu carrito",
+  "expectedDuration": "4-5 segundos"
+}
+
 ### EJEMPLOS DE FORMULARIO DE CONTACTO:
 
 Usuario: "Envía un mensaje de contacto diciendo que necesito una torta personalizada"
@@ -1295,17 +1608,80 @@ Respuesta:
   "expectedDuration": "3-4 segundos"
 }
 
-### EJEMPLOS DE CHECKOUT Y PAGO:
+### EJEMPLOS DE CARRITO Y PAGO:
 
-Usuario: "Procede al pago" o "Ir a pagar" o "Continuar con el pago"
+Usuario: "¿Qué productos tengo en el carrito?" o "Muéstrame mi carrito" o "Dime qué hay en mi carrito" o "Cuáles son los productos del carrito"
 Contexto: En /cart
 Respuesta:
 {
-  "reasoning": "Usuario quiere proceder al checkout desde el carrito.",
+  "reasoning": "Usuario quiere ver los productos en su carrito. Uso getCartState para obtener información completa: nombres, precios individuales, cantidades, totales parciales y resumen.",
   "steps": [
-    { "tool": "click", "params": { "selector": "button:has-text('Proceder al pago'), button:has-text('Continuar'), a[href='/payment']" }, "reason": "Click en proceder al pago" }
+    { "tool": "getCartState", "params": {}, "reason": "Obtener estado completo del carrito con todos los detalles" }
+  ],
+  "userFeedback": "Te muestro todos los productos en tu carrito con sus detalles",
+  "expectedDuration": "1-2 segundos"
+}
+
+Usuario: "Cuál es el total de mi carrito" o "Cuánto debo pagar" o "Cuál es el precio total" o "Cuál es el total del carrito"
+Contexto: En /cart
+Respuesta:
+{
+  "reasoning": "Usuario pregunta ESPECÍFICAMENTE por el TOTAL del carrito. Solo debe obtener y mencionar el total general y información básica de compra (ID, envío), NO todos los productos detallados.",
+  "steps": [
+    { "tool": "getCartState", "params": {}, "reason": "Obtener SOLO el total del carrito y datos de compra, no detallar productos" }
+  ],
+  "userFeedback": "Te diré el total de tu carrito",
+  "expectedDuration": "1-2 segundos"
+}
+
+Usuario: "Dame los precios de cada producto" o "Cuánto cuesta cada cosa en mi carrito"
+Contexto: En /cart
+Respuesta:
+{
+  "reasoning": "Usuario quiere conocer los precios individuales de cada producto. Uso getCartState para obtener precios unitarios y totales parciales.",
+  "steps": [
+    { "tool": "getCartState", "params": {}, "reason": "Obtener precios individuales y totales parciales de cada producto" }
+  ],
+  "userFeedback": "Te detallo el precio de cada producto en tu carrito",
+  "expectedDuration": "1-2 segundos"
+}
+
+Usuario: "Quiero que torta de chocolate sean 3" o "Cambia la baguette a 4 unidades" o "Establece empanada de carne en 5"
+Contexto: En /cart
+Respuesta:
+{
+  "reasoning": "Usuario quiere ESTABLECER cantidades específicas en el carrito. Primero obtengo el estado actual con getCartState para identificar los id_detalle de cada producto, luego uso updateCartQuantity con los IDs reales para establecer cada cantidad exacta. IMPORTANTE: Debo usar el campo 'id_detalle' que devuelve getCartState, NO el nombre del producto.",
+  "steps": [
+    { "tool": "getCartState", "params": {}, "reason": "Obtener id_detalle de cada item en el carrito y cantidades actuales" },
+    { "tool": "updateCartQuantity", "params": {"itemId": "SA-4FC82B26-001", "quantity": 3}, "reason": "Establecer torta de chocolate a 3 unidades usando su id_detalle real" },
+    { "tool": "updateCartQuantity", "params": {"itemId": "SA-4FC82B26-002", "quantity": 4}, "reason": "Establecer baguette a 4 unidades usando su id_detalle real" },
+    { "tool": "updateCartQuantity", "params": {"itemId": "SA-4FC82B26-003", "quantity": 5}, "reason": "Establecer empanada de carne a 5 unidades usando su id_detalle real" }
+  ],
+  "userFeedback": "Actualizando las cantidades de tus productos como solicitaste",
+  "expectedDuration": "3-4 segundos"
+}
+
+Usuario: "Procede al pago" o "Ir a pagar" o "Continuar con el pago" o "Continuar"
+Contexto: En /cart
+Respuesta:
+{
+  "reasoning": "Usuario quiere proceder al checkout desde el carrito. Uso proceedToPayment para hacer click en el botón correcto.",
+  "steps": [
+    { "tool": "proceedToPayment", "params": {}, "reason": "Click en botón continuar/proceder al pago" }
   ],
   "userFeedback": "Te llevaré a la página de pago",
+  "expectedDuration": "2 segundos"
+}
+
+Usuario: "debug carrito" o "analiza el carrito" o "inspecciona el DOM"
+Contexto: En /cart
+Respuesta:
+{
+  "reasoning": "DEBUG: Usuario quiere analizar la estructura DOM del carrito para debugging.",
+  "steps": [
+    { "tool": "debugCartDOM", "params": {}, "reason": "Analizar estructura DOM completa del carrito" }
+  ],
+  "userFeedback": "Analizando la estructura del carrito",
   "expectedDuration": "2 segundos"
 }
 

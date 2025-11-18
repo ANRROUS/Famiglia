@@ -303,6 +303,10 @@ const TOOLS = [
         quantity: {
           type: 'number',
           description: 'Nueva cantidad'
+        },
+        productName: {
+          type: 'string',
+          description: 'Nombre del producto para buscar en caso de que itemId no coincida'
         }
       },
       required: ['itemId', 'quantity']
@@ -317,6 +321,10 @@ const TOOLS = [
         itemId: {
           type: 'string',
           description: 'ID del item a eliminar'
+        },
+        productName: {
+          type: 'string',
+          description: 'Nombre del producto para buscar en caso de que itemId no coincida'
         }
       },
       required: ['itemId']
@@ -336,6 +344,56 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {}
+    }
+  },
+  {
+    name: 'proceedToPayment',
+    description: 'Hace click en el botón Continuar/Proceder al pago desde el carrito',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'selectPaymentMethod',
+    description: 'Selecciona método de pago (Yape o Plin) en la página de pago',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        method: {
+          type: 'string',
+          description: 'Método de pago: "yape" o "plin"'
+        }
+      },
+      required: ['method']
+    }
+  },
+  {
+    name: 'fillPhoneNumber',
+    description: 'Llena el campo de número de teléfono en el formulario de pago',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        phoneNumber: {
+          type: 'string',
+          description: 'Número de teléfono (9 dígitos empezando con 9)'
+        }
+      },
+      required: ['phoneNumber']
+    }
+  },
+  {
+    name: 'fillVerificationCode',
+    description: 'Llena el campo de código de verificación en el formulario de pago',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        verificationCode: {
+          type: 'string',
+          description: 'Código de verificación (mínimo 4 dígitos)'
+        }
+      },
+      required: ['verificationCode']
     }
   },
   {
@@ -410,6 +468,14 @@ const TOOLS = [
     }
   },
   {
+    name: 'debugCartDOM',
+    description: 'DEBUG: Analiza la estructura DOM real del carrito para debugging',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
     name: 'getPageState',
     description: 'Obtiene estado completo de la página',
     inputSchema: {
@@ -446,6 +512,68 @@ const TOOLS = [
         }
       },
       required: ['selector']
+    }
+  },
+  {
+    name: 'getProductsData',
+    description: 'Obtiene los productos actualmente visibles en el catálogo/carta con todos sus datos (nombre, precio, descripción, etc.)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Límite de productos a obtener (default: 10)'
+        }
+      }
+    }
+  },
+  {
+    name: 'searchProducts',
+    description: 'Busca productos por término de búsqueda en el catálogo',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        searchTerm: {
+          type: 'string',
+          description: 'Término de búsqueda para filtrar productos'
+        }
+      },
+      required: ['searchTerm']
+    }
+  },
+  {
+    name: 'filterByCategory',
+    description: 'Filtra productos por categoría específica',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Nombre de la categoría (ej: "Panes", "Postres", "Bebidas")'
+        }
+      },
+      required: ['category']
+    }
+  },
+  {
+    name: 'addProductToCart',
+    description: 'Agrega un producto específico al carrito por su nombre o ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        productName: {
+          type: 'string',
+          description: 'Nombre del producto a agregar'
+        },
+        productId: {
+          type: 'string',
+          description: 'ID del producto (alternativa al nombre)'
+        },
+        quantity: {
+          type: 'number',
+          description: 'Cantidad a agregar (default: 1)'
+        }
+      }
     }
   },
   {
@@ -550,6 +678,14 @@ const toolHandlers = {
   async click({ selector, timeout = 5000 }) {
     const p = await initBrowser();
 
+    // Extraer texto de selectores tipo ":has-text()" o "has-text()"
+    let textToFind = null;
+    const hasTextMatch = selector.match(/:has-text\(["'](.+?)["']\)/i) || selector.match(/has-text\(["'](.+?)["']\)/i);
+    if (hasTextMatch) {
+      textToFind = hasTextMatch[1];
+      console.error(`[click] 🔍 Texto extraído de selector: "${selector}" → "${textToFind}"`);
+    }
+
     // Usar selectores mapeados si están disponibles y el selector no es específico
     let effectiveSelector = selector;
     
@@ -576,14 +712,17 @@ const toolHandlers = {
     }
 
     // Estrategias de click (en orden de prioridad)
+    // Si extrajimos texto, usar ese texto en las estrategias de fallback
+    const searchText = textToFind || selector;
     const strategies = [
       effectiveSelector,                    // Selector original o enriquecido
-      `text="${selector}"`,                 // Texto exacto con comillas
-      `text=${selector}`,                   // Texto exacto sin comillas
-      `text=/.*${selector}.*/i`,            // Texto parcial (case-insensitive)
-      `[role="button"]:has-text("${selector}")`, // Role button con texto
-      `button:has-text("${selector}")`,     // Button con texto
-      `[data-testid*="${selector.toLowerCase().replace(/\s+/g, '-')}"]`, // data-testid
+      `text="${searchText}"`,               // Texto exacto con comillas
+      `text=${searchText}`,                 // Texto exacto sin comillas
+      `text=/.*${searchText}.*/i`,          // Texto parcial (case-insensitive)
+      `[role="button"]:has-text("${searchText}")`, // Role button con texto
+      `button:has-text("${searchText}")`,   // Button con texto
+      `a:has-text("${searchText}")`,        // Link con texto
+      `[data-testid*="${searchText.toLowerCase().replace(/\s+/g, '-')}"]`, // data-testid
     ];
 
     let lastError;
@@ -849,6 +988,245 @@ const toolHandlers = {
     };
   },
 
+  // NUEVAS FUNCIONES PARA DATOS DE PRODUCTOS
+  async getProductsData({ limit = 10 }) {
+    const p = await initBrowser();
+
+    console.error(`[getProductsData] Extrayendo datos de ${limit} productos...`);
+
+    const productsData = await p.evaluate((lim) => {
+      console.log('[DOM] Buscando productos en el DOM...');
+      
+      // Buscar divs con estructura de ProductCard (Tailwind CSS)
+      // Estructura: div > div.grid.grid-cols-[100px_1fr_auto]
+      const productCards = Array.from(document.querySelectorAll('div[class*="bg-white"][class*="rounded-lg"][class*="shadow"], div[class*="border-red-300"]')).slice(0, lim);
+      
+      console.log(`[DOM] Encontradas ${productCards.length} tarjetas de productos (estructura ProductCard)`);
+      
+      if (productCards.length === 0) {
+        // Fallback: buscar cualquier div que contenga botón, imagen y título
+        const allDivs = Array.from(document.querySelectorAll('div'));
+        const fallbackCards = allDivs.filter(div => 
+          div.querySelector('button') && div.querySelector('img') && div.querySelector('h3')
+        ).slice(0, lim);
+        console.log(`[DOM] Fallback: encontradas ${fallbackCards.length} tarjetas con botón + imagen + título`);
+        
+        if (fallbackCards.length === 0) {
+          // Último fallback: buscar por botones que contengan texto "Añadir" o tengan clases relacionadas con carrito
+          const buttons = Array.from(document.querySelectorAll('button')).filter(btn => 
+            btn.textContent.includes('Añadir') || btn.textContent.includes('carrito') || 
+            btn.className.includes('carrito') || btn.className.includes('cart')
+          );
+          console.log(`[DOM] Último fallback: encontrados ${buttons.length} botones de carrito`);
+          
+          return buttons.slice(0, lim).map((button, idx) => {
+            const container = button.closest('div[class*="bg-white"], div[class*="border"], div[class*="shadow"]');
+            if (!container) return null;
+            
+            const nameEl = container.querySelector('h3, h4, [class*="font-bold"]');
+            const priceEl = container.querySelector('div[class*="text-red"], div[class*="font-bold"]:not(h3):not(h4)');
+            const descEl = container.querySelector('p, div[class*="text-gray"]');
+            const imgEl = container.querySelector('img');
+            
+            return {
+              id: `fallback-product-${idx}`,
+              nombre: nameEl?.textContent?.trim() || 'Producto',
+              descripcion: descEl?.textContent?.trim() || '',
+              precio: priceEl ? parseFloat(priceEl.textContent.replace(/[^\d.,]/g, '').replace(',', '.')) || 0 : 0,
+              imagen: imgEl?.src || null,
+              categoria: null,
+              disponible: true
+            };
+          }).filter(Boolean);
+        }
+        
+        return fallbackCards.map((card, idx) => {
+          const nameEl = card.querySelector('h3, h4, [class*="font-bold"]');
+          const priceEl = card.querySelector('div[class*="text-red"], div[class*="font-bold"]:not(h3):not(h4)');
+          const descEl = card.querySelector('p, div[class*="text-gray"]');
+          const imgEl = card.querySelector('img');
+          const buttonEl = card.querySelector('button');
+          
+          return {
+            id: `fallback-product-${idx}`,
+            nombre: nameEl?.textContent?.trim() || 'Producto',
+            descripcion: descEl?.textContent?.trim() || '',
+            precio: priceEl ? parseFloat(priceEl.textContent.replace(/[^\d.,]/g, '').replace(',', '.')) || 0 : 0,
+            imagen: imgEl?.src || null,
+            categoria: null,
+            disponible: !!buttonEl && !buttonEl.disabled
+          };
+        });
+      }
+      
+      return productCards.map((card, idx) => {
+        // Estructura ProductCard: div > div.grid > [imagen, info, precio+botón]
+        const gridContainer = card.querySelector('div[class*="grid"][class*="grid-cols"]');
+        
+        // Extraer nombre (h3 dentro del div de info)
+        const nameEl = card.querySelector('h3, h4, [class*="font-bold"]:not([class*="text-red"])');
+        
+        // Extraer precio (div con text-red y font-bold)
+        const priceEl = card.querySelector('div[class*="text-red"][class*="font-bold"], div[class*="text-xl"][class*="font-bold"]');
+        
+        // Extraer descripción (párrafo con text-gray)
+        const descEl = card.querySelector('p[class*="text-gray"], div[class*="text-gray"]');
+        
+        // Extraer imagen
+        const imgEl = card.querySelector('img');
+        
+        // Verificar botón "Añadir al carrito"
+        const allButtons = Array.from(card.querySelectorAll('button'));
+        const buttonEl = allButtons.find(btn => 
+          btn.textContent.includes('Añadir') || btn.textContent.includes('carrito') ||
+          btn.className.includes('carrito') || btn.className.includes('cart')
+        );
+
+        const nombre = nameEl?.textContent?.trim() || 'Producto sin nombre';
+        let precio = 0;
+        
+        // Extraer precio (formato S/X.XX)
+        if (priceEl) {
+          const precioTexto = priceEl.textContent || '';
+          const precioMatch = precioTexto.match(/[\d.,]+/);
+          if (precioMatch) {
+            precio = parseFloat(precioMatch[0].replace(',', '.')) || 0;
+          }
+        }
+
+        const producto = {
+          id: `product-${idx}`,
+          nombre,
+          descripcion: descEl?.textContent?.trim() || '',
+          precio,
+          imagen: imgEl?.src || null,
+          categoria: null,
+          disponible: !!buttonEl && !buttonEl.disabled
+        };
+
+        console.log(`[DOM] Producto ${idx + 1}: ${nombre} - S/${precio}`);
+        return producto;
+      });
+    }, limit);
+
+    console.error(`[getProductsData] ✓ Obtenidos ${productsData.length} productos del DOM`);
+    
+    return {
+      success: true,
+      products: productsData,
+      count: productsData.length,
+      source: 'dom-extraction'
+    };
+  },
+
+  async searchProducts({ searchTerm }) {
+    const p = await initBrowser();
+
+    console.error(`[searchProducts] Buscando: "${searchTerm}"`);
+
+    // Usar la función search existente
+    await toolHandlers.search({ query: searchTerm });
+    
+    // Esperar a que se apliquen los filtros
+    await p.waitForTimeout(1000);
+    
+    // Obtener los productos filtrados
+    const result = await toolHandlers.getProductsData({ limit: 10 });
+    
+    return {
+      success: true,
+      searchTerm,
+      products: result.products,
+      count: result.count
+    };
+  },
+
+  async addProductToCart({ productName, productId, quantity = 1 }) {
+    const p = await initBrowser();
+
+    console.error(`[addProductToCart] Buscando producto: ${productName || productId}`);
+
+    try {
+      // Buscar y hacer click directamente en el DOM para evitar problemas de navegación
+      const result = await p.evaluate(([searchName, searchId]) => {
+        console.log(`[DOM] Buscando producto: ${searchName || searchId}`);
+        
+        // Buscar todas las tarjetas de productos con estructura Tailwind
+        const productCards = Array.from(document.querySelectorAll('div[class*="bg-white"][class*="rounded-lg"][class*="shadow"], div[class*="border-red-300"]'));
+        console.log(`[DOM] Encontradas ${productCards.length} tarjetas de productos`);
+        
+        if (productCards.length === 0) {
+          return { success: false, error: 'No se encontraron productos en la página' };
+        }
+        
+        // Buscar el producto específico
+        let targetCard = null;
+        let targetProductName = '';
+        
+        for (const card of productCards) {
+          const nameEl = card.querySelector('h3, h4, [class*="font-bold"]:not([class*="text-red"])');
+          const productName = nameEl?.textContent?.trim() || '';
+          
+          if (searchName && productName.toLowerCase().includes(searchName.toLowerCase())) {
+            targetCard = card;
+            targetProductName = productName;
+            break;
+          }
+        }
+        
+        if (!targetCard) {
+          return { success: false, error: `No se encontró el producto: ${searchName || searchId}` };
+        }
+        
+        console.log(`[DOM] Producto encontrado: ${targetProductName}`);
+        
+        // Buscar el botón de agregar dentro de esta tarjeta específica
+        const allButtons = Array.from(targetCard.querySelectorAll('button'));
+        const addButton = allButtons.find(btn => 
+          btn.textContent.includes('Añadir') || btn.textContent.includes('Agregar') ||
+          btn.className.includes('carrito') || btn.className.includes('cart') ||
+          btn.className.includes('MuiButton')
+        );
+        
+        if (!addButton) {
+          return { success: false, error: `No se encontró el botón para agregar: ${targetProductName}` };
+        }
+        
+        // Hacer click directamente
+        addButton.click();
+        console.log(`[DOM] ✓ Click realizado en botón de: ${targetProductName}`);
+        
+        return {
+          success: true,
+          productName: targetProductName,
+          clicked: true
+        };
+        
+      }, [productName, productId]);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      console.error(`[addProductToCart] ✓ Producto agregado: ${result.productName}`);
+      
+      // Esperar menos tiempo para evitar navegación automática
+      await p.waitForTimeout(200);
+      
+      return {
+        success: true,
+        productName: result.productName,
+        quantity,
+        added: true,
+        stayOnPage: true // Indicar que debe quedarse en la página
+      };
+      
+    } catch (error) {
+      console.error('[addProductToCart] ✗ Error:', error.message);
+      throw error;
+    }
+  },
+
   // CARRITO
   async addToCart({ productId, quantity = 1 }) {
     const p = await initBrowser();
@@ -898,12 +1276,94 @@ const toolHandlers = {
     }
   },
 
-  async updateCartQuantity({ itemId, quantity }) {
+  async updateCartQuantity({ itemId, quantity, productName }) {
     const p = await initBrowser();
 
+    console.error(`[updateCartQuantity] Iniciando actualización: itemId=${itemId}, quantity=${quantity}, productName=${productName}`);
+
     try {
+      // Debug: Verificar qué elementos data-item-id existen
+      const debugInfo = await p.evaluate(() => {
+        const dataItemElements = Array.from(document.querySelectorAll('[data-item-id]'));
+        console.log('[DOM] Elementos con data-item-id encontrados:', dataItemElements.length);
+        
+        return {
+          dataItemIds: dataItemElements.map(el => ({
+            id: el.getAttribute('data-item-id'),
+            tag: el.tagName,
+            hasButtons: el.querySelectorAll('button').length,
+            hasAddIcon: !!el.querySelector('svg[data-testid="AddIcon"]'),
+            hasRemoveIcon: !!el.querySelector('svg[data-testid="RemoveIcon"]'),
+            text: el.textContent?.substring(0, 50)
+          }))
+        };
+      });
+
+      console.error(`[updateCartQuantity] Debug DOM:`, debugInfo);
+
+      // NUEVA ESTRATEGIA: Buscar por nombre de producto si itemId no funciona
+      let realItemId = null;
+      
+      // Primero intentar con el itemId proporcionado
+      const targetExists = await p.evaluate((id) => {
+        const target = document.querySelector(`[data-item-id="${id}"]`);
+        if (!target) return { exists: false };
+        
+        return {
+          exists: true,
+          hasButtons: target.querySelectorAll('button').length,
+          hasAddIcon: !!target.querySelector('svg[data-testid="AddIcon"]'),
+          hasRemoveIcon: !!target.querySelector('svg[data-testid="RemoveIcon"]'),
+          quantityElement: !!target.querySelector('.MuiTypography-root')
+        };
+      }, itemId);
+
+      console.error(`[updateCartQuantity] Target ${itemId} analysis:`, targetExists);
+
+      if (targetExists.exists) {
+        realItemId = itemId;
+        console.error(`[updateCartQuantity] ✓ Usando itemId original: ${itemId}`);
+      } else {
+        // Si no existe, buscar por nombre de producto
+        console.error(`[updateCartQuantity] itemId ${itemId} no existe, buscando por nombre...`);
+        
+        // Obtener el nombre del producto desde los datos de getCartState o usar productName
+        realItemId = await p.evaluate(({ debugInfo, targetProductName }) => {
+          console.log('[DOM] Buscando producto por nombre:', targetProductName);
+          
+          // Buscar por contenido de texto
+          for (const item of debugInfo.dataItemIds) {
+            const text = item.text.toLowerCase();
+            console.log(`[DOM] Comparando "${text}" con patrón de búsqueda`);
+            
+            // Buscar coincidencias parciales de nombres de productos comunes
+            if (
+              (text.includes('baguette') && targetProductName?.toLowerCase().includes('baguette')) ||
+              (text.includes('empanada de carne') && targetProductName?.toLowerCase().includes('empanada') && targetProductName?.toLowerCase().includes('carne')) ||
+              (text.includes('empanada de pollo') && targetProductName?.toLowerCase().includes('empanada') && targetProductName?.toLowerCase().includes('pollo')) ||
+              (text.includes('torta de chocolate') && targetProductName?.toLowerCase().includes('torta') && targetProductName?.toLowerCase().includes('chocolate')) ||
+              (text.includes('pastel moca') && targetProductName?.toLowerCase().includes('pastel') && targetProductName?.toLowerCase().includes('moca')) ||
+              (text.includes('alfajor') && targetProductName?.toLowerCase().includes('alfajor')) ||
+              (text.includes('milhoja') && targetProductName?.toLowerCase().includes('milhoja'))
+            ) {
+              console.log(`[DOM] ✓ Coincidencia encontrada: ${item.id} para "${text}"`);
+              return item.id;
+            }
+          }
+          
+          console.log('[DOM] ✗ No se encontró coincidencia por nombre');
+          return null;
+        }, { debugInfo, targetProductName: productName });
+
+        if (realItemId) {
+          console.error(`[updateCartQuantity] ✓ Encontrado por nombre: ${realItemId}`);
+        } else {
+          throw new Error(`No se pudo encontrar el producto ni por ID "${itemId}" ni por nombre "${productName}"`);
+        }
+      }
+
       // Opción 1: Intentar con input directo (menos común en esta app)
-      const input = await p.$(`[data-item-id="${itemId}"] input[type="number"]`);
+      const input = await p.$(`[data-item-id="${realItemId}"] input[type="number"]`);
 
       if (input) {
         await input.fill(quantity.toString());
@@ -912,7 +1372,7 @@ const toolHandlers = {
 
         return {
           success: true,
-          itemId,
+          itemId: realItemId,
           newQuantity: quantity,
           method: 'input'
         };
@@ -922,8 +1382,13 @@ const toolHandlers = {
       // Obtener cantidad actual
       const currentQuantity = await p.evaluate((id) => {
         const quantityText = document.querySelector(`[data-item-id="${id}"] .MuiTypography-root`);
+        console.log(`[DOM] Buscando cantidad en [data-item-id="${id}"] .MuiTypography-root`);
+        console.log('[DOM] Elemento cantidad encontrado:', !!quantityText);
+        if (quantityText) {
+          console.log('[DOM] Texto de cantidad:', quantityText.textContent);
+        }
         return quantityText ? parseInt(quantityText.textContent) : 1;
-      }, itemId);
+      }, realItemId);
 
       console.error(`[MCP Playwright] Cantidad actual: ${currentQuantity}, objetivo: ${quantity}`);
 
@@ -931,27 +1396,69 @@ const toolHandlers = {
 
       if (difference > 0) {
         // Aumentar: hacer clic en botón "+"
-        const plusButton = `[data-item-id="${itemId}"] button:has(svg[data-testid="AddIcon"])`;
-        for (let i = 0; i < difference; i++) {
-          await p.click(plusButton);
-          await p.waitForTimeout(300);
+        const plusSelectors = [
+          `[data-item-id="${realItemId}"] button:has(svg[data-testid="AddIcon"])`,
+          `[data-item-id="${realItemId}"] button[aria-label="increase"]`,
+          `[data-item-id="${realItemId}"] button:last-child`
+        ];
+        
+        let clicked = false;
+        for (const selector of plusSelectors) {
+          try {
+            console.error(`[updateCartQuantity] Probando selector +: ${selector}`);
+            for (let i = 0; i < difference; i++) {
+              await p.click(selector, { timeout: 2000 });
+              await p.waitForTimeout(300);
+            }
+            console.error(`[MCP Playwright] ✓ Cantidad aumentada ${difference} veces con ${selector}`);
+            clicked = true;
+            break;
+          } catch (e) {
+            console.error(`[updateCartQuantity] Selector ${selector} falló: ${e.message}`);
+            continue;
+          }
         }
-        console.error(`[MCP Playwright] ✓ Cantidad aumentada ${difference} veces`);
+        
+        if (!clicked) {
+          throw new Error(`No se pudo hacer click en botón + del item ${realItemId}`);
+        }
+        
       } else if (difference < 0) {
         // Disminuir: hacer clic en botón "-"
-        const minusButton = `[data-item-id="${itemId}"] button:has(svg[data-testid="RemoveIcon"])`;
-        for (let i = 0; i < Math.abs(difference); i++) {
-          await p.click(minusButton);
-          await p.waitForTimeout(300);
+        const minusSelectors = [
+          `[data-item-id="${realItemId}"] button:has(svg[data-testid="RemoveIcon"])`,
+          `[data-item-id="${realItemId}"] button[aria-label="decrease"]`,
+          `[data-item-id="${realItemId}"] button:first-child`
+        ];
+        
+        let clicked = false;
+        for (const selector of minusSelectors) {
+          try {
+            console.error(`[updateCartQuantity] Probando selector -: ${selector}`);
+            for (let i = 0; i < Math.abs(difference); i++) {
+              await p.click(selector, { timeout: 2000 });
+              await p.waitForTimeout(300);
+            }
+            console.error(`[MCP Playwright] ✓ Cantidad disminuida ${Math.abs(difference)} veces con ${selector}`);
+            clicked = true;
+            break;
+          } catch (e) {
+            console.error(`[updateCartQuantity] Selector ${selector} falló: ${e.message}`);
+            continue;
+          }
         }
-        console.error(`[MCP Playwright] ✓ Cantidad disminuida ${Math.abs(difference)} veces`);
+        
+        if (!clicked) {
+          throw new Error(`No se pudo hacer click en botón - del item ${realItemId}`);
+        }
+        
       } else {
         console.error(`[MCP Playwright] ℹ Cantidad ya es ${quantity}`);
       }
 
       return {
         success: true,
-        itemId,
+        itemId: realItemId,
         newQuantity: quantity,
         method: 'buttons',
         clicks: Math.abs(difference)
@@ -963,58 +1470,573 @@ const toolHandlers = {
     }
   },
 
-  async removeFromCart({ itemId }) {
+  async removeFromCart({ itemId, productName }) {
     const p = await initBrowser();
 
-    // Buscar botón de eliminar (CloseIcon en esta app)
-    const removeSelectors = [
-      `[data-item-id="${itemId}"] button:has(svg[data-testid="CloseIcon"])`, // MUI CloseIcon
-      `[data-item-id="${itemId}"] button[aria-label="delete"]`,
-      `[data-item-id="${itemId}"] button[aria-label="remove"]`,
-      `[data-item-id="${itemId}"] button:has-text("Eliminar")`,
-      `[data-item-id="${itemId}"] .remove-item`,
-      `button[data-remove-item="${itemId}"]`
-    ];
+    console.error(`[removeFromCart] Iniciando eliminación: itemId=${itemId}, productName=${productName}`);
 
-    for (const selector of removeSelectors) {
-      try {
-        await p.click(selector, { timeout: 2000 });
-        await p.waitForTimeout(500);
-
-        console.error(`[MCP Playwright] ✓ Item eliminado del carrito: ${itemId}`);
-
+    try {
+      // Debug: Verificar qué elementos data-item-id existen
+      const debugInfo = await p.evaluate(() => {
+        const dataItemElements = Array.from(document.querySelectorAll('[data-item-id]'));
         return {
-          success: true,
-          itemId,
-          removed: true,
-          selector
+          dataItemIds: dataItemElements.map(el => ({
+            id: el.getAttribute('data-item-id'),
+            text: el.textContent?.substring(0, 50),
+            hasCloseIcon: !!el.querySelector('svg[data-testid="CloseIcon"]')
+          }))
         };
-      } catch (e) {
-        continue;
-      }
-    }
+      });
 
-    throw new Error(`No se pudo eliminar el item: ${itemId}`);
+      console.error(`[removeFromCart] Debug DOM:`, debugInfo);
+
+      // Buscar ID real como en updateCartQuantity
+      let realItemId = null;
+      
+      // Primero intentar con el itemId proporcionado
+      const targetExists = await p.evaluate((id) => {
+        const target = document.querySelector(`[data-item-id="${id}"]`);
+        return { exists: !!target };
+      }, itemId);
+
+      if (targetExists.exists) {
+        realItemId = itemId;
+        console.error(`[removeFromCart] ✓ Usando itemId original: ${itemId}`);
+      } else {
+        // Buscar por nombre de producto
+        console.error(`[removeFromCart] itemId ${itemId} no existe, buscando por nombre...`);
+        
+        realItemId = await p.evaluate(({ debugInfo, targetProductName }) => {
+          console.log('[DOM] Buscando producto por nombre para eliminar:', targetProductName);
+          
+          for (const item of debugInfo.dataItemIds) {
+            const text = item.text.toLowerCase();
+            console.log(`[DOM] Comparando "${text}" con patrón de búsqueda`);
+            
+            if (
+              (text.includes('baguette') && targetProductName?.toLowerCase().includes('baguette')) ||
+              (text.includes('empanada de carne') && targetProductName?.toLowerCase().includes('empanada') && targetProductName?.toLowerCase().includes('carne')) ||
+              (text.includes('empanada de pollo') && targetProductName?.toLowerCase().includes('empanada') && targetProductName?.toLowerCase().includes('pollo')) ||
+              (text.includes('torta de chocolate') && targetProductName?.toLowerCase().includes('torta') && targetProductName?.toLowerCase().includes('chocolate')) ||
+              (text.includes('pastel moca') && targetProductName?.toLowerCase().includes('pastel') && targetProductName?.toLowerCase().includes('moca')) ||
+              (text.includes('alfajor') && targetProductName?.toLowerCase().includes('alfajor')) ||
+              (text.includes('milhoja') && targetProductName?.toLowerCase().includes('milhoja'))
+            ) {
+              console.log(`[DOM] ✓ Coincidencia encontrada para eliminar: ${item.id} para "${text}"`);
+              return item.id;
+            }
+          }
+          
+          console.log('[DOM] ✗ No se encontró coincidencia por nombre para eliminar');
+          return null;
+        }, { debugInfo, targetProductName: productName });
+
+        if (realItemId) {
+          console.error(`[removeFromCart] ✓ Encontrado por nombre: ${realItemId}`);
+        } else {
+          throw new Error(`No se pudo encontrar el producto ni por ID "${itemId}" ni por nombre "${productName}"`);
+        }
+      }
+
+      // Buscar botón de eliminar (CloseIcon)
+      const removeSelectors = [
+        `[data-item-id="${realItemId}"] svg[data-testid="CloseIcon"]`, // Directo al icono
+        `[data-item-id="${realItemId}"] button:has(svg[data-testid="CloseIcon"])`, // Botón que contiene el icono
+        `[data-item-id="${realItemId}"] [data-testid="CloseIcon"]`,
+        `[data-item-id="${realItemId}"] button[aria-label="delete"]`,
+        `[data-item-id="${realItemId}"] button[aria-label="remove"]`
+      ];
+
+      let clicked = false;
+      for (const selector of removeSelectors) {
+        try {
+          console.error(`[removeFromCart] Probando selector: ${selector}`);
+          await p.click(selector, { timeout: 2000 });
+          await p.waitForTimeout(500);
+          console.error(`[removeFromCart] ✓ Item eliminado con selector: ${selector}`);
+          clicked = true;
+          break;
+        } catch (e) {
+          console.error(`[removeFromCart] Selector ${selector} falló: ${e.message}`);
+          continue;
+        }
+      }
+
+      if (!clicked) {
+        throw new Error(`No se pudo hacer click en botón eliminar del item ${realItemId}`);
+      }
+
+      return {
+        success: true,
+        itemId: realItemId,
+        removed: true
+      };
+
+    } catch (error) {
+      console.error('[removeFromCart] Error eliminando producto:', error);
+      throw error;
+    }
+  },
+
+  async selectPaymentMethod({ method }) {
+    const p = await initBrowser();
+
+    console.error(`[selectPaymentMethod] Seleccionando método: ${method}`);
+
+    try {
+      // Mapear método a valor del radio button
+      const methodValue = method.toLowerCase() === 'yape' ? 'yape' : 'plin';
+      
+      // Selectores para los radio buttons
+      const selectors = [
+        `input[value="${methodValue}"]`, // Directo al input radio
+        `label:has(input[value="${methodValue}"])`, // Label que contiene el input
+        `[role="radio"][value="${methodValue}"]` // Aria role
+      ];
+
+      let clicked = false;
+      for (const selector of selectors) {
+        try {
+          console.error(`[selectPaymentMethod] Probando selector: ${selector}`);
+          await p.click(selector, { timeout: 2000 });
+          await p.waitForTimeout(300);
+          console.error(`[selectPaymentMethod] ✓ Método seleccionado: ${methodValue}`);
+          clicked = true;
+          break;
+        } catch (e) {
+          console.error(`[selectPaymentMethod] Selector ${selector} falló: ${e.message}`);
+          continue;
+        }
+      }
+
+      if (!clicked) {
+        throw new Error(`No se pudo seleccionar el método de pago: ${method}`);
+      }
+
+      return {
+        success: true,
+        method: methodValue,
+        selected: true
+      };
+
+    } catch (error) {
+      console.error('[selectPaymentMethod] Error seleccionando método:', error);
+      throw error;
+    }
+  },
+
+  async fillPhoneNumber({ phoneNumber }) {
+    const p = await initBrowser();
+
+    console.error(`[fillPhoneNumber] Llenando teléfono: ${phoneNumber}`);
+
+    try {
+      // Selectores específicos para el campo de teléfono
+      const selectors = [
+        'input[placeholder="987654321"]', // Por placeholder
+        'input[label*="Teléfono"]', // Por label que contenga "Teléfono"
+        'input[name="phoneNumber"]', // Por name si existe
+        'input[type="tel"]', // Por type tel
+        'label:has-text("Número de Teléfono") + div input', // Por label text
+        '.MuiTextField-root:has(label:contains("Teléfono")) input' // MUI con label
+      ];
+
+      let filled = false;
+      for (const selector of selectors) {
+        try {
+          console.error(`[fillPhoneNumber] Probando selector: ${selector}`);
+          
+          // Limpiar campo primero
+          await p.fill(selector, '', { timeout: 2000 });
+          await p.waitForTimeout(100);
+          
+          // Llenar con número
+          await p.fill(selector, phoneNumber);
+          await p.waitForTimeout(300);
+          
+          console.error(`[fillPhoneNumber] ✓ Teléfono llenado con selector: ${selector}`);
+          filled = true;
+          break;
+        } catch (e) {
+          console.error(`[fillPhoneNumber] Selector ${selector} falló: ${e.message}`);
+          continue;
+        }
+      }
+
+      if (!filled) {
+        throw new Error(`No se pudo llenar el campo de teléfono`);
+      }
+
+      return {
+        success: true,
+        phoneNumber,
+        filled: true
+      };
+
+    } catch (error) {
+      console.error('[fillPhoneNumber] Error llenando teléfono:', error);
+      throw error;
+    }
+  },
+
+  async fillVerificationCode({ verificationCode }) {
+    const p = await initBrowser();
+
+    console.error(`[fillVerificationCode] Llenando código: ${verificationCode}`);
+
+    try {
+      // Selectores específicos para el campo de código de verificación
+      const selectors = [
+        'input[placeholder="123456"]', // Por placeholder
+        'input[label*="Código"]', // Por label que contenga "Código"
+        'input[label*="Verificación"]', // Por label que contenga "Verificación"
+        'input[name="verificationCode"]', // Por name si existe
+        'label:has-text("Código de Verificación") + div input', // Por label text
+        '.MuiTextField-root:has(label:contains("Código")) input' // MUI con label
+      ];
+
+      let filled = false;
+      for (const selector of selectors) {
+        try {
+          console.error(`[fillVerificationCode] Probando selector: ${selector}`);
+          
+          // Limpiar campo primero
+          await p.fill(selector, '', { timeout: 2000 });
+          await p.waitForTimeout(100);
+          
+          // Llenar con código
+          await p.fill(selector, verificationCode);
+          await p.waitForTimeout(300);
+          
+          console.error(`[fillVerificationCode] ✓ Código llenado con selector: ${selector}`);
+          filled = true;
+          break;
+        } catch (e) {
+          console.error(`[fillVerificationCode] Selector ${selector} falló: ${e.message}`);
+          continue;
+        }
+      }
+
+      if (!filled) {
+        throw new Error(`No se pudo llenar el campo de código de verificación`);
+      }
+
+      return {
+        success: true,
+        verificationCode,
+        filled: true
+      };
+
+    } catch (error) {
+      console.error('[fillVerificationCode] Error llenando código:', error);
+      throw error;
+    }
+  },
+
+  async confirmPayment() {
+    const p = await initBrowser();
+
+    console.error(`[confirmPayment] Confirmando pago...`);
+
+    try {
+      // Selectores para el botón de confirmar pago
+      const selectors = [
+        'button:has-text("Confirmar Pago")', // Por texto
+        'button[type="submit"]', // Por type submit
+        'button:has-text("Procesar")', // Variación del texto
+        '.MuiButton-root:has-text("Confirmar")', // MUI button
+        '[role="button"]:has-text("Confirmar Pago")' // Por role
+      ];
+
+      let clicked = false;
+      for (const selector of selectors) {
+        try {
+          console.error(`[confirmPayment] Probando selector: ${selector}`);
+          await p.click(selector, { timeout: 2000 });
+          await p.waitForTimeout(500);
+          console.error(`[confirmPayment] ✓ Pago confirmado con selector: ${selector}`);
+          clicked = true;
+          break;
+        } catch (e) {
+          console.error(`[confirmPayment] Selector ${selector} falló: ${e.message}`);
+          continue;
+        }
+      }
+
+      if (!clicked) {
+        throw new Error(`No se pudo hacer click en botón confirmar pago`);
+      }
+
+      return {
+        success: true,
+        confirmed: true
+      };
+
+    } catch (error) {
+      console.error('[confirmPayment] Error confirmando pago:', error);
+      throw error;
+    }
   },
 
   async getCartState() {
     const p = await initBrowser();
 
-    const cartState = await p.evaluate(() => {
-      // Intentar obtener del badge del carrito
-      const badge = document.querySelector('.cart-badge, .cart-count, [data-cart-count]');
-      const totalEl = document.querySelector('.cart-total, .total-price');
+    console.error('[getCartState] Extrayendo información del carrito...');
 
+    const cartData = await p.evaluate(() => {
+      console.log('[DOM] Accediendo al Redux store del carrito...');
+      
+      let cartItems = [];
+      let cartTotal = 0;
+      let purchaseId = 'C-001';
+      let shipping = 'Recojo en tienda';
+      
+      try {
+        // Intentar acceder al Redux store desde window.__REDUX_STORE__ o similar
+        let reduxState = null;
+        
+        // Buscar el store de Redux de diferentes maneras
+        console.log('[DOM] Buscando Redux store...');
+        console.log('[DOM] window.__REDUX_STORE__:', !!window.__REDUX_STORE__);
+        console.log('[DOM] window.store:', !!window.store);
+        console.log('[DOM] window.__store:', !!window.__store);
+        
+        if (window.__REDUX_STORE__) {
+          console.log('[DOM] Usando window.__REDUX_STORE__');
+          reduxState = window.__REDUX_STORE__.getState();
+          console.log('[DOM] Redux state obtenido:', !!reduxState);
+          console.log('[DOM] Cart state exists:', !!(reduxState?.cart));
+        } else if (window.store) {
+          console.log('[DOM] Usando window.store');
+          reduxState = window.store.getState();
+        } else if (window.__store) {
+          console.log('[DOM] Usando window.__store');
+          reduxState = window.__store.getState();
+        } else {
+          // Buscar en el DOM el script que contiene el estado inicial
+          const scripts = document.querySelectorAll('script');
+          for (const script of scripts) {
+            if (script.textContent && script.textContent.includes('preloadedState')) {
+              try {
+                const match = script.textContent.match(/preloadedState["\s]*:["\s]*({.*?})/);
+                if (match) {
+                  reduxState = JSON.parse(match[1]);
+                }
+              } catch (e) {
+                console.log('[DOM] Error parseando estado inicial:', e.message);
+              }
+            }
+          }
+        }
+        
+        if (reduxState && reduxState.cart) {
+          console.log('[DOM] ✓ Estado Redux del carrito encontrado');
+          const cart = reduxState.cart;
+          
+          console.log(`[DOM] Redux cart state:`, {
+            hasItems: !!(cart.items),
+            itemsType: typeof cart.items,
+            itemsLength: cart.items?.length,
+            totalAmount: cart.totalAmount,
+            orderId: cart.orderId
+          });
+          
+          if (cart.items && Array.isArray(cart.items) && cart.items.length > 0) {
+            cartItems = cart.items.map((item, index) => {
+              console.log(`[DOM] Procesando item ${index}:`, {
+                id_detalle: item.id_detalle,
+                nombre: item.nombre,
+                precio: item.precio,
+                cantidad: item.cantidad,
+                subtotal: item.subtotal
+              });
+              
+              return {
+                id_detalle: item.id_detalle || `item-${index}`,
+                name: item.nombre || 'Producto sin nombre',
+                price: parseFloat(item.precio) || 0,
+                quantity: parseInt(item.cantidad) || 1,
+                image: item.url_imagen || null,
+                total: parseFloat(item.subtotal) || (parseFloat(item.precio) * parseInt(item.cantidad))
+              };
+            });
+            
+            console.log(`[DOM] ✓ Items mapeados:`, cartItems);
+          } else {
+            console.log('[DOM] ⚠️ No hay items en el carrito o items no es array válido');
+          }
+          
+          cartTotal = parseFloat(cart.totalAmount) || 0;
+          purchaseId = cart.orderId || 'C-001';
+          
+          console.log(`[DOM] ✓ Totales: ${cartItems.length} productos, total: S/${cartTotal}`);
+        } else {
+          console.log('[DOM] ⚠️ No se pudo acceder al Redux store, intentando DOM...');
+          
+          // Fallback: intentar extraer del DOM como respaldo
+          const productRows = Array.from(document.querySelectorAll('[style*="grid-template-columns"]')).filter(row => 
+            row.style.gridTemplateColumns && row.style.gridTemplateColumns.includes('minmax')
+          );
+          
+          console.log(`[DOM] Encontradas ${productRows.length} filas de productos en DOM`);
+          
+          for (const row of productRows) {
+            try {
+              // Buscar nombre del producto
+              const nameEl = row.querySelector('img + *') || row.querySelector('[alt] ~ *');
+              const name = nameEl?.textContent?.trim();
+              
+              if (!name || name.length < 3) continue;
+              
+              // Buscar precios (S/)
+              const priceElements = Array.from(row.querySelectorAll('*')).filter(el => 
+                el.textContent && el.textContent.includes('S/') && !el.querySelector('*')
+              );
+              
+              let price = 0;
+              let quantity = 1;
+              let totalParcial = 0;
+              
+              if (priceElements.length >= 2) {
+                const priceMatch = priceElements[0].textContent.match(/S\/(\d+\.?\d*)/);
+                const totalMatch = priceElements[1].textContent.match(/S\/(\d+\.?\d*)/);
+                
+                if (priceMatch) price = parseFloat(priceMatch[1]);
+                if (totalMatch) totalParcial = parseFloat(totalMatch[1]);
+              }
+              
+              // Buscar cantidad
+              const quantityText = row.textContent.match(/\b(\d+)\b/g);
+              if (quantityText) {
+                for (const num of quantityText) {
+                  const numVal = parseInt(num);
+                  if (numVal > 0 && numVal < 100 && numVal !== price && numVal !== totalParcial) {
+                    quantity = numVal;
+                    break;
+                  }
+                }
+              }
+              
+              const imgEl = row.querySelector('img');
+              const image = imgEl?.src || null;
+              
+              if (name && price > 0) {
+                cartItems.push({
+                  name,
+                  price,
+                  quantity,
+                  image,
+                  total: totalParcial || (price * quantity)
+                });
+              }
+            } catch (error) {
+              console.log(`[DOM] Error procesando fila: ${error.message}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.log(`[DOM] Error accediendo a datos del carrito: ${error.message}`);
+      }
+      
+      // Buscar información del resumen de compra (actualizar variables existentes)
+      // purchaseId, shipping y cartTotal ya fueron declaradas arriba
+      
+      // Buscar ID-Compra
+      const idElement = Array.from(document.querySelectorAll('*')).find(el => 
+        el.textContent && el.textContent.includes('ID-Compra')
+      );
+      if (idElement && idElement.nextSibling) {
+        purchaseId = idElement.nextSibling.textContent?.trim() || 'C-001';
+      }
+      
+      // Buscar tipo de envío
+      const shippingElement = Array.from(document.querySelectorAll('*')).find(el => 
+        el.textContent && el.textContent.includes('Envío')
+      );
+      if (shippingElement && shippingElement.nextSibling) {
+        shipping = shippingElement.nextSibling.textContent?.trim() || 'Recojo en tienda';
+      }
+      
+      // Buscar total (en color rojo y con mayor peso)
+      const totalElements = Array.from(document.querySelectorAll('*')).filter(el => 
+        el.textContent && el.textContent.includes('S/') && 
+        (el.style.color === 'rgb(240, 0, 0)' || el.style.fontWeight === '700')
+      );
+      
+      if (totalElements.length > 0) {
+        const totalText = totalElements[0].textContent;
+        const totalMatch = totalText.match(/S\/(\d+\.?\d*)/);
+        if (totalMatch) {
+          cartTotal = parseFloat(totalMatch[1]);
+        }
+      }
+      
+      // Si no encontramos el total, calcularlo desde los items
+      if (cartTotal === 0) {
+        cartTotal = cartItems.reduce((sum, item) => sum + item.total, 0);
+      }
+      
+      // Buscar botones de navegación
+      const continueButtons = [];
+      
+      // Buscar botón "Continuar"
+      const continueBtn = Array.from(document.querySelectorAll('*')).find(el => 
+        el.textContent?.trim() === 'Continuar' && 
+        (el.getAttribute('role') === 'button' || el.style.cursor === 'pointer')
+      );
+      if (continueBtn) {
+        continueButtons.push({
+          text: 'Continuar',
+          tag: continueBtn.tagName,
+          className: continueBtn.className,
+          action: 'continue'
+        });
+      }
+      
+      // Buscar botón "Proceder al Pago"
+      const paymentBtn = Array.from(document.querySelectorAll('*')).find(el => 
+        el.textContent?.includes('Proceder al Pago')
+      );
+      if (paymentBtn) {
+        continueButtons.push({
+          text: 'Proceder al Pago',
+          tag: paymentBtn.tagName,
+          className: paymentBtn.className,
+          action: 'payment'
+        });
+      }
+      
+      console.log(`[DOM] Encontrados ${cartItems.length} productos en el carrito`);
+      console.log(`[DOM] Total del carrito: S/${cartTotal}`);
+      console.log(`[DOM] Encontrados ${continueButtons.length} botones para continuar`);
+      
       return {
-        itemCount: badge ? parseInt(badge.textContent) : 0,
-        total: totalEl ? parseFloat(totalEl.textContent.replace(/[^\d.]/g, '')) : 0,
-        url: window.location.pathname
+        items: cartItems,
+        itemCount: cartItems.length,
+        total: cartTotal,
+        purchaseInfo: {
+          id: purchaseId,
+          shipping: shipping,
+          total: cartTotal
+        },
+        continueButtons: continueButtons,
+        url: window.location.pathname,
+        isEmpty: cartItems.length === 0
       };
     });
 
+    console.error(`[getCartState] ✓ Encontrados ${cartData.items.length} productos en el carrito`);
+    console.error(`[getCartState] ✓ Total: S/${cartData.total}`);
+    
     return {
       success: true,
-      ...cartState
+      items: cartData.items,
+      itemCount: cartData.itemCount,
+      total: cartData.total,
+      purchaseInfo: cartData.purchaseInfo,
+      continueButtons: cartData.continueButtons,
+      url: cartData.url,
+      isEmpty: cartData.isEmpty
     };
   },
 
@@ -1057,6 +2079,232 @@ const toolHandlers = {
 
     console.error('[checkout] ✗ No se encontró el botón de checkout');
     throw new Error('No se encontró el botón de checkout');
+  },
+
+  async debugCartDOM() {
+    const p = await initBrowser();
+
+    console.error('[debugCartDOM] 🔍 Analizando estructura DOM del carrito...');
+
+    const debugInfo = await p.evaluate(() => {
+      console.log('[DOM Debug] Iniciando análisis completo...');
+      
+      const analysis = {
+        url: window.location.href,
+        title: document.title,
+        bodyClasses: document.body.className,
+        reduxStore: null,
+        cartState: null,
+        gridElements: [],
+        allTexts: [],
+        imageSources: [],
+        priceElements: [],
+        productElements: []
+      };
+      
+      // Analizar Redux store
+      console.log('[DOM Debug] Analizando Redux store...');
+      if (window.__REDUX_STORE__) {
+        try {
+          const state = window.__REDUX_STORE__.getState();
+          analysis.reduxStore = {
+            available: true,
+            cartExists: !!(state?.cart),
+            cartItemsCount: state?.cart?.items?.length || 0,
+            cartTotal: state?.cart?.totalAmount || 0,
+            cartItems: state?.cart?.items?.map(item => ({
+              id: item.id_detalle,
+              name: item.nombre,
+              price: item.precio,
+              quantity: item.cantidad,
+              subtotal: item.subtotal
+            })) || []
+          };
+          analysis.cartState = state?.cart || null;
+        } catch (error) {
+          analysis.reduxStore = { available: false, error: error.message };
+        }
+      } else {
+        analysis.reduxStore = { available: false, reason: 'window.__REDUX_STORE__ not found' };
+      }
+      
+      // Buscar todos los elementos con grid-template-columns
+      const gridElements = Array.from(document.querySelectorAll('*')).filter(el => 
+        el.style.gridTemplateColumns || el.className.includes('grid')
+      );
+      
+      analysis.gridElements = gridElements.map(el => ({
+        tag: el.tagName,
+        className: el.className,
+        style: el.style.cssText,
+        textContent: el.textContent?.substring(0, 100),
+        children: el.children.length
+      }));
+      
+      // Buscar todos los textos que contengan S/
+      const allElements = document.querySelectorAll('*');
+      for (const el of allElements) {
+        if (el.textContent && el.textContent.includes('S/')) {
+          analysis.priceElements.push({
+            tag: el.tagName,
+            className: el.className,
+            textContent: el.textContent.trim(),
+            parentTag: el.parentElement?.tagName,
+            parentClass: el.parentElement?.className
+          });
+        }
+      }
+      
+      // Buscar imágenes
+      const images = document.querySelectorAll('img');
+      analysis.imageSources = Array.from(images).map(img => ({
+        src: img.src,
+        alt: img.alt,
+        parentTag: img.parentElement?.tagName,
+        parentClass: img.parentElement?.className
+      }));
+      
+      // Buscar elementos que podrían ser productos
+      const potentialProducts = Array.from(document.querySelectorAll('*')).filter(el => {
+        const text = el.textContent?.toLowerCase() || '';
+        return text.includes('torta') || text.includes('baguette') || 
+               text.includes('empanada') || text.includes('pan') ||
+               text.includes('cantidad') || text.includes('precio');
+      });
+      
+      analysis.productElements = potentialProducts.slice(0, 10).map(el => ({
+        tag: el.tagName,
+        className: el.className,
+        textContent: el.textContent?.substring(0, 150),
+        innerHTML: el.innerHTML?.substring(0, 200),
+        parentTag: el.parentElement?.tagName,
+        parentClass: el.parentElement?.className
+      }));
+      
+      console.log(`[DOM Debug] Encontrados ${analysis.gridElements.length} elementos grid`);
+      console.log(`[DOM Debug] Encontrados ${analysis.priceElements.length} elementos con S/`);
+      console.log(`[DOM Debug] Encontradas ${analysis.imageSources.length} imágenes`);
+      console.log(`[DOM Debug] Encontrados ${analysis.productElements.length} posibles productos`);
+      
+      return analysis;
+    });
+
+    console.error(`[debugCartDOM] ✅ Análisis completado:`);
+    console.error(`- Grid elements: ${debugInfo.gridElements.length}`);
+    console.error(`- Price elements: ${debugInfo.priceElements.length}`);
+    console.error(`- Images: ${debugInfo.imageSources.length}`);
+    console.error(`- Product elements: ${debugInfo.productElements.length}`);
+    
+    return {
+      success: true,
+      analysis: debugInfo
+    };
+  },
+
+  async proceedToPayment() {
+    const p = await initBrowser();
+
+    console.error('[proceedToPayment] Buscando botón para continuar al pago...');
+
+    try {
+      // Lista de selectores prioritarios para el botón continuar
+      const continueSelectors = [
+        '[data-testid="cart-continue-button"]',
+        'button:has-text("Continuar")',
+        '[role="button"]:has-text("Continuar")',
+        'button:has-text("Proceder al Pago")',
+        '[role="button"]:has-text("Proceder al Pago")'
+      ];
+
+      let result = null;
+      
+      // Intentar cada selector hasta encontrar uno que funcione
+      for (const selector of continueSelectors) {
+        try {
+          console.error(`[proceedToPayment] Probando selector: ${selector}`);
+          
+          await p.click(selector, { timeout: 2000 });
+          
+          result = {
+            success: true,
+            buttonText: selector.includes('Continuar') ? 'Continuar' : 'Proceder al Pago',
+            selector: selector,
+            clicked: true
+          };
+          
+          console.error(`[proceedToPayment] ✓ Click exitoso con: ${selector}`);
+          break;
+          
+        } catch (e) {
+          console.error(`[proceedToPayment] ✗ Selector ${selector} falló: ${e.message}`);
+          continue;
+        }
+      }
+      
+      // Si ningún selector funcionó, intentar búsqueda en DOM como fallback
+      if (!result) {
+        console.error('[proceedToPayment] Todos los selectores fallaron, buscando en DOM...');
+        
+        result = await p.evaluate(() => {
+          console.log('[DOM] Buscando botones para continuar al pago...');
+          
+          // Buscar por data-testid primero
+          let button = document.querySelector('[data-testid="cart-continue-button"]');
+          
+          if (!button) {
+            // Buscar botones con texto relacionado al pago/continuar
+            const buttons = Array.from(document.querySelectorAll('*')).filter(btn => {
+              const text = btn.textContent?.toLowerCase() || '';
+              const isVisible = btn.offsetParent !== null; // Verificar que esté visible
+              const isClickable = btn.getAttribute('role') === 'button' || btn.style.cursor === 'pointer' || btn.tagName === 'BUTTON';
+              return isVisible && isClickable && (
+                text.includes('continuar') || text.includes('proceder') || 
+                text.includes('pagar') || text.includes('checkout') ||
+                text.includes('siguiente') || text.includes('finalizar')
+              );
+            });
+            
+            console.log(`[DOM] Encontrados ${buttons.length} botones de continuar`);
+            button = buttons[0];
+          }
+          
+          if (!button) {
+            return { success: false, error: 'No se encontró botón para continuar' };
+          }
+          
+          // Hacer click en el botón encontrado
+          button.click();
+          
+          console.log(`[DOM] ✓ Click en botón: "${button.textContent?.trim()}"`);
+          
+          return {
+            success: true,
+            buttonText: button.textContent?.trim(),
+            clicked: true
+          };
+        });
+      }
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      console.error(`[proceedToPayment] ✓ Click exitoso en: "${result.buttonText}"`);
+      
+      // Esperar a que navegue
+      await p.waitForTimeout(1000);
+      
+      return {
+        success: true,
+        buttonText: result.buttonText,
+        currentUrl: p.url(),
+        proceededToPayment: true
+      };
+      
+    } catch (error) {
+      console.error('[proceedToPayment] ✗ Error:', error.message);
+      throw error;
+    }
   },
 
   async fillPaymentForm({ direccion, metodoPago }) {
@@ -1482,6 +2730,10 @@ const toolHandlers = {
       console.error('[MCP Playwright] Error llenando formulario:', error);
       throw error;
     }
+  },
+
+  async debugCartDOM() {
+    return await this.debugCartDOM();
   }
 };
 
