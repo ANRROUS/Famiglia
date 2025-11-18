@@ -64,7 +64,15 @@ export const useTextToSpeech = () => {
       voiceName = null
     } = options;
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Limpiar texto: remover asteriscos y otros marcadores de formato
+    const cleanText = text
+      .replace(/\*/g, '')           // Remover asteriscos (énfasis Markdown)
+      .replace(/_{2,}/g, '')        // Remover guiones bajos dobles (negrita Markdown)
+      .replace(/`{1,3}/g, '')       // Remover backticks (código Markdown)
+      .replace(/\s+/g, ' ')         // Normalizar espacios múltiples
+      .trim();                      // Quitar espacios al inicio/final
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = lang;
     utterance.rate = rate;
     utterance.pitch = pitch;
@@ -87,7 +95,7 @@ export const useTextToSpeech = () => {
     // Event listeners
     utterance.onstart = () => {
       setIsSpeaking(true);
-      console.log('[TTS] Iniciando reproducción:', text.substring(0, 50) + '...');
+      console.log('[TTS] Iniciando reproducción:', cleanText.substring(0, 50) + '...');
     };
 
     utterance.onend = () => {

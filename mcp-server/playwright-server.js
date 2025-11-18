@@ -1331,22 +1331,33 @@ const toolHandlers = {
         realItemId = await p.evaluate(({ debugInfo, targetProductName }) => {
           console.log('[DOM] Buscando producto por nombre:', targetProductName);
           
+          if (!targetProductName) {
+            console.log('[DOM] ✗ No se proporcionó nombre de producto');
+            return null;
+          }
+          
+          const searchTerms = targetProductName.toLowerCase().split(/\s+/);
+          console.log('[DOM] Términos de búsqueda:', searchTerms);
+          
           // Buscar por contenido de texto
           for (const item of debugInfo.dataItemIds) {
             const text = item.text.toLowerCase();
-            console.log(`[DOM] Comparando "${text}" con patrón de búsqueda`);
+            console.log(`[DOM] Comparando "${text.substring(0, 50)}..."`);
             
-            // Buscar coincidencias parciales de nombres de productos comunes
-            if (
-              (text.includes('baguette') && targetProductName?.toLowerCase().includes('baguette')) ||
-              (text.includes('empanada de carne') && targetProductName?.toLowerCase().includes('empanada') && targetProductName?.toLowerCase().includes('carne')) ||
-              (text.includes('empanada de pollo') && targetProductName?.toLowerCase().includes('empanada') && targetProductName?.toLowerCase().includes('pollo')) ||
-              (text.includes('torta de chocolate') && targetProductName?.toLowerCase().includes('torta') && targetProductName?.toLowerCase().includes('chocolate')) ||
-              (text.includes('pastel moca') && targetProductName?.toLowerCase().includes('pastel') && targetProductName?.toLowerCase().includes('moca')) ||
-              (text.includes('alfajor') && targetProductName?.toLowerCase().includes('alfajor')) ||
-              (text.includes('milhoja') && targetProductName?.toLowerCase().includes('milhoja'))
-            ) {
-              console.log(`[DOM] ✓ Coincidencia encontrada: ${item.id} para "${text}"`);
+            // Buscar si TODOS los términos están presentes en el texto
+            const allTermsMatch = searchTerms.every(term => text.includes(term));
+            
+            if (allTermsMatch) {
+              console.log(`[DOM] ✓ Coincidencia encontrada: ${item.id} para "${text.substring(0, 50)}"`);
+              return item.id;
+            }
+            
+            // Alternativa: buscar coincidencia parcial (al menos 60% de los términos)
+            const matchingTerms = searchTerms.filter(term => text.includes(term)).length;
+            const matchPercentage = matchingTerms / searchTerms.length;
+            
+            if (matchPercentage >= 0.6 && matchingTerms >= 1) {
+              console.log(`[DOM] ✓ Coincidencia parcial (${Math.round(matchPercentage * 100)}%): ${item.id} para "${text.substring(0, 50)}"`);
               return item.id;
             }
           }
@@ -1381,13 +1392,34 @@ const toolHandlers = {
       // Opción 2: Usar botones + y - (patrón de esta app)
       // Obtener cantidad actual
       const currentQuantity = await p.evaluate((id) => {
-        const quantityText = document.querySelector(`[data-item-id="${id}"] .MuiTypography-root`);
-        console.log(`[DOM] Buscando cantidad en [data-item-id="${id}"] .MuiTypography-root`);
-        console.log('[DOM] Elemento cantidad encontrado:', !!quantityText);
-        if (quantityText) {
-          console.log('[DOM] Texto de cantidad:', quantityText.textContent);
+        const container = document.querySelector(`[data-item-id="${id}"]`);
+        if (!container) {
+          console.log(`[DOM] ✗ No se encontró contenedor con data-item-id="${id}"`);
+          return 1;
         }
-        return quantityText ? parseInt(quantityText.textContent) : 1;
+        
+        // Buscar TODOS los Typography dentro del contenedor principal
+        const typographies = Array.from(container.querySelectorAll('.MuiTypography-root'));
+        console.log(`[DOM] Encontrados ${typographies.length} Typography elements en el contenedor`);
+        
+        // El que tiene la cantidad es el que contiene SOLO un número (sin S/, sin decimales)
+        // Este Typography está entre los botones - y +
+        for (const typo of typographies) {
+          const text = typo.textContent.trim();
+          
+          // Verificar que sea SOLO dígitos (la cantidad), sin símbolos ni decimales
+          if (/^\d+$/.test(text)) {
+            const qty = parseInt(text);
+            // Verificar que esté en un rango razonable para cantidades (no es un precio grande)
+            if (qty > 0 && qty < 1000) {
+              console.log(`[DOM] ✓ Cantidad encontrada: ${qty} (texto: "${text}")`);
+              return qty;
+            }
+          }
+        }
+        
+        console.log('[DOM] ✗ No se encontró Typography con cantidad válida, retornando 1 por defecto');
+        return 1;
       }, realItemId);
 
       console.error(`[MCP Playwright] Cantidad actual: ${currentQuantity}, objetivo: ${quantity}`);
@@ -1396,10 +1428,11 @@ const toolHandlers = {
 
       if (difference > 0) {
         // Aumentar: hacer clic en botón "+"
+        // El botón + tiene el ícono <Add /> y es el último botón del QuantitySelector
         const plusSelectors = [
-          `[data-item-id="${realItemId}"] button:has(svg[data-testid="AddIcon"])`,
-          `[data-item-id="${realItemId}"] button[aria-label="increase"]`,
-          `[data-item-id="${realItemId}"] button:last-child`
+          `[data-item-id="${realItemId}"] button.MuiIconButton-root:has(svg[data-testid="AddIcon"])`,
+          `[data-item-id="${realItemId}"] .MuiIconButton-root:last-of-type`,
+          `[data-item-id="${realItemId}"] button:has([data-testid="AddIcon"])`
         ];
         
         let clicked = false;
@@ -1425,10 +1458,11 @@ const toolHandlers = {
         
       } else if (difference < 0) {
         // Disminuir: hacer clic en botón "-"
+        // El botón - tiene el ícono <Remove /> y es el primer botón del QuantitySelector
         const minusSelectors = [
-          `[data-item-id="${realItemId}"] button:has(svg[data-testid="RemoveIcon"])`,
-          `[data-item-id="${realItemId}"] button[aria-label="decrease"]`,
-          `[data-item-id="${realItemId}"] button:first-child`
+          `[data-item-id="${realItemId}"] button.MuiIconButton-root:has(svg[data-testid="RemoveIcon"])`,
+          `[data-item-id="${realItemId}"] .MuiIconButton-root:first-of-type`,
+          `[data-item-id="${realItemId}"] button:has([data-testid="RemoveIcon"])`
         ];
         
         let clicked = false;
@@ -1503,26 +1537,39 @@ const toolHandlers = {
         realItemId = itemId;
         console.error(`[removeFromCart] ✓ Usando itemId original: ${itemId}`);
       } else {
-        // Buscar por nombre de producto
+        // Buscar por nombre de producto usando la misma lógica flexible de updateCartQuantity
         console.error(`[removeFromCart] itemId ${itemId} no existe, buscando por nombre...`);
         
         realItemId = await p.evaluate(({ debugInfo, targetProductName }) => {
           console.log('[DOM] Buscando producto por nombre para eliminar:', targetProductName);
           
+          if (!targetProductName) {
+            console.log('[DOM] ✗ No se proporcionó nombre de producto');
+            return null;
+          }
+          
+          const searchTerms = targetProductName.toLowerCase().split(/\s+/);
+          console.log('[DOM] Términos de búsqueda:', searchTerms);
+          
+          // Buscar por contenido de texto
           for (const item of debugInfo.dataItemIds) {
             const text = item.text.toLowerCase();
-            console.log(`[DOM] Comparando "${text}" con patrón de búsqueda`);
+            console.log(`[DOM] Comparando "${text.substring(0, 50)}..."`);
             
-            if (
-              (text.includes('baguette') && targetProductName?.toLowerCase().includes('baguette')) ||
-              (text.includes('empanada de carne') && targetProductName?.toLowerCase().includes('empanada') && targetProductName?.toLowerCase().includes('carne')) ||
-              (text.includes('empanada de pollo') && targetProductName?.toLowerCase().includes('empanada') && targetProductName?.toLowerCase().includes('pollo')) ||
-              (text.includes('torta de chocolate') && targetProductName?.toLowerCase().includes('torta') && targetProductName?.toLowerCase().includes('chocolate')) ||
-              (text.includes('pastel moca') && targetProductName?.toLowerCase().includes('pastel') && targetProductName?.toLowerCase().includes('moca')) ||
-              (text.includes('alfajor') && targetProductName?.toLowerCase().includes('alfajor')) ||
-              (text.includes('milhoja') && targetProductName?.toLowerCase().includes('milhoja'))
-            ) {
-              console.log(`[DOM] ✓ Coincidencia encontrada para eliminar: ${item.id} para "${text}"`);
+            // Buscar si TODOS los términos están presentes en el texto
+            const allTermsMatch = searchTerms.every(term => text.includes(term));
+            
+            if (allTermsMatch) {
+              console.log(`[DOM] ✓ Coincidencia encontrada: ${item.id} para "${text.substring(0, 50)}"`);
+              return item.id;
+            }
+            
+            // Alternativa: buscar coincidencia parcial (al menos 60% de los términos)
+            const matchingTerms = searchTerms.filter(term => text.includes(term)).length;
+            const matchPercentage = matchingTerms / searchTerms.length;
+            
+            if (matchPercentage >= 0.6 && matchingTerms >= 1) {
+              console.log(`[DOM] ✓ Coincidencia parcial (${Math.round(matchPercentage * 100)}%): ${item.id} para "${text.substring(0, 50)}"`);
               return item.id;
             }
           }
@@ -1861,7 +1908,13 @@ const toolHandlers = {
               };
             });
             
-            console.log(`[DOM] ✓ Items mapeados:`, cartItems);
+            console.log(`[DOM] ✓ Items mapeados COMPLETO (${cartItems.length} items):`, 
+              JSON.stringify(cartItems.map((item, idx) => ({ 
+                index: idx, 
+                id: item.id_detalle, 
+                name: item.name 
+              })), null, 2)
+            );
           } else {
             console.log('[DOM] ⚠️ No hay items en el carrito o items no es array válido');
           }

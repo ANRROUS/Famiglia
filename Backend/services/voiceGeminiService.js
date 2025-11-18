@@ -176,7 +176,7 @@ const MCP_TOOLS_SCHEMA = [
       properties: {
         itemId: {
           type: 'STRING',
-          description: 'ID del item en el carrito (obtenido desde getCartState)'
+          description: 'ID del detalle del item en el carrito - DEBE ser el campo id_detalle obtenido de getCartState (un número como "72", "73", etc.), NO el código del producto'
         },
         quantity: {
           type: 'NUMBER',
@@ -214,7 +214,7 @@ const MCP_TOOLS_SCHEMA = [
       properties: {
         itemId: {
           type: 'STRING',
-          description: 'ID del item a eliminar (obtenido desde getCartState)'
+          description: 'ID del detalle del item a eliminar - DEBE ser el campo id_detalle obtenido de getCartState (un número como "72", "73", etc.), NO el código del producto'
         },
         productName: {
           type: 'STRING',
@@ -436,6 +436,15 @@ export async function interpretVoiceWithGemini(transcript, context, screenshot) 
     const systemPrompt = `Eres un asistente inteligente para una pastelería web llamada "Famiglia".
 
 Tu trabajo es interpretar comandos de voz en lenguaje natural y planificar acciones usando herramientas MCP Playwright.
+
+## ⚠️ REGLAS CRÍTICAS DE RESPUESTA:
+
+1. **NUNCA digas "No hay ninguna selección pendiente"** - Este mensaje es confuso para el usuario
+2. **SIEMPRE intenta ejecutar algo útil** - Si el comando es ambiguo, haz tu mejor interpretación
+3. **Si necesitas más información**: Pregunta específicamente qué falta (ej: "¿Qué producto quieres modificar?")
+4. **Para comandos en el carrito**: SIEMPRE usa getCartState() primero para ver qué hay disponible
+5. **Para comandos de cantidad**: SIEMPRE usa updateCartQuantity(), NUNCA click() directo
+6. **Si hay ambigüedad**: Ejecuta la acción más probable y menciona en userFeedback qué asumiste
 
 ## CONTEXTO ACTUAL:
 - Usuario: ${context.userName || 'Visitante anónimo'}
@@ -813,13 +822,32 @@ ${MCP_TOOLS_SCHEMA.map(t => `- ${t.name}: ${t.description}`).join('\n')}
 ### 12. GESTIÓN DE CANTIDADES EN CARRITO:
 - **IMPORTANTE**: Para comandos como "quiero que X sean Y", "cambia X a Y", etc. → USA updateCartQuantity()
 - **PROCESO CORRECTO**:
-  1. getCartState() para obtener IDs actuales de items
-  2. updateCartQuantity(itemId, nueva_cantidad, productName) para cada producto
-- **NO USES click() múltiples** para establecer cantidades específicas
+  1. getCartState() para obtener id_detalle actuales de items (son números como 72, 73, 74) Y cantidades actuales
+  2. updateCartQuantity(itemId, nueva_cantidad, productName) usando el id_detalle obtenido
+- **NOTA CRÍTICA**: El itemId debe ser el id_detalle (número) que devuelve getCartState, NO el código del producto (SA-XXX)
+- **FORMATO DE RESPUESTA de getCartState()**:
+  EJEMPLO:
+  {
+    "items": [
+      {"id_detalle": "72", "name": "Jugo surtido", "price": 7.50, "quantity": 6, "total": 45.00},
+      {"id_detalle": "73", "name": "Maracuyá", "price": 6.50, "quantity": 9, "total": 58.50},
+      {"id_detalle": "74", "name": "Baguette", "price": 4.00, "quantity": 2, "total": 8.00}
+    ],
+    "itemCount": 3,
+    "total": 111.50
+  }
+  IMPORTANTE: Usa el campo "id_detalle" como itemId, y "quantity" como cantidad actual
+- **NO USES click()** para cambiar cantidades - SIEMPRE usa updateCartQuantity()
 - **Comandos de cantidad exacta**:
-  - "quiero que torta sean 3" → updateCartQuantity(id_torta, 3, "torta")
-  - "cambia baguette a 4" → updateCartQuantity(id_baguette, 4, "baguette")
-  - "establece empanada en 5" → updateCartQuantity(id_empanada, 5, "empanada")
+  - "quiero que torta sean 3" → getCartState() → updateCartQuantity("72", 3, "torta")
+  - "cambia baguette a 4" → getCartState() → updateCartQuantity("73", 4, "baguette")
+  - "establece empanada en 5" → getCartState() → updateCartQuantity("74", 5, "empanada")
+- **Comandos de incremento/decremento relativo**:
+  - "aumenta uno más de jugo" → getCartState() (qty=6) → calcular (6 + 1 = 7) → updateCartQuantity("72", 7, "jugo")
+  - "quita uno de torta" → getCartState() (qty=3) → calcular (3 - 1 = 2) → updateCartQuantity("73", 2, "torta")
+  - "disminuye tres maracuyá" → getCartState() (qty=9) → calcular (9 - 3 = 6) → updateCartQuantity("73", 6, "maracuyá")
+  - "aumenta dos de chicha" → getCartState() (qty=5) → calcular (5 + 2 = 7) → updateCartQuantity("74", 7, "chicha")
+  - "primer producto a 2" → getCartState() → usar id_detalle del primer item en la lista → updateCartQuantity(primer_id, 2, nombre_del_producto)
 - **Para múltiples productos en UN comando**:
   1. getCartState() una vez
   2. updateCartQuantity(itemId, quantity, productName) para cada producto mencionado
@@ -1418,55 +1446,69 @@ Respuesta:
 
 ### EJEMPLOS DE CARRITO:
 
-Usuario: "Aumenta la cantidad del primer producto" o "Pon 3 unidades del primer producto"
+Usuario: "Aumenta la cantidad del primer producto" o "Pon 3 unidades del primer producto" o "Modifica el primer producto a 3"
 Contexto: En /cart (carrito)
 Respuesta:
 {
-  "reasoning": "Usuario quiere cambiar cantidad en el carrito. Click en el botón + varias veces.",
+  "reasoning": "Usuario quiere cambiar cantidad del primer producto en el carrito. Primero obtengo el estado del carrito para identificar el id_detalle del primer producto, luego uso updateCartQuantity para establecer la cantidad exacta o incrementar.",
   "steps": [
-    { "tool": "click", "params": { "selector": "button:has(svg[data-testid='AddIcon'])" }, "reason": "Click en botón + del primer producto" },
-    { "tool": "wait", "params": { "ms": 300 }, "reason": "Esperar actualización" }
+    { "tool": "getCartState", "params": {}, "reason": "Obtener lista de productos y el id_detalle del primer producto" },
+    { "tool": "updateCartQuantity", "params": { "itemId": "72", "quantity": 3, "productName": "primer producto" }, "reason": "Establecer cantidad del primer producto a 3 unidades usando su id_detalle" }
   ],
-  "userFeedback": "Aumentaré la cantidad del producto",
-  "expectedDuration": "1-2 segundos"
+  "userFeedback": "Actualizaré la cantidad del primer producto",
+  "expectedDuration": "2-3 segundos"
 }
 
-Usuario: "Aumenta un jugo surtido más" o "Agrega uno más de jugo" o "Pon un jugo más"
+Usuario: "Aumenta un jugo surtido más" o "Agrega uno más de jugo" o "Pon un jugo más" o "Incrementa el jugo en 1"
 Contexto: En /cart (carrito) con producto "Jugo Surtido"
 Respuesta:
 {
-  "reasoning": "Usuario quiere aumentar cantidad de un producto específico por nombre. Busco el contenedor del producto con ese nombre y hago click en su botón +.",
+  "reasoning": "Usuario quiere incrementar la cantidad de un producto específico en 1 unidad. Obtengo el estado del carrito para saber la cantidad actual y el id_detalle, luego uso updateCartQuantity para incrementar.",
   "steps": [
-    { "tool": "click", "params": { "selector": "div:has-text('Jugo Surtido') >> button:has(svg[data-testid='AddIcon'])" }, "reason": "Click en botón + del producto Jugo Surtido" },
-    { "tool": "wait", "params": { "ms": 300 }, "reason": "Esperar actualización del carrito" }
+    { "tool": "getCartState", "params": {}, "reason": "Obtener cantidad actual y id_detalle del Jugo Surtido" },
+    { "tool": "updateCartQuantity", "params": { "itemId": "72", "quantity": 2, "productName": "Jugo surtido" }, "reason": "Incrementar de 1 a 2 unidades (cantidad_actual + 1)" }
   ],
-  "userFeedback": "Aumentaré un Jugo Surtido más",
-  "expectedDuration": "1-2 segundos"
+  "userFeedback": "Agregaré uno más de Jugo Surtido",
+  "expectedDuration": "2-3 segundos"
 }
 
-Usuario: "Quita una torta" o "Disminuye la torta" o "Reduce una torta de chocolate"
-Contexto: En /cart (carrito) con producto "Torta de Chocolate"
+Usuario: "Quita una torta" o "Disminuye la torta" o "Reduce una torta de chocolate" o "Menos uno de torta"
+Contexto: En /cart (carrito) con producto "Torta de Chocolate" que tiene cantidad 3
 Respuesta:
 {
-  "reasoning": "Usuario quiere disminuir cantidad de un producto específico. Busco el contenedor con el nombre y click en botón -.",
+  "reasoning": "Usuario quiere disminuir la cantidad de un producto específico en 1 unidad. Obtengo el estado del carrito para saber la cantidad actual y el id_detalle, luego uso updateCartQuantity para decrementar.",
   "steps": [
-    { "tool": "click", "params": { "selector": "div:has-text('Torta') >> button:has(svg[data-testid='RemoveIcon'])" }, "reason": "Click en botón - del producto Torta" },
-    { "tool": "wait", "params": { "ms": 300 }, "reason": "Esperar actualización" }
+    { "tool": "getCartState", "params": {}, "reason": "Obtener cantidad actual y id_detalle de la Torta" },
+    { "tool": "updateCartQuantity", "params": { "itemId": "73", "quantity": 2, "productName": "Torta de chocolate" }, "reason": "Disminuir de 3 a 2 unidades (cantidad_actual - 1)" }
   ],
-  "userFeedback": "Disminuiré la cantidad de torta",
-  "expectedDuration": "1-2 segundos"
+  "userFeedback": "Disminuiré la cantidad de Torta de Chocolate",
+  "expectedDuration": "2-3 segundos"
+}
+
+Usuario: "Disminuye tres maracuyá" o "Quita tres de maracuyá" o "Reduce maracuyá en 3"
+Contexto: En /cart con producto "Maracuyá" que tiene cantidad 9
+Respuesta:
+{
+  "reasoning": "Usuario quiere DISMINUIR la cantidad de Maracuyá en 3 unidades. Obtengo getCartState que muestra quantity=9 y id_detalle='73'. Calculo la nueva cantidad: 9 - 3 = 6. Luego uso updateCartQuantity con la cantidad final de 6.",
+  "steps": [
+    { "tool": "getCartState", "params": {}, "reason": "Obtener cantidad actual (9) y id_detalle (73) del Maracuyá" },
+    { "tool": "updateCartQuantity", "params": { "itemId": "73", "quantity": 6, "productName": "Maracuyá" }, "reason": "Disminuir de 9 a 6 unidades (9 - 3 = 6)" }
+  ],
+  "userFeedback": "Disminuiré la cantidad de Maracuyá en 3 unidades (de 9 a 6)",
+  "expectedDuration": "2-3 segundos"
 }
 
 Usuario: "Elimina el segundo producto del carrito" o "Quita el segundo item"
 Contexto: En /cart
 Respuesta:
 {
-  "reasoning": "Usuario quiere eliminar un producto del carrito.",
+  "reasoning": "Usuario quiere eliminar un producto del carrito. Primero obtengo el estado para identificar el id_detalle correcto.",
   "steps": [
-    { "tool": "removeFromCart", "params": { "itemId": "2" }, "reason": "Eliminar segundo producto" }
+    { "tool": "getCartState", "params": {}, "reason": "Obtener id_detalle de los productos" },
+    { "tool": "removeFromCart", "params": { "itemId": "73", "productName": "Producto ejemplo" }, "reason": "Eliminar producto usando su id_detalle real" }
   ],
-  "userFeedback": "Eliminaré el segundo producto del carrito",
-  "expectedDuration": "1-2 segundos"
+  "userFeedback": "Eliminaré el producto del carrito",
+  "expectedDuration": "2-3 segundos"
 }
 
 Usuario: "Agrega este producto al carrito" o "Añade al carrito"
@@ -1650,12 +1692,12 @@ Usuario: "Quiero que torta de chocolate sean 3" o "Cambia la baguette a 4 unidad
 Contexto: En /cart
 Respuesta:
 {
-  "reasoning": "Usuario quiere ESTABLECER cantidades específicas en el carrito. Primero obtengo el estado actual con getCartState para identificar los id_detalle de cada producto, luego uso updateCartQuantity con los IDs reales para establecer cada cantidad exacta. IMPORTANTE: Debo usar el campo 'id_detalle' que devuelve getCartState, NO el nombre del producto.",
+  "reasoning": "Usuario quiere ESTABLECER cantidades específicas en el carrito. Primero obtengo el estado actual con getCartState para identificar los id_detalle de cada producto, luego uso updateCartQuantity con los IDs reales para establecer cada cantidad exacta. IMPORTANTE: Debo usar el campo 'id_detalle' que devuelve getCartState (un número como 72, 73, 74), NO el código del producto (SA-XXX) ni el nombre del producto.",
   "steps": [
     { "tool": "getCartState", "params": {}, "reason": "Obtener id_detalle de cada item en el carrito y cantidades actuales" },
-    { "tool": "updateCartQuantity", "params": {"itemId": "SA-4FC82B26-001", "quantity": 3}, "reason": "Establecer torta de chocolate a 3 unidades usando su id_detalle real" },
-    { "tool": "updateCartQuantity", "params": {"itemId": "SA-4FC82B26-002", "quantity": 4}, "reason": "Establecer baguette a 4 unidades usando su id_detalle real" },
-    { "tool": "updateCartQuantity", "params": {"itemId": "SA-4FC82B26-003", "quantity": 5}, "reason": "Establecer empanada de carne a 5 unidades usando su id_detalle real" }
+    { "tool": "updateCartQuantity", "params": {"itemId": "72", "quantity": 3, "productName": "torta de chocolate"}, "reason": "Establecer torta de chocolate a 3 unidades usando su id_detalle real" },
+    { "tool": "updateCartQuantity", "params": {"itemId": "73", "quantity": 4, "productName": "baguette"}, "reason": "Establecer baguette a 4 unidades usando su id_detalle real" },
+    { "tool": "updateCartQuantity", "params": {"itemId": "74", "quantity": 5, "productName": "empanada de carne"}, "reason": "Establecer empanada de carne a 5 unidades usando su id_detalle real" }
   ],
   "userFeedback": "Actualizando las cantidades de tus productos como solicitaste",
   "expectedDuration": "3-4 segundos"
@@ -1908,6 +1950,31 @@ Respuesta:
     { "tool": "sortBy", "params": { "field": "sales", "order": "desc" }, "reason": "Ordenar por ventas descendente" }
   ],
   "userFeedback": "Te mostraré los productos más vendidos primero",
+  "expectedDuration": "1 segundo"
+}
+
+Usuario: "Aumenta a 2" (comando ambiguo sin especificar producto)
+Contexto: En /cart con varios productos
+Respuesta:
+{
+  "reasoning": "Usuario quiere aumentar algo a 2, pero no especificó qué. Obtengo getCartState para ver los productos disponibles y sus id_detalle. El primer item tiene id_detalle='72' y nombre='Jugo surtido'. Asumo que se refiere al primer producto.",
+  "steps": [
+    { "tool": "getCartState", "params": {}, "reason": "Obtener lista de productos con sus id_detalle y cantidades actuales" },
+    { "tool": "updateCartQuantity", "params": { "itemId": "72", "quantity": 2, "productName": "Jugo surtido" }, "reason": "Aumentar primer producto (Jugo surtido, id_detalle=72) a 2 unidades" }
+  ],
+  "userFeedback": "Actualizaré el primer producto de tu carrito (Jugo surtido) a 2 unidades",
+  "expectedDuration": "2-3 segundos"
+}
+
+Usuario: "Modifica la cantidad" (muy ambiguo)
+Contexto: En /cart
+Respuesta:
+{
+  "reasoning": "Comando muy ambiguo, necesito más información específica.",
+  "steps": [
+    { "tool": "getCartState", "params": {}, "reason": "Ver qué productos hay en el carrito para pedir aclaración" }
+  ],
+  "userFeedback": "¿Qué producto quieres modificar? Tienes [lista de productos del getCartState]. Dime el nombre y la cantidad deseada.",
   "expectedDuration": "1 segundo"
 }
 

@@ -317,6 +317,11 @@ const Cart = () => {
   // ============================================
   // COMANDOS DE VOZ ESPECÍFICOS DE CARRITO
   // ============================================
+  // NOTA: Los comandos locales han sido deshabilitados para que Gemini AI
+  // maneje TODOS los comandos del carrito de forma inteligente.
+  // Esto evita conflictos y permite comandos más flexibles y naturales.
+  
+  /* COMANDOS LOCALES DESHABILITADOS - Ahora todo se maneja por Gemini
   useEffect(() => {
     // 🎯 FUNCIÓN HELPER PARA AUMENTAR CANTIDAD (usada por múltiples comandos)
     const aumentarProducto = (nombreProducto) => {
@@ -402,10 +407,6 @@ const Cart = () => {
 
       // COMANDOS DE DESAMBIGUACIÓN - Selección por número
       'opción (.+)': (numero) => {
-        if (!pendingAction || ambiguousProducts.length === 0) {
-          speak('No hay ninguna selección pendiente');
-          return;
-        }
 
         const idx = parseInt(numero) - 1;
         if (isNaN(idx) || idx < 0 || idx >= ambiguousProducts.length) {
@@ -445,11 +446,6 @@ const Cart = () => {
         // Alias para "opción": "el uno", "el dos", etc.
         const numeros = { 'uno': '1', 'dos': '2', 'tres': '3', 'cuatro': '4', 'cinco': '5' };
         const numStr = numeros[numero.toLowerCase()] || numero;
-
-        if (!pendingAction || ambiguousProducts.length === 0) {
-          speak('No hay ninguna selección pendiente');
-          return;
-        }
 
         const idx = parseInt(numStr) - 1;
         if (isNaN(idx) || idx < 0 || idx >= ambiguousProducts.length) {
@@ -687,6 +683,8 @@ const Cart = () => {
     awaitingConfirmation,
     // NO incluir registerCommands ni unregisterCommands para evitar loop infinito
   ]);
+  */ 
+  // FIN DE COMANDOS LOCALES DESHABILITADOS
 
   return (
     <Box
@@ -933,8 +931,6 @@ const Cart = () => {
                     mb: 5,
                   }}
                 >
-                  <Typography sx={{ fontWeight: "600" }}>ID-Compra:</Typography>
-                  <Typography>C-001</Typography>
                 </Box>
                 <Box
                   sx={{
