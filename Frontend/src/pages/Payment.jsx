@@ -52,8 +52,14 @@ const Payment = () => {
   const [apiError, setApiError] = useState("");
 
   // Si no hay items en el carrito, redirigir
+  useEffect(() => {
+    if (!items || items.length === 0) {
+      navigate("/cart");
+    }
+  }, [items, navigate]);
+
+  // Si no hay items, no renderizar el componente
   if (!items || items.length === 0) {
-    navigate("/cart");
     return null;
   }
 
